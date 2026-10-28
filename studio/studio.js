@@ -47,6 +47,14 @@
   function setMobilePanel(open){document.body.classList.toggle('studio-mobile-panel-open',open);$('#mobileSheetBackdrop').hidden=!open;syncMobileDock();if(open)$('#inspectorContent').scrollTop=0;}
   function stagePct(n,axis){return n/(axis==='x'?1080:1920)*100+'%';}
   function positionLayer(el,l){el.style.left=stagePct(l.x,'x');el.style.top=stagePct(l.y,'y');el.style.width=stagePct(l.w,'x');el.style.height=stagePct(l.h,'y');el.style.opacity=(l.opacity??100)/100;el.style.zIndex=l.z;el.style.transform=`rotate(${l.rotate||0}deg)`;el.style.display=l.visible===false?'none':'';}
+  function layerText(el,l,value=l.text){
+    const content=document.createElement('span');content.className='text-content';
+    if(state.presentation==='olympus-gold'&&['credits','betlabel'].includes(l.id)){
+      content.classList.add('wallet-text');const label=document.createElement('span');label.textContent=l.id==='credits'?'CREDIT':'BET';
+      const amount=document.createElement('strong');amount.textContent=value;content.append(label,amount);
+    }else content.textContent=value;
+    el.replaceChildren(content);
+  }
   function drawCanvas(){
     const root=$('#stageLayers');root.replaceChildren();
     root.classList.toggle('olympus-gold',state.presentation==='olympus-gold');
@@ -54,7 +62,7 @@
     for(const l of layers){
       const el=document.createElement('div');el.className='stage-layer '+l.kind+'-layer'+(selected===l.id&&mode==='edit'?' selected':'')+(l.locked?' locked':'');el.dataset.id=l.id;el.dataset.kind=l.kind;positionLayer(el,l);
       if(l.kind==='image'||(l.kind==='circle'&&l.asset)){const img=document.createElement('img');img.src=assetURL(l.asset);img.alt=l.name;img.draggable=false;if(l.crop){const c=l.crop;Object.assign(img.style,{position:'absolute',left:-c.x/c.w*100+'%',top:-c.y/c.h*100+'%',width:100/c.w+'%',height:100/c.h+'%',objectFit:'fill'});}el.classList.add('image-crop');el.append(img);if(l.kind==='circle'){el.classList.add('skinned-control');const icon=document.createElement('span');icon.textContent=l.text||'';el.append(icon);}}
-      else if(l.kind==='text'){el.textContent=l.text;el.style.color=l.color||'#ffe5af';el.style.fontSize=((l.font||42)/1080*100)+'cqw';/* container-based scale below */el.style.fontSize=`clamp(6px, ${(l.font||42)/1080*100}%, ${l.font||42}px)`;}
+      else if(l.kind==='text'){layerText(el,l);el.style.color=l.color||'#ffe5af';}
       else if(l.kind==='circle')el.textContent=l.text||'★';
       else if(l.kind==='grid'){
         for(const id of previewVisualGrid||state.grid){const cell=document.createElement('div');cell.className='grid-cell';const im=document.createElement('img');im.alt=id;im.src=assetURL('symbols/'+id+'.png');im.draggable=false;cell.append(im);el.append(cell);}
@@ -64,7 +72,7 @@
     // Fixed source-ratio font sizing, effective even with variable editor viewport.
     resizeText();
   }
-  function resizeText(){const stageW=$('#stage').getBoundingClientRect().width;$$('#stageLayers .text-layer').forEach(el=>{const l=lookupLayer(el.dataset.id);if(l)el.style.fontSize=Math.max(5,(l.font||40)*stageW/1080)+'px'});$$('#stageLayers .circle-layer').forEach(el=>{const l=lookupLayer(el.dataset.id);if(l)el.style.fontSize=Math.max(6,(l.font||36)*stageW/1080)+'px'});}
+  function resizeText(){const stageW=$('#stage').getBoundingClientRect().width;$$('#stageLayers .text-layer').forEach(el=>{const l=lookupLayer(el.dataset.id);if(l)el.style.fontSize=(l.font||40)*stageW/1080+'px'});$$('#stageLayers .circle-layer').forEach(el=>{const l=lookupLayer(el.dataset.id);if(l)el.style.fontSize=Math.max(6,(l.font||36)*stageW/1080)+'px'});window.SkygateTextFit.request($('#stageLayers'));}
   function renderSidebar(){
     const side=$('#sideContent');side.replaceChildren();const label=$('#sideTitle');const count=$('#sideCount');
     if(activeTab==='layers'){
@@ -210,10 +218,11 @@
       const status=`${result.winX.toFixed(3)}× · ${fmt(result.totalTumbles)} tumbles · bonus ${result.bonus.triggered?'YES':'no'} · jackpot ${result.jackpot.hit?result.jackpot.tier:'none'}`;
       trace(status);
       const winLabel=$('#stageLayers [data-id="winlabel"]');const winAmount=$('#stageLayers [data-id="winamount"]');
-      if(winLabel)winLabel.textContent=result.jackpot.hit?'JACKPOT':result.winX>0?'TOTAL WIN':'NO WIN';
-      if(winAmount)winAmount.textContent=amount;
-      const credits=$('#stageLayers [data-id="credits"]');if(credits)credits.textContent='CREDIT  '+fmt(state.credit);
-      const bet=$('#stageLayers [data-id="betlabel"]');if(bet)bet.textContent='BET  '+fmt(state.bet);
+      if(winLabel)layerText(winLabel,lookupLayer('winlabel'),result.jackpot.hit?'JACKPOT':result.winX>0?'TOTAL WIN':'NO WIN');
+      if(winAmount)layerText(winAmount,lookupLayer('winamount'),amount);
+      const credits=$('#stageLayers [data-id="credits"]');if(credits)layerText(credits,lookupLayer('credits'),fmt(state.credit));
+      const bet=$('#stageLayers [data-id="betlabel"]');if(bet)layerText(bet,lookupLayer('betlabel'),fmt(state.bet));
+      resizeText();
       if(result.jackpot.hit){flash(result.jackpot.tier.toUpperCase()+' JACKPOT');playAudio('jackpot');}
       else if(result.bonus.triggered){flash('FREE SPINS!');playAudio('bonus_intro');}
       else if(classWin==='mega'||classWin==='super'){flash(classWin.toUpperCase()+' WIN');playAudio('mega_win');}

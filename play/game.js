@@ -1,4 +1,4 @@
-/* Skygate portrait renderer v0.7. All outcomes come from the unchanged synthetic engine. */
+/* Skygate portrait renderer v0.9. Outcomes are independent of animation timing. */
 function startSkygate() {
   'use strict';
   const release=window.SkygateActiveRelease;
@@ -15,6 +15,7 @@ function startSkygate() {
   const label = {ruby:'Ruby', sapphire:'Sapphire', emerald:'Emerald', amethyst:'Amethyst', topaz:'Topaz', amber:'Ring', pearl:'Chalice', scatter:'Scatter Crown', orb:'Multiplier Orb'};
   Object.assign(label,{ring:'Ring',crown:'Crown',hourglass:'Hourglass',chalice:'Chalice'});
   if(published)Object.assign(label,{amber:'Amber',pearl:'Pearl'});
+  const reels=new window.SkygateReels(E('reels'),{asset,art,label,legacyOrb:!published});
   const initialSeed = published?.seed || 20261027;
   const startingCredit=published?.credit || 100000;
   const thresholds=published?.winPresentation || {bigX:10,megaX:25,superX:100};
@@ -30,7 +31,14 @@ function startSkygate() {
   let displayGrid=[];
   const credit = n => Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
   const isReduced = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const delay = ms => new Promise(ok => setTimeout(ok, isReduced() ? 0 : state.turbo ? Math.min(40,ms) : ms));
+  let suspended=false;
+  const waiting=new Map();
+  const motionOptions=()=>({turbo:state.turbo,reduced:isReduced()||suspended||document.hidden});
+  const delay = ms => new Promise(ok => {
+    if(motionOptions().reduced){ok();return;}
+    const timer=setTimeout(()=>{waiting.delete(timer);ok();},state.turbo?Math.min(40,ms):ms);
+    waiting.set(timer,ok);
+  });
   function sound(kind='tick') {
     if (!state.sound || document.hidden) return;
     const id=({tick:'spin_start',win:'symbol_win',tumble:'tumble',bonus:'bonus_intro',free:'free_spin_start',stop:'reel_stop',big:'big_win',mega:'mega_win',orb:'multiplier',jackpot:'jackpot'})[kind]||'ui_click';
@@ -43,16 +51,10 @@ function startSkygate() {
     state.sound=true;audioSettings.muted=false;mixer.updateMix();refresh();
     void mixer.play('bgm_celestial_loop');
   }
-  function render(grid,marked=[],fresh=[]) {
-    const wins = new Set(marked), newCells = new Set(fresh);
+  function render(grid,marked=[]) {
     if (!grid || !grid.length) return;
     displayGrid=grid;
-    E('reels').innerHTML=grid.map((t,i)=>{
-      const classes=['tile',!published&&t.kind==='orb'?'orb':'',wins.has(i)?'win':'',newCells.has(i)?'fresh':''].filter(Boolean).join(' ');
-      const sprite=art[t.kind]||'ruby';
-      const info=`${label[t.kind]||t.kind}${t.multiplier?' x'+t.multiplier:''}`;
-      return `<div class="${classes}" title="${info}" aria-label="${info}"><img class="symbol" src="${asset('symbols/'+sprite+'.png')}" alt="" draggable="false">${t.multiplier?`<b class="orb-num">${t.multiplier}×</b>`:''}${t.kind==='scatter'?'<small class="scatter-label">SCATTER</small>':''}</div>`;
-    }).join('');
+    reels.render(grid,marked);
   }
   function idleBoard() {
     const types=['emerald','amber','ruby','scatter','sapphire','topaz','amethyst','pearl','sapphire','emerald','pearl','ruby','scatter','topaz','orb','amethyst','amber','emerald','sapphire','ruby','pearl','amber','topaz','scatter','emerald','amethyst','topaz','amber','sapphire','pearl'];
@@ -89,14 +91,15 @@ function startSkygate() {
     E('bonusRibbon').hidden=!state.bonusRemaining;
     E('bonusRibbon').textContent=`FREE SPINS · ${state.bonusRemaining} LEFT · ×${state.bonusMultiplier||1}`;
     E('autoStatus').textContent=state.auto?'STOP':'AUTO';
+    window.SkygateRefitText?.();
   }
   function status(msg,hint=msg){E('status').textContent=msg;E('playHint').textContent=hint;}
   async function presentSpin(spin, bet, context) {
     state.orbTotal=0;
-    render(spin.initial,[],Array.from({length:30},(_,i)=>i));
     E('banner').textContent=context==='base'?(published?.presentation==='olympus-gold'?'ROUND WIN':'KEMENANGAN'):'FREE SPINS';
     status(context==='base'?'BASE SPIN · Seeking 8+ symbols':'FREE SPIN · Multiplier bank growing on qualifying orb wins',context==='base'?'Cari 8+ simbol yang sama':`${state.bonusRemaining} free spins tersisa`);
-    refresh(); await delay(240);
+    refresh();
+    await reels.spin(spin.initial,motionOptions());displayGrid=spin.initial;
     for(const tumble of spin.cascades) {
       state.cascade++;
       render(tumble.before,tumble.removedPositions,[]);
@@ -104,9 +107,8 @@ function startSkygate() {
       status(`TUMBLE ${tumble.step} · ${winSummary} · +${credit(tumble.awardX*bet)} demo credits`,`+${credit(tumble.awardX*bet)} kredit · simbol baru jatuh`);
       state.roundWin=Math.min(cfg.round_max_win_x*bet,state.roundWin+tumble.awardX*bet);
       sound('win');refresh();
-      await delay(310);
-      render(tumble.after,[],tumble.newPositions);sound('tumble');
-      await delay(210);
+      await delay(280);
+      sound('tumble');await reels.cascade(tumble.before,tumble.after,motionOptions());displayGrid=tumble.after;
     }
     render(spin.final);sound('stop');
     state.orbTotal=spin.orbSumX;
@@ -147,7 +149,7 @@ function startSkygate() {
     if (state.busy) return;
     if (!replay && state.credits<state.bet) {status('Kredit tidak cukup. Reset kredit melalui menu.');return;}
     if (replay && !state.last) {status('Belum ada ronde untuk replay.');return;}
-    state.busy=true;
+    state.busy=true;suspended=document.hidden;
     const bet=replay?state.last.bet:state.bet;
     let round;
     if (replay) round=state.last.round;
@@ -171,7 +173,7 @@ function startSkygate() {
       else if(round.winX>=thresholds.bigX){const big=round.winX>=thresholds.superX?'SUPER WIN':round.winX>=thresholds.megaX?'MEGA WIN':'BIG WIN';sound(round.winX>=thresholds.megaX?'mega':'big');celebrate(big,credit(round.winX*bet),'win');}
       status(`${replay?'REPLAY (tanpa debit)':'ROUND '+state.rounds} · ${credit(round.winX*bet)} kredit virtual · ${round.totalTumbles} tumbles · seed ${state.seed}`,replay?'Replay selesai · saldo tetap':round.winX>0?`+${credit(round.winX*bet)} kredit virtual`:'Ronde selesai · coba spin lagi');
     } catch(e) {console.error(e);status(`Error saat render: ${String(e.message||e)}`,'Animasi terhenti · hasil tersimpan di menu');}
-    finally {state.busy=false;refresh();}
+    finally {reels.cancel();state.busy=false;refresh();}
   }
   function resetGame(seed=state.seed) {
     if (state.busy) return;
@@ -242,8 +244,12 @@ function startSkygate() {
   window.addEventListener('keydown',e=>{
     if(e.key==='Enter' && document.activeElement===document.body && !state.busy && !state.auto && !E('modal').open && !E('menuDialog').open){e.preventDefault();sound('tick');void runRound();}
   });
-  window.addEventListener('pagehide',()=>{state.auto=false;mixer.stopAll();refresh();});
-  document.addEventListener('visibilitychange',()=>{if(document.hidden){state.auto=false;mixer.stopAll();refresh();}});
+  function suspend(){
+    suspended=true;state.auto=false;reels.cancel();mixer.stopAll();
+    for(const [timer,resolve] of waiting){clearTimeout(timer);resolve();}waiting.clear();refresh();
+  }
+  window.addEventListener('pagehide',suspend);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)suspend();});
   document.addEventListener('pointerdown',()=>{
     if(state.sound&&!document.hidden&&(!mixer.isReady()||!mixer.isPlaying('bgm_celestial_loop'))){void mixer.unlock().then(ready=>{if(ready&&state.sound&&!document.hidden)void mixer.play('bgm_celestial_loop');});}
   });

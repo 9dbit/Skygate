@@ -79,3 +79,11 @@
 .olympus-gold .grid-cell{background:transparent;border-color:#c3984c65}
 .olympus-gold .grid-cell img{width:96%;height:96%}
 .olympus-gold .stage-layer.text-layer{font-family:Georgia,'Times New Roman',serif;text-shadow:0 2px 3px #000}
+/* Same text bounds and caption hierarchy as the published game. */
+.stage-layer.text-layer{overflow:hidden;line-height:1.05}
+.stage-layer .text-content{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:max-content;max-width:none;white-space:pre;line-height:inherit;transform-origin:center}
+.stage-layer .text-content>*{line-height:inherit;flex-shrink:0}
+.stage-layer .text-content strong{font-size:inherit;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stage-layer .wallet-text{flex-direction:column;gap:.09em;line-height:1}
+.stage-layer .wallet-text>span{font:500 .428em system-ui;letter-spacing:.22em;color:#fff8db}
+.stage-layer[data-id=winamount] .text-content{letter-spacing:.015em}

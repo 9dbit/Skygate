@@ -28,6 +28,7 @@ function dom(){
   class Node {
     constructor(tag='div'){this.tagName=tag;this.style={};this.dataset={};this.children=[];this.className='';this.classList={add:(...xs)=>{this.className+=' '+xs.join(' ');}};}
     append(...nodes){for(const n of nodes){if(n.parent)n.parent.children=n.parent.children.filter(x=>x!==n);n.parent=this;this.children.push(n);}}
+    get firstChild(){return this.children[0];}
     prepend(n){this.append(n);this.children.unshift(this.children.pop());}
     before(n){this.parent.append(n);}
     querySelector(tag){return this.children.find(n=>n.tagName===tag);}
@@ -41,7 +42,7 @@ function dom(){
   // Match the browser: getElementById cannot find nodes in a detached scene.
   const connected=node=>{for(let n=node;n;n=n.parent)if(n===root)return true;return false;};
   const document={getElementById:id=>connected(nodes.get(id))?nodes.get(id):null,createElement:tag=>new Node(tag),querySelector:s=>s==='.game'?game:menu};
-  const window={SKY_PREVIEW_ASSETS:{}};
+  const window={SKY_PREVIEW_ASSETS:{},SkygateTextFit:{request(){}},addEventListener(){}};
   vm.runInNewContext(read('play/release.js'),{window,document});
   return {window,game,nodes};
 }
@@ -51,8 +52,8 @@ test('live layout keeps bet controls on canvas and moves Auto caption into its e
   assert.match(d.game.className,/olympus-gold/);
   assert.equal(d.nodes.get('plus').parent.dataset.layer,'plusbtn');
   assert.equal(d.nodes.get('minus').parent.dataset.layer,'minusbtn');
-  assert.equal(d.nodes.get('autoStatus').parent.dataset.layer,'autolabel');
-  assert.equal(d.nodes.get('turboStatus').parent.dataset.layer,'turbolabel');
+  assert.equal(d.nodes.get('autoStatus').parent.parent.dataset.layer,'autolabel');
+  assert.equal(d.nodes.get('turboStatus').parent.parent.dataset.layer,'turbolabel');
   assert.equal(d.nodes.get('auto').children.filter(n=>n.className==='control-skin').length,1);
   assert.match(d.nodes.get('auto').className,/skinned-control/);
   assert.match(d.nodes.get('auto').querySelector('svg').innerHTML,/currentColor/);

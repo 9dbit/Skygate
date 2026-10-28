@@ -39,12 +39,20 @@ window.SkygateApplyLayout=(project,asset)=>{
       wrap.textContent=l.id==='buytext'?'FREE SPINS':'WIN TABLE';wrap.classList.add('feature-label');
     }else if(l.kind==='image'){const image=document.createElement('img');image.src=asset(l.asset);image.alt=l.name;image.draggable=false;cropImage(image,l.crop);wrap.classList.add('image-crop');wrap.append(image);}
     else if(l.kind==='text'||l.kind==='circle')wrap.textContent=l.text;
+    if(l.kind==='text'){
+      const content=document.createElement('span');content.className='text-content';
+      while(wrap.firstChild)content.append(wrap.firstChild);
+      wrap.append(content);
+    }
     scene.append(wrap);
   }
   const missingBet=['minusbtn','plusbtn'].filter(id=>!project.layers.some(l=>l.id===id));
   if(missingBet.length){const betControls=document.createElement('div');betControls.className='published-bet-controls';for(const id of missingBet)betControls.append(document.getElementById(bindings[id]));document.querySelector('.menu-actions').before(betControls);}
   // Preserve activity details in the menu and a visible virtual-credit identity.
   document.getElementById('status').classList.add('published-status');
-  const identity=document.createElement('span');identity.className='published-identity';identity.textContent=project.presentation==='olympus-gold'?'VIRTUAL CREDITS\nSKYGATE · OLYMPUS':'VIRTUAL CREDITS · v0.8';scene.append(identity);
+  const identity=document.createElement('span');identity.className='published-identity';identity.textContent='VIRTUAL CREDITS\nSKYGATE';scene.append(identity);
   game.append(scene);game.classList.add('has-published-scene');
+  window.SkygateRefitText=()=>window.SkygateTextFit.request(scene);
+  window.addEventListener('resize',window.SkygateRefitText);
+  window.SkygateRefitText();
 };

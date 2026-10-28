@@ -1,0 +1,65 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+import {makeDOM} from './dom-fixture.mjs';
+const source=readFileSync(new URL('../../play/reels.js',import.meta.url),'utf8');
+function setup(){
+  const dom=makeDOM(),window={},timers=new Map();let id=0;
+  vm.runInNewContext(source,{window,document:{createElement:t=>new dom.Node(t)},setTimeout:(fn,ms)=>{timers.set(++id,{fn,ms});return id;},clearTimeout:id=>timers.delete(id)});
+  const root=new dom.Node(),renderer=new window.SkygateReels(root,{asset:p=>p,art:{ruby:'ruby',emerald:'emerald',orb:'orb'},label:{ruby:'Ruby',emerald:'Emerald',orb:'Orb'}});
+  const before=Array.from({length:30},(_,i)=>({id:i+1,kind:i%2?'emerald':'ruby'}));renderer.render(before);
+  return {...dom,renderer,root,before,timers};
+}
+test('six persistent strips stagger their stops, animate compositor properties and clean up',async()=>{
+  const t=setup(),after=t.before.map(s=>({...s,kind:'orb',multiplier:4}));
+  await t.renderer.ready;const count=t.created.length;
+  const playing=t.renderer.spin(after);await Promise.resolve();
+  assert.equal(t.root.classList.contains('rolling'),true);
+  assert.deepEqual([...t.timers.values()].map(t=>t.ms),[360,415,470,525,580,635]);
+  assert.equal(t.animations.length,6);
+  for(const timer of [...t.timers.values()])timer.fn();
+  await playing;
+  assert.equal(t.animations.length,12);
+  for(const a of t.animations){assert(a.cancelled);for(const frame of a.frames)assert(Object.keys(frame).every(k=>['transform','opacity','offset'].includes(k)));}
+  assert.equal(t.created.length,count);
+  assert.equal(t.renderer.animations.size,0);assert.equal(t.renderer.waiters.size,0);
+  assert.equal(t.root.classList.contains('rolling'),false);
+  assert(t.renderer.cells.every(c=>c.multiplier.textContent==='4×'&&!c.multiplier.hidden));
+});
+test('background cancellation releases pending stops and displays the selected result',async()=>{
+  const t=setup(),after=t.before.map(s=>({...s,kind:'emerald'}));await t.renderer.ready;
+  const playing=t.renderer.spin(after);await Promise.resolve();t.renderer.cancel();await playing;
+  assert.equal(t.timers.size,0);assert.equal(t.renderer.animations.size,0);
+  assert(t.renderer.cells.every(c=>c.kind==='emerald'));
+  assert(t.animations.every(a=>a.cancelled));
+});
+test('cascades move surviving symbols from their previous row and retain orb labels',async()=>{
+  const t=setup(),after=t.before.map(s=>({...s}));
+  after[6]=t.before[0];after[0]={id:31,kind:'orb',multiplier:50};
+  const playing=t.renderer.cascade(t.before,after);await playing;
+  assert.equal(t.animations.length,2);
+  assert.equal(t.animations[0].frames[0].transform,'translate3d(0,-100%,0)');
+  assert.equal(t.animations[1].frames[0].transform,'translate3d(0,-100%,0)');
+  assert.equal(t.renderer.cells[0].multiplier.textContent,'50×');
+  assert(t.animations.every(a=>a.cancelled));
+});
+test('turbo shortens presentation without changing the grid; reduced motion creates no animations',async()=>{
+  const t=setup();await t.renderer.ready;const playing=t.renderer.spin(t.before,{turbo:true});await Promise.resolve();
+  assert.deepEqual([...t.timers.values()].map(t=>t.ms),[100,116,132,148,164,180]);
+  for(const timer of [...t.timers.values()])timer.fn();await playing;
+  const count=t.animations.length;await t.renderer.spin(t.before,{reduced:true});await t.renderer.cascade(t.before,t.before,{reduced:true});
+  assert.equal(t.animations.length,count);assert.equal(t.renderer.grid,t.before);
+});
+
+test('text fitting keeps long amounts and caption stacks inside the same bounds at phone widths',()=>{
+  const window={};vm.runInNewContext(readFileSync(new URL('../../play/text-fit.js',import.meta.url),'utf8'),{window});
+  for(const stage of [320,375,390,430,600])for(const [w,h,naturalW,naturalH] of [[620,62,980,70],[460,70,510,79],[33,52,33,70]]){
+    const content={offsetWidth:naturalW*stage/1080,offsetHeight:naturalH*stage/1080,style:{}};
+    const box={clientWidth:w*stage/1080,clientHeight:h*stage/1080,querySelector:()=>content};
+    window.SkygateTextFit.fit({querySelectorAll:()=>[box]});
+    const scale=Number(content.style.transform.match(/[\d.]+/)[0]);
+    assert(content.offsetWidth*scale<=box.clientWidth+.02);
+    assert(content.offsetHeight*scale<=box.clientHeight+.02);
+  }
+});
