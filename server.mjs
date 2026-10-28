@@ -6,6 +6,7 @@ import { createReleaseStore, ReleaseError } from './release-store.mjs';
 import { dirname, extname, posix, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root=dirname(fileURLToPath(import.meta.url));
+const {version}=JSON.parse(await readFile(resolve(root,'package.json'),'utf8'));
 const port=Number(process.env.PORT || 3000);
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.ogg':'audio/ogg','.mp3':'audio/mpeg','.m4a':'audio/mp4','.wav':'audio/wav','.md':'text/markdown; charset=utf-8'};
 const base={'X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin','X-Frame-Options':'SAMEORIGIN'};
@@ -42,7 +43,7 @@ createServer(async(req,res)=>{
   raw=posix.normalize(raw);
   const api=raw.startsWith('/studio/api/');
   if(!['GET','HEAD'].includes(req.method||'')&&!(api&&req.method==='POST')){res.writeHead(405,{...base,Allow:'GET, HEAD'});res.end();return;}
-  if(raw==='/health') {res.writeHead(200,{...base,'Content-Type':'application/json','Cache-Control':'no-store'});res.end(req.method==='HEAD'?'':JSON.stringify({ok:true,service:'skygate-studio',version:'0.8.0'}));return;}
+  if(raw==='/health') {res.writeHead(200,{...base,'Content-Type':'application/json','Cache-Control':'no-store'});res.end(req.method==='HEAD'?'':JSON.stringify({ok:true,service:'skygate-studio',version}));return;}
   // Only the two app directories are web roots; repository files are not routes.
   if(raw!=='/'&&raw!=='/studio'&&!raw.startsWith('/studio/')&&raw!=='/play'&&!raw.startsWith('/play/')){res.writeHead(404,base);res.end('Not Found');return;}
   if(raw.split('/').some(part=>part.startsWith('.'))){res.writeHead(404,base);res.end('Not Found');return;}

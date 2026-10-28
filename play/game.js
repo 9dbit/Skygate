@@ -348,7 +348,7 @@ function startSkygate() {
   E('anteRulesNote').textContent=cfg.reference_rules?'Referensi menyebut peluang bonus Ante 2× dan RTP 96,50%. Bobot asli tidak disediakan; frekuensi Ante dan RTP Skygate belum terverifikasi.':'Profil peluang ditetapkan di Studio.';
   if(cfg.scatter_paytable)E('paytable').innerHTML+=`<tr><td>SCATTER</td><td colspan="3">4 = 3× · 5 = 5× · 6+ = 100×</td></tr>`;
   E('capText').textContent=`Maksimum ${cfg.round_max_win_x.toLocaleString('id-ID')}× base bet per ronde. Saat batas tercapai, ronde langsung berakhir dan sisa fitur dibatalkan. Total bet 0,20–300,00 kredit virtual. Gangguan perhitungan membatalkan ronde; gangguan animasi tetap membayar hasil yang telah dihitung. Kecepatan dan autoplay tidak mengubah peluang. Tidak ada deposit atau penarikan.`;
-  E('releaseInfo').textContent=release?`Versi ${release.id.slice(0,8)} · ${new Date(release.createdAt).toLocaleDateString('id-ID')}`:'SKYGATE v0.8 · Original celestial artwork';
+  E('releaseInfo').textContent=release?`Versi ${release.id.slice(0,8)} · ${new Date(release.createdAt).toLocaleDateString('id-ID')}`:'SKYGATE · Original celestial artwork';
   E('previewBadge').hidden=!window.SkygatePreview;
   E('seedInput').value=String(state.seed);
   resetGame(initialSeed);

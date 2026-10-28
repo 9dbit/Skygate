@@ -1,6 +1,16 @@
-# SKYGATE v0.5 — Portrait Game & Studio
+# SKYGATE — Portrait Game & Studio
 
 Greek-mythology-inspired **virtual-credit** game development playground. Includes a layout studio, modular icon assets, original music and sound effects, math experimentation, free spins, and simulated jackpot controls. This is not connected to deposits, withdrawals, or real-money gambling.
+
+### Current release: v0.9.0 — 29 October 2026 (Asia/Jakarta)
+
+- Reference rules and controls are implemented: nine-symbol paytable, SCATTER awards, 15 free spins with retriggers, 2–500× orbs, a 5000× round cap, Buy Free Spins at 100× base bet, and +25% Ante that disables purchase.
+- Normal / Quick / Turbo, autoplay 10–1000, purchase confirmation, bet/coin controls, session history and settings are available. Paytable amounts follow the selected base bet and coin display.
+- Winning symbols use lightning, fireworks and tumble motion. Virtual credits are debited once before presentation and awards settle once after presentation, including interruption; replay never changes the ledger.
+- `/health` reads the version from `package.json`. Verify the deployed Git commit in Railway as well; the immutable Studio artwork snapshot has a separate release ID.
+- Validation: 61 automated tests pass. Native iPhone Safari/audio checks remain pending. Proprietary outcome weights, certified RTP and exact Ante frequency are **not** established by the reference screenshots; see [reference rules and limitations](docs/reference-rules-v1.md).
+
+The v0.4–v0.8 sections below describe historical changes. Older statements that Buy/Ante are unavailable, Auto is fixed at 10, or settlement happens before animation are superseded by this section. Studio access is controlled by the current Railway environment; earlier checkpoints do not prove the current access mode.
 
 - `/` or `/studio/` - studio editor (optional password protection) (mobile 9:16 preview, edit layers, asset swap, audio, math, win, jackpot settings)
 - `/play/` - illustrated portrait game v0.5 (virtual credits)
@@ -15,8 +25,8 @@ For local development:
 ```bash
 mkdir -p .tmp
 # The media archive paths are relative to this repository root.
-tar -xzf media_assets.tar.gz
-tar -xzf audio_mp3.tar.gz
+tar --no-same-owner -xzf media_assets.tar.gz
+tar --no-same-owner -xzf audio_mp3.tar.gz
 npm test
 npm start
 ```
