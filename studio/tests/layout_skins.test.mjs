@@ -28,6 +28,7 @@ function dom(){
   class Node {
     constructor(tag='div'){this.tagName=tag;this.style={};this.dataset={};this.children=[];this.className='';this.classList={add:(...xs)=>{this.className+=' '+xs.join(' ');}};}
     append(...nodes){for(const n of nodes){if(n.parent)n.parent.children=n.parent.children.filter(x=>x!==n);n.parent=this;this.children.push(n);}}
+    setAttribute(k,v){this[k]=v;}
     get firstChild(){return this.children[0];}
     prepend(n){this.append(n);this.children.unshift(this.children.pop());}
     before(n){this.parent.append(n);}

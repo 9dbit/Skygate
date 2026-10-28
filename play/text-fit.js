@@ -7,8 +7,8 @@
     const changes = Array.from(root.querySelectorAll('.text-layer')).map(box => {
       const content = box.querySelector('.text-content');
       if (!content || !box.clientWidth || !box.clientHeight) return null;
-      const scale = Math.min(1, (box.clientWidth - 2) / Math.max(1, content.offsetWidth),
-        (box.clientHeight - 2) / Math.max(1, content.offsetHeight));
+      const scale = Math.min(1, box.clientWidth * .98 / Math.max(1, content.offsetWidth),
+        box.clientHeight * .98 / Math.max(1, content.offsetHeight));
       return {content, value: `scale(${Math.max(.01, scale).toFixed(4)})`};
     });
     for (const change of changes) if (change && change.content.style.transform !== change.value)

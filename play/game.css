@@ -130,3 +130,5 @@ dialog{border-color:#8f765344;border-radius:24px;background:linear-gradient(150d
 .olympus-gold .published-layer[data-layer=credits] .text-content>strong,.olympus-gold .published-layer[data-layer=betlabel] .text-content>strong{line-height:1}
 .olympus-gold .spin{filter:none}
 @media(prefers-reduced-motion:reduce){.reels.rolling .reel-track{will-change:auto}.tile.win .symbol-motion{transform:none;opacity:1}}
+
+.published-identity{z-index:50;pointer-events:none}

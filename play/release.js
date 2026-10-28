@@ -34,6 +34,7 @@ window.SkygateApplyLayout=(project,asset)=>{
       if(l.id==='reels'){wrap.classList.add('live-grid');wrap.append(document.getElementById('bonusRibbon'));}
     }else if(l.id==='buybtn'||l.id==='antebtn'){
       const control=document.getElementById(l.id==='buybtn'?'freeInfo':'payInfo');control.className='published-feature';const bg=document.createElement('img');bg.src=asset(l.asset);bg.alt='';bg.className='feature-skin';cropImage(bg,l.crop);control.prepend(bg);wrap.append(control);
+      control.setAttribute('aria-label',l.id==='buybtn'?'Free spins · aturan bonus':'Win table · nilai simbol');
     }else if(l.id==='buytext'||l.id==='antetext'){
       // The matching functional button supplies its own accessible label.
       wrap.textContent=l.id==='buytext'?'FREE SPINS':'WIN TABLE';wrap.classList.add('feature-label');
