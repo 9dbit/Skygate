@@ -1,5 +1,6 @@
 # SKYGATE Studio v0.4.1 | Continuity checkpoint
 
+> Historical preparation notes. Deployment status below is superseded by `studio/CONTINUITY_CHECKPOINT_v0.4.2.md` (or the adjacent file when reading inside `studio/`). v0.4.1 was subsequently deployed and its Studio password configured.
 **Prepared:** 28 October 2026, Asia/Jakarta  
 **Base repo:** `9dbit/Skygate` branch `main`, expected production commit `5203d1e3c990fc624acb66573731eb8832070091`.  
 **Railway:** project `626b6a33-c7f1-4ec5-a9c7-6834349fa3bd`, service `fff3472b-24bb-418c-aa11-0f95cfd53390`, environment `588a155b-2cb3-4f42-b2fa-254a6aa3cd3c`.

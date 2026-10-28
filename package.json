@@ -1,8 +1,8 @@
 {
   "name":"skygate-studio",
-  "version":"0.4.1",
+  "version":"0.4.2",
   "private":true,
   "description":"Skygate Studio editor and virtual-credit game preview",
-  "scripts":{"start":"node server.mjs","test":"node --test studio/tests/studio_math.test.js"},
+  "scripts":{"start":"node server.mjs","test":"node --test studio/tests/*.test.js studio/tests/*.test.mjs"},
   "engines":{"node":">=20"}
 }

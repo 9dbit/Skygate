@@ -1,4 +1,4 @@
-# SKYGATE Studio Editor v0.4.1
+# SKYGATE Studio Editor v0.4.2
 
 Greek-mythology-inspired **virtual-credit** game development playground. Includes a layout studio, modular icon assets, original music and sound effects, math experimentation, free spins, and simulated jackpot controls. This is not connected to deposits, withdrawals, or real-money gambling.
 
@@ -47,4 +47,11 @@ Continuity: `studio/CONTINUITY_CHECKPOINT_v0.4.md`.
 - Disconnect completed or replaced buffer sources and gain nodes, avoiding lingering audio graph connections during rapid SFX replacement.
 - Added a simulated suspension/resume regression test in Chromium. This is **not** physical iPhone Safari certification.
 
-Deployment from GitHub is pending connector write access; production remains at v0.3.1 until an authorized commit is pushed.
+### v0.4.2 route protection fix
+
+- Decode and normalize URL paths **before** Studio authentication, so encoded separators or parent segments cannot bypass the private route boundary.
+- Serve files only from the Studio and playable app directories; repository configuration and hidden files are not web routes.
+- `npm test` includes 25 passing tests covering route protection, login, public endpoints, redirects, fail-closed configuration, and the existing game math.
+- GitHub `main` is connected to the existing Railway `skygate-web` production service. Verify a release through the matching deployment commit and terminal `SUCCESS`; `/health` reports the runtime version.
+
+Current handoff: `studio/CONTINUITY_CHECKPOINT_v0.4.2.md`. Previous v0.4/v0.4.1 deployment-status notes are historical; v0.4.1 at `8681099c` was confirmed deployed before this patch. Native iPhone Safari and authenticated browser UI checks are still pending.

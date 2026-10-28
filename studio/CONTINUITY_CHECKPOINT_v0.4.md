@@ -1,5 +1,6 @@
 # SKYGATE Studio v0.4 continuity checkpoint
 
+> Historical preparation notes. Deployment status below is superseded by `studio/CONTINUITY_CHECKPOINT_v0.4.2.md` (or the adjacent file when reading inside `studio/`). v0.4.1 was subsequently deployed and its Studio password configured.
 **28 October 2026 (Asia/Jakarta)**
 
 ## Deployed target
