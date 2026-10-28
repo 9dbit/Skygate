@@ -32,7 +32,7 @@ createServer(async(req,res)=>{
     if(!authPassword){res.writeHead(503,privateHeaders);res.end('Studio access is not configured');return;}
     if(!isAuthed(req)){res.writeHead(401,{...privateHeaders,'WWW-Authenticate':'Basic realm="SKYGATE Studio", charset="UTF-8"'});res.end('Private studio: authentication required');return;}
   }
-  if(raw==='/')raw='/studio/index.html';
+  if(raw==='/'){res.writeHead(308,{...base,Location:'/studio/','Cache-Control':'no-store'});res.end();return;}
   if(raw==='/studio'||raw==='/play'){res.writeHead(308,{...base,Location:raw+'/'});res.end();return;}
   let target=resolve(root,'.'+raw);
   if(target!==root&&!target.startsWith(root+sep)){res.writeHead(403,base);res.end('Forbidden');return;}
