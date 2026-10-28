@@ -1,11 +1,21 @@
 <!doctype html>
-<html lang="id"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/><meta name="theme-color" content="#120d20"/><title>SKYGATE Studio • Slot Game Asset & Math Editor</title><link rel="stylesheet" href="studio.css"></head>
+<html lang="id"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/><meta name="theme-color" content="#120d20"/><title>SKYGATE Studio v0.4.1 • Mobile Slot Game Editor</title><link rel="stylesheet" href="studio.css"></head>
 <body>
 <div class="studio-app">
   <header class="topbar">
     <div class="brand"><div class="logo-mark">ϟ</div><div class="brand-title"><b>SKYGATE <span>STUDIO</span></b><small>SLOT GAME · VIRTUAL-CREDIT DEVELOPMENT</small></div></div>
-    <div class="top-actions"><span class="state-chip"><span class="state-dot"></span> LOCAL STUDIO <b>v0.3</b></span><button id="undoBtn" class="top-button" title="Undo (Ctrl/Cmd+Z)">↶ Undo</button><button id="saveBtn" class="top-button">⌁ Save local</button><button id="importBtn" class="top-button">↥ Import</button><button id="exportBtn" class="top-button">↧ Export JSON</button><button id="bundleBtn" class="top-button highlight">⬡ Export changes ZIP</button><input type="file" id="importInput" accept="application/json,.json" hidden/></div>
+    <div class="top-actions"><span class="state-chip"><span class="state-dot"></span> BROWSER STUDIO <b>v0.4.1</b></span><button id="undoBtn" class="top-button" title="Undo (Ctrl/Cmd+Z)">↶ Undo</button><button id="saveBtn" class="top-button">⌁ Save local</button><button id="importBtn" class="top-button">↥ Import JSON/ZIP</button><button id="exportBtn" class="top-button">↧ Export JSON</button><button id="bundleBtn" class="top-button highlight">⬡ Export changes ZIP</button><input type="file" id="importInput" accept="application/json,application/zip,.json,.zip" hidden/></div>
   </header>
+  <nav id="mobileDock" class="mobile-dock" aria-label="Mobile editor navigation">
+    <button type="button" data-mobile-tab="canvas" class="selected"><b>▣</b><span>Canvas</span></button>
+    <button type="button" data-mobile-tab="layers"><b>◈</b><span>Layers</span></button>
+    <button type="button" data-mobile-tab="assets"><b>▦</b><span>Assets</span></button>
+    <button type="button" data-mobile-tab="audio"><b>♫</b><span>Sound</span></button>
+    <button type="button" data-mobile-tab="math"><b>∑</b><span>Wins</span></button>
+    <button type="button" data-mobile-tab="jackpot"><b>♛</b><span>Jackpot</span></button>
+    <button type="button" data-mobile-tab="test"><b>▷</b><span>Test</span></button>
+  </nav>
+  <div id="mobileSheetBackdrop" class="mobile-sheet-backdrop" hidden></div>
   <div class="studio-shell">
     <aside class="sidebar">
       <div class="sidebar-caption">WORKSPACE</div>
@@ -22,14 +32,14 @@
       <div class="sidebar-footer"><span class="tiny-accent">●</span> 1080 × 1920 portrait source<br/><span>All assets independently addressable.</span></div>
     </aside>
     <main class="workspace">
-      <div class="workspace-header"><div><div class="microtitle">LIVE MOBILE VIEWPORT</div><h1>Skygate · Portrait 9:16</h1></div><div class="stage-controls"><button class="pill-btn selected" id="editModeBtn">✧ Edit</button><button class="pill-btn" id="previewModeBtn">▶ Playtest</button><button class="square-btn" id="showRefBtn" title="Show / hide original flattened reference">▧</button><button class="square-btn" id="guidesBtn" title="Grid guides">⌗</button></div></div>
+      <div class="workspace-header"><div><div class="microtitle">LIVE MOBILE VIEWPORT</div><h1>Skygate · Portrait 9:16</h1></div><div class="stage-controls"><button class="pill-btn selected" id="editModeBtn">✧ Edit</button><button class="pill-btn" id="previewModeBtn">▶ Playtest</button><button class="sound-unlock-btn" id="audioUnlockBtn" type="button" title="Enable sound for iPhone"><span aria-hidden="true">♫</span><em>Enable sound</em></button><button class="square-btn" id="showRefBtn" title="Show / hide original flattened reference">▧</button><button class="square-btn" id="guidesBtn" title="Grid guides">⌗</button></div></div>
       <div class="viewport-wrap"><div class="phone"><div class="screen-notch" aria-hidden="true"></div><div id="stage" class="stage edit-mode" aria-label="Mobile game editor canvas"><div id="stageLayers" class="stage-layers"></div><div id="stageGuides" class="stage-guides" hidden></div><div id="referenceOverlay" class="reference-overlay" hidden><img src="assets/scene/reference_original.jpg" alt="Original concept reference"></div><div id="stageOverlay" class="stage-overlay"></div></div><div class="phone-bottom" aria-hidden="true"></div></div></div>
       <div class="viewport-footer"><span><i class="yellow-dot"></i> <strong id="statusMode">Edit mode</strong> · Drag a layer to reposition</span><div class="viewer-actions"><span id="stageSummary">1080 × 1920</span><button class="bottom-btn" id="resetSelectionBtn">Deselect</button><button class="bottom-btn strong" id="demoSpinBtn">▶ Demo Spin</button></div></div>
       <div class="trace-bar"><span class="trace-badge">◈ LIVE RESULT</span><span id="traceStatus">Ready to inspect win events and sound cues.</span></div>
     </main>
-    <aside class="inspector"><div class="inspector-top"><div><small class="microtitle">STUDIO INSPECTOR</small><h2 id="panelTitle">Layer properties</h2></div><div class="settings-icon">⚙</div></div><div id="inspectorContent" class="inspector-content"></div><div class="inspector-bottom"><span>Synced to <b>local project</b></span><span id="saveStatus">Unsaved</span></div></aside>
+    <aside class="inspector"><div class="inspector-top"><div><small class="microtitle">STUDIO INSPECTOR</small><h2 id="panelTitle">Layer properties</h2></div><button type="button" id="mobileClosePanel" class="mobile-close-panel" aria-label="Close editor panel">×</button><div class="settings-icon">⚙</div></div><div id="inspectorContent" class="inspector-content"></div><div class="inspector-bottom"><span>Local browser project · <b id="saveStatus">Unsaved</b></span><button id="mobileBackupBtn" class="mobile-backup-btn" type="button">↧ Backup ZIP</button></div></aside>
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 </div>
-<script src="assets/audio/waveforms.js"></script><script src="project-data.js"></script><script src="math/engine.js"></script><script src="math/studio_math.js"></script><script src="studio.js"></script>
+<script src="assets/audio/waveforms.js"></script><script src="project-data.js"></script><script src="math/engine.js"></script><script src="math/studio_math.js"></script><script src="audio_engine.js"></script><script src="studio.js"></script>
 </body></html>

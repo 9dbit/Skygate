@@ -16,8 +16,8 @@ for f in (R/'assets').rglob('*'):
     if rel in ['studio_moodboard_reference.png','scene/hero_composite_reference.jpg','scene/bottom_controls_reference.jpg','scene/controls_reference.jpg']:
       continue
     assets[rel]='data:'+mime+';base64,'+base64.b64encode(f.read_bytes()).decode('ascii')
-  elif f.suffix.lower()=='.ogg':
-    audio[f.stem]='data:audio/ogg;base64,'+base64.b64encode(f.read_bytes()).decode('ascii')
+  elif f.suffix.lower()=='.mp3':
+    audio[f.stem]='data:audio/mpeg;base64,'+base64.b64encode(f.read_bytes()).decode('ascii')
 html=html.replace('src="assets/scene/reference_original.jpg"','src="'+assets['scene/reference_original.jpg']+'"')
 html=html.replace('</head>', '<script>window.SKY_EMBEDDED_ASSETS='+json.dumps(assets)+';window.SKY_EMBEDDED_AUDIO='+json.dumps(audio)+';</script></head>')
 def inline(match):
@@ -28,5 +28,5 @@ def inline(match):
     s=s.replace("window.open('assets/asset_contact_sheet.jpg','_blank')", "window.open(window.SKY_EMBEDDED_ASSETS['asset_contact_sheet.jpg'],'_blank')")
   return '<script>\n'+s+'\n</script>'
 html=re.sub(r'<script src="([^"]+)"></script>',inline,html)
-name=R/'SKYGATE_Studio_Standalone_v0.3.html';name.write_text(html)
+name=R/'SKYGATE_Studio_Standalone_v0.4.html';name.write_text(html)
 print('Wrote',name,'bytes',name.stat().st_size,'graphics',len(assets),'audio',len(audio))

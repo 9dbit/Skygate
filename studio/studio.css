@@ -9,3 +9,61 @@
 @media(min-width:801px) and (max-width:1070px){.studio-shell{height:calc(100dvh - 67px)}}
 
 .audio-wave{display:flex;align-items:center;gap:2px;height:30px;padding:3px 2px;margin:10px 0 6px;cursor:pointer;border-bottom:1px solid #41314f}.audio-wave i{display:block;flex:1;min-width:1px;max-width:8px;background:linear-gradient(180deg,#c78dff,#a64ef0);border-radius:3px;opacity:.9;pointer-events:none}.audio-wave:hover{background:#322240}.audio-wave:focus-visible{outline:1px solid #d0a1ff}.audio-wave-note{font-size:8px;color:#887996;margin-left:4px}
+
+/* v0.4 mobile-first workspace: a persistent seven-tool dock and a reachable inspector sheet. */
+.mobile-dock,.mobile-sheet-backdrop,.mobile-close-panel,.mobile-layer-picker,.mobile-asset-grid,.sound-unlock-btn{display:none}
+.sound-unlock-btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;background:#251738;color:#f7dfa4;border:1px solid #9573ab;padding:9px 10px;border-radius:9px;font-weight:800;font-size:10px;white-space:nowrap}
+.sound-unlock-btn[data-ready="true"]{background:#17352c;color:#9aefc7;border-color:#4c9c80}
+.mobile-close-panel{background:#362749;border:1px solid #775b90;color:#f4e2fb;border-radius:50%;width:34px;height:34px;font-size:23px;align-items:center;justify-content:center}
+@media(max-width:800px){
+ html,body{overscroll-behavior-y:contain}
+ .studio-app{padding-bottom:calc(80px + env(safe-area-inset-bottom,0px));min-height:100dvh}
+ .topbar{padding:8px 12px;gap:5px;min-height:64px;flex-wrap:wrap}
+ .top-actions{gap:6px;width:100%;flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+ .top-actions::-webkit-scrollbar{display:none}
+ .top-button{min-height:37px}
+ .mobile-dock{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));position:fixed;left:0;right:0;bottom:0;padding:7px 4px calc(8px + env(safe-area-inset-bottom,0px));gap:2px;background:#16101ff2;border-top:1px solid #6c4c80;backdrop-filter:blur(22px);z-index:108;box-shadow:0 -8px 22px #0008}
+ .mobile-dock button{min-height:51px;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#b9a9ca;border:1px solid transparent;background:transparent;border-radius:9px;padding:4px 0;font-size:9px;font-weight:850}
+ .mobile-dock button b{font-weight:900;font-size:20px;line-height:1.05;color:#e8c38b}
+ .mobile-dock button.selected{color:#fff4d8;background:#523371;border-color:#a279c7}
+ .mobile-dock button.selected b{color:#ffe5a7}
+ .studio-shell{display:block;min-height:0}
+ .sidebar{display:none}
+ .workspace{padding:10px 10px 12px;min-height:calc(100dvh - 194px);overflow:visible}
+ .workspace-header{margin-bottom:9px;gap:5px}
+ .workspace-header h1{font-size:clamp(12px,3.8vw,17px)}
+ .stage-controls{gap:4px;flex-wrap:nowrap}
+ .pill-btn{padding:7px 9px;font-size:10px}
+ .square-btn{padding:6px 8px;font-size:13px}
+ .sound-unlock-btn{min-width:34px;min-height:33px;padding:6px;border-radius:50%;font-size:16px}
+ .sound-unlock-btn em{display:none}
+ .phone{min-width:0;width:min(100%,330px,calc((100dvh - 270px) * 9/16));max-height:none;margin:0 auto}
+ .viewport-wrap{width:100%;min-height:0;flex:initial;padding:0;align-items:center}
+ .viewport-footer{margin-top:9px}
+ .trace-bar{margin-top:10px;padding:7px 0 0;font-size:10px}
+ .mobile-sheet-backdrop:not([hidden]){display:block;position:fixed;inset:0 0 calc(65px + env(safe-area-inset-bottom,0px)) 0;background:#080310a0;z-index:94}
+ .inspector{position:fixed;z-index:100;left:0;right:0;bottom:calc(64px + env(safe-area-inset-bottom,0px));height:min(69dvh,690px);min-height:240px;background:#151021;border:1px solid #8b66aa;border-bottom:0;border-radius:22px 22px 0 0;box-shadow:0 -18px 65px #000b;transform:translateY(calc(100% + 70px));transition:transform .24s ease;visibility:hidden;pointer-events:none;display:flex;flex-direction:column;overflow:hidden}
+ .studio-mobile-panel-open .inspector{transform:translateY(0);visibility:visible;pointer-events:auto}
+ .inspector-top{padding:12px 18px;flex:0 0 auto}
+ .inspector-top h2{font-size:16px}
+ .inspector-content{max-height:none;overflow-y:auto;overscroll-behavior:contain;padding:13px 16px 20px;flex:1}
+ .inspector-bottom{flex-shrink:0;padding:9px 15px}
+ .mobile-close-panel{display:flex}
+ .settings-icon{display:none}
+ .mobile-layer-picker{display:block;margin-bottom:16px;border:1px solid #624475;background:#241a35;padding:12px;border-radius:12px}
+ .mobile-layer-picker select{font-size:14px;min-height:43px;margin-top:5px}
+ .mobile-asset-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:13px 0}
+ .mobile-asset-grid button{min-width:0;min-height:96px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px;background:#241a34;border:1px solid #5c446b;border-radius:10px;color:#dac9e7;padding:6px;overflow:hidden}
+ .mobile-asset-grid img{width:min(66px,100%);height:58px;object-fit:contain}
+ .mobile-asset-grid span{font-size:9px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;max-width:100%}
+ .field input:not([type=checkbox]):not([type=range]),.field-grid input,.field select{min-height:42px;font-size:14px}
+ .prop-btn{min-height:43px}
+ .audio-row-actions button{min-width:33px;min-height:38px}
+ .audio-row{padding:12px 10px}
+ .toast{bottom:calc(78px + env(safe-area-inset-bottom,0px));max-width:calc(100% - 25px)}
+}
+@media(max-width:360px){.mobile-dock button{font-size:8px}.mobile-dock button b{font-size:17px}.phone{width:min(100%,310px,calc((100dvh - 274px) * 9/16))}.workspace-header .microtitle{font-size:8px}.workspace-header h1{font-size:12px}.pill-btn{padding:7px 6px;font-size:9px}.stage-controls{gap:3px}.square-btn{padding:5px}.inspector-content{padding:11px}}
+@media(prefers-reduced-motion:reduce){.inspector{transition:none}.stage-grid-jitter,.stage-jackpot-flash{animation:none}}
+
+.mobile-backup-btn{display:none}
+@media(max-width:800px){.mobile-backup-btn{display:block;border-radius:8px;border:1px solid #8c6bb0;background:#302142;color:#ffe0a5;padding:9px 12px;min-height:38px;font-weight:800;font-size:11px}.inspector-bottom{gap:10px}.inspector-bottom>span{font-size:10px}}

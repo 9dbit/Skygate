@@ -1,4 +1,4 @@
-# SKYGATE Studio Editor v0.3
+# SKYGATE Studio Editor v0.4
 
 **Project:** Slot Game / SKYGATE  
 **Date:** 27 October 2026 (Asia/Jakarta)  
@@ -61,3 +61,14 @@ Audio in `assets/audio/` is original procedurally synthesized music/SFX generate
 2. Polish animation timeline, reel tumble physics and audio synchronization in the actual game renderer.
 3. Implement separately configured features only after validating math fairness and an appropriate legal review.
 4. Physical-device QA on iPhone/Android and build a deployed preview if authorized.
+
+## v0.4 additions (28 October 2026)
+
+- Mobile: persistent seven-tab bottom dock and inspector bottom drawer. In Layers choose a layer from the mobile selector, or tap a canvas layer then choose its properties. On mobile, the Canvas tab closes the drawer.
+- Audio: 13 MP3 Safari fallbacks, Web Audio unlock initiated by a direct tap. In the Sound panel tap **Enable audio (iPhone)** if iOS suspends the audio context. Browser autoplay is not attempted. Built-in OGG masters remain in `assets/audio/`.
+- Export changes ZIP now supports **re-import**, restoring both project settings and custom uploaded binary image/audio files to IndexedDB. Export JSON alone cannot restore binaries. Keep your backups in a private location.
+- Production editor supports optional HTTP Basic credentials on the server; it stays publicly reachable until enabled. Configure `SKYGATE_STUDIO_USER` and `SKYGATE_STUDIO_PASSWORD` in Railway; optional `SKYGATE_STUDIO_REQUIRE_AUTH=true` makes missing passwords fail closed. Game preview `/play/` stays open; the editor has no server-side shared project database. Do not enter credentials on untrusted devices.
+- QA: Node math tests plus Chromium isolated browser tests at five viewport sizes, audio unlock/MP3 playback, ZIP round-trip, replay neutrality, server protected-route responses. Hardware Safari remains unverified.
+
+### Audio recovery (0.4.1)
+AudioContext is unlocked on a genuine user tap, and a new tap can resume a suspended context after changing iPhone apps. Audio effects do not autoplay on return. Test on physical Safari before reporting hardware QA.

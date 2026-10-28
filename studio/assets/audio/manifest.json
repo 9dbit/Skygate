@@ -6,79 +6,106 @@
       "id": "bgm_celestial_loop",
       "path": "assets/audio/bgm_celestial_loop.ogg",
       "duration_sec": 24.0,
-      "size_bytes": 124825
+      "size_bytes": 124825,
+      "mp3_path": "assets/audio/bgm_celestial_loop.mp3",
+      "mp3_bytes": 385196
     },
     {
       "id": "spin_start",
       "path": "assets/audio/spin_start.ogg",
       "duration_sec": 1.12,
-      "size_bytes": 6926
+      "size_bytes": 6926,
+      "mp3_path": "assets/audio/spin_start.mp3",
+      "mp3_bytes": 19244
     },
     {
       "id": "reel_stop",
       "path": "assets/audio/reel_stop.ogg",
       "duration_sec": 0.43,
-      "size_bytes": 4810
+      "size_bytes": 4810,
+      "mp3_path": "assets/audio/reel_stop.mp3",
+      "mp3_bytes": 8492
     },
     {
       "id": "tumble",
       "path": "assets/audio/tumble.ogg",
       "duration_sec": 0.9,
-      "size_bytes": 6265
+      "size_bytes": 6265,
+      "mp3_path": "assets/audio/tumble.mp3",
+      "mp3_bytes": 15788
     },
     {
       "id": "symbol_win",
       "path": "assets/audio/symbol_win.ogg",
       "duration_sec": 1.2,
-      "size_bytes": 7380
+      "size_bytes": 7380,
+      "mp3_path": "assets/audio/symbol_win.mp3",
+      "mp3_bytes": 20396
     },
     {
       "id": "multiplier",
       "path": "assets/audio/multiplier.ogg",
       "duration_sec": 1.3,
-      "size_bytes": 6404
+      "size_bytes": 6404,
+      "mp3_path": "assets/audio/multiplier.mp3",
+      "mp3_bytes": 22316
     },
     {
       "id": "bonus_intro",
       "path": "assets/audio/bonus_intro.ogg",
       "duration_sec": 3.0,
-      "size_bytes": 12639
+      "size_bytes": 12639,
+      "mp3_path": "assets/audio/bonus_intro.mp3",
+      "mp3_bytes": 49196
     },
     {
       "id": "big_win",
       "path": "assets/audio/big_win.ogg",
       "duration_sec": 2.55,
-      "size_bytes": 11574
+      "size_bytes": 11574,
+      "mp3_path": "assets/audio/big_win.mp3",
+      "mp3_bytes": 42284
     },
     {
       "id": "mega_win",
       "path": "assets/audio/mega_win.ogg",
       "duration_sec": 3.7,
-      "size_bytes": 15091
+      "size_bytes": 15091,
+      "mp3_path": "assets/audio/mega_win.mp3",
+      "mp3_bytes": 60716
     },
     {
       "id": "jackpot",
       "path": "assets/audio/jackpot.ogg",
       "duration_sec": 5.0,
-      "size_bytes": 20736
+      "size_bytes": 20736,
+      "mp3_path": "assets/audio/jackpot.mp3",
+      "mp3_bytes": 81452
     },
     {
       "id": "ui_click",
       "path": "assets/audio/ui_click.ogg",
       "duration_sec": 0.11,
-      "size_bytes": 4182
+      "size_bytes": 4182,
+      "mp3_path": "assets/audio/ui_click.mp3",
+      "mp3_bytes": 3116
     },
     {
       "id": "free_spin_start",
       "path": "assets/audio/free_spin_start.ogg",
       "duration_sec": 1.4,
-      "size_bytes": 7561
+      "size_bytes": 7561,
+      "mp3_path": "assets/audio/free_spin_start.mp3",
+      "mp3_bytes": 23852
     },
     {
       "id": "ambient_thunder",
       "path": "assets/audio/ambient_thunder.ogg",
       "duration_sec": 2.8,
-      "size_bytes": 9691
+      "size_bytes": 9691,
+      "mp3_path": "assets/audio/ambient_thunder.mp3",
+      "mp3_bytes": 46124
     }
-  ]
+  ],
+  "ios_fallback": "MP3 files are encoded from original synthesized OGG masters for iOS Safari and Web Audio compatibility."
 }
