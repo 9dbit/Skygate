@@ -129,3 +129,60 @@ test('credit is debited at start and award settled once only after presentation'
 test('rules show actual current bet payouts and update with coin view',async()=>{
  const ui=boot();assert.match(ui.nodes.get('paytable').innerHTML,/>100.00</);await ui.click('plus');assert.match(ui.nodes.get('paytable').innerHTML,/>120.00</);await ui.click('credits');assert.match(ui.nodes.get('paytable').innerHTML,/COINS/);
 });
+
+test('manual bonus screens wait for Continue and settle only after the final screen',async()=>{
+ const ui=boot();await ui.click('featureContinue');
+ ui.nodes.get('autoSkip').checked=false;ui.nodes.get('autoSkip').events.change();
+ await ui.click('buyFeature');await ui.click('confirmBuy');
+ assert.equal(ui.nodes.get('featureTitle').textContent,'HADIAH FREE SPINS');
+ assert(ui.nodes.get('featureDialog').open);assert(ui.state().busy);
+ assert.equal(ui.state().credits,99800);assert.equal(ui.state().paid,0);
+ await ui.click('featureContinue');
+ assert.equal(ui.nodes.get('featureTitle').textContent,'FREE SPINS SELESAI');
+ assert(ui.nodes.get('featureDialog').open);assert(ui.state().busy);
+ assert.equal(ui.state().credits,99800);assert.equal(ui.state().history.length,0);
+ const award=ui.window.SkygateSettings.money(ui.state().last.round.winX*2);
+ await ui.click('featureContinue');
+ assert(!ui.state().busy);assert(!ui.nodes.get('featureDialog').open);
+ assert.equal(ui.state().credits,ui.window.SkygateSettings.money(99800+award));
+ assert.equal(ui.state().paid,award);assert.equal(ui.state().history.length,1);
+ await ui.click('featureContinue');assert.equal(ui.state().history.length,1);
+});
+
+test('background interruption releases a manual bonus screen and settles the complete result once',async()=>{
+ for(const event of ['visibilitychange','pagehide']){
+  const ui=boot();await ui.click('featureContinue');
+  ui.nodes.get('autoSkip').checked=false;ui.nodes.get('autoSkip').events.change();
+  await ui.click('buyFeature');await ui.click('confirmBuy');
+  assert(ui.nodes.get('featureDialog').open);assert(ui.state().busy);
+  const award=ui.window.SkygateSettings.money(ui.state().last.round.winX*2);
+  if(event==='visibilitychange'){
+   ui.document.hidden=true;ui.document.events.visibilitychange();
+   ui.document.hidden=false;ui.document.events.visibilitychange();
+  }else{ui.window.events.pagehide();ui.window.events.pageshow?.();}
+  await new Promise(setImmediate);
+  assert(!ui.state().busy,event);assert(!ui.nodes.get('featureDialog').open,event);
+  assert.equal(ui.state().credits,ui.window.SkygateSettings.money(99800+award),event);
+  assert.equal(ui.state().paid,award,event);assert.equal(ui.state().history.length,1,event);
+  assert.equal(ui.state().bonusRemaining,0,event);
+  await ui.click('home');assert(ui.nodes.get('featureDialog').open,event);
+  await ui.click('featureContinue');assert.equal(ui.state().history.length,1,event);
+ }
+});
+
+test('returning from background restores Home without starting audio or a round',async()=>{
+ for(const lifecycle of ['visibility','pageshow']){
+  const ui=boot();await ui.click('featureContinue');await ui.click('sound');
+  let plays=0;ui.window.SkyAudioMixer.prototype.play=()=>{plays++;return Promise.resolve(true);};
+  if(lifecycle==='visibility'){
+   ui.document.hidden=true;ui.document.events.visibilitychange();
+   ui.document.hidden=false;ui.document.events.visibilitychange();
+  }else{ui.window.events.pagehide();ui.window.events.pageshow?.();}
+  assert.equal(plays,0,lifecycle);assert.equal(ui.state().rounds,0,lifecycle);
+  await ui.click('home');
+  assert(ui.nodes.get('featureDialog').open,'Home must reopen after '+lifecycle);
+  assert.equal(ui.nodes.get('featureTitle').textContent,'SKYGATE');
+  await ui.click('featureContinue');
+  assert.equal(plays,0,lifecycle);assert.equal(ui.state().credits,100000,lifecycle);
+ }
+});

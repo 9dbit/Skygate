@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { request } from 'node:http';
 import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -93,7 +94,7 @@ test('protected Studio uses the resolved path for authentication', async t => {
   await t.test('public play and health stay available, including HEAD', async () => {
     const health = await get(port, '/health');
     assert.equal(health.status, 200);
-    assert.equal(JSON.parse(health.body).version, '0.8.0');
+    assert.equal(JSON.parse(health.body).version, JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version);
     assert.equal((await get(port, '/play/')).status, 200);
     for (const path of ['/play/game.js', '/play/assets/symbols/ruby.png', '/play/assets/audio/bgm_celestial_loop.mp3', '/play/assets/scene/hero_composite_reference.jpg']) assert.equal((await get(port, path)).status, 200, path);
     assert.equal((await get(port, '/play/assets/project.json')).status, 404);
