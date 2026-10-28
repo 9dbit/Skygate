@@ -45,7 +45,7 @@ export function validateProject(input, overrideKeys=[]){
     if(l.kind==='grid'&&l.id!=='reels')fail('Only one live reel grid is supported');
     return out;
   });
-  for(const [id,kind] of Object.entries({reels:'grid',spinbutton:'image',winlabel:'text',winamount:'text',credits:'text',betlabel:'text',autobtn:'circle',turbobtn:'circle',menubtn:'circle',soundbtn:'circle',infobtn:'circle'})){
+  for(const [id,kind] of Object.entries({reels:'grid',spinbutton:'image',winamount:'text',credits:'text',betlabel:'text',autobtn:'circle',turbobtn:'circle',menubtn:'circle',soundbtn:'circle',infobtn:'circle'})){
     const l=layers.find(l=>l.id===id);
     if(!l||l.kind!==kind||!l.visible||l.opacity<20||l.x<0||l.y<0||l.x+l.w>1081||l.y+l.h>1921)fail(`Keep ${id} visible and inside the canvas`);
     if(['spinbutton','autobtn','turbobtn','menubtn','soundbtn','infobtn'].includes(id)&&(l.w<90||l.h<90))fail(`${id} is too small for touch`);

@@ -23,7 +23,15 @@ window.SkygateReels = class {
         if (row < 5) tile.setAttribute('aria-hidden', 'true');
         const cell = {tile, motion, img, multiplier, scatter, kind: null};
         cells.push(cell);
-        if (row >= 5) this.cells[(row - 5) * 6 + column] = cell;
+        if (row >= 5) {
+          this.cells[(row - 5) * 6 + column] = cell;
+          cell.fx = {};
+          for (const name of ['edge','burst','spiral']) {
+            const effect = document.createElement('img'); effect.className = 'cascade-fx fx-' + name;
+            effect.src = window.SkygateCascadeArt[name]; effect.alt = ''; effect.draggable = false;
+            effect.setAttribute('aria-hidden','true'); tile.append(effect); cell.fx[name] = effect;
+          }
+        }
       }
       viewport.append(track); root.append(viewport); this.columns.push({track, cells});
     }
@@ -79,6 +87,7 @@ window.SkygateReels = class {
     for (const animation of this.animations) animation.cancel();
     this.animations.clear();
     this.root.classList.remove('rolling');
+    this.root.dataset.fxPhase = 'idle';
     if (this.target) this.render(this.target);
   }
   async spin(grid, {turbo = false, reduced = false} = {}) {
@@ -107,6 +116,38 @@ window.SkygateReels = class {
     } finally {
       this.root.classList.remove('rolling'); this.render(grid); this.target = null;
     }
+  }
+  async shatter(positions, {turbo = false, reduced = false} = {}) {
+    const selected = [...new Set(positions)].filter(i => Number.isInteger(i) && i >= 0 && i < 30);
+    if (!selected.length || reduced || !this.cells[0].motion.animate) return;
+    const generation = this.generation, active = [];
+    const play = (node, frames, duration, easing = 'ease-out') => {
+      const animation = this.animate(node, frames, {duration, easing, fill:'forwards'});
+      active.push(animation); return animation.finished.catch(() => {});
+    };
+    const clear = () => {for (const a of active) {a.cancel(); this.animations.delete(a);} active.length = 0;};
+    try {
+      this.root.dataset.fxPhase = 'charge';
+      await Promise.all(selected.map(i => play(this.cells[i].fx.edge, [
+        {opacity:0,transform:'scale(.98)'},
+        {opacity:1,transform:'scale(1)',offset:.25},
+        {opacity:.65,transform:'scale(1)',offset:.6},
+        {opacity:1,transform:'scale(1)'}
+      ], turbo ? 95 : 320)));
+      if (generation !== this.generation) return;
+      clear();
+      this.root.dataset.fxPhase = 'burst';
+      const duration = turbo ? 170 : 440;
+      await Promise.all(selected.flatMap(i => {
+        const {motion, fx} = this.cells[i];
+        return [
+          play(motion,[{transform:'scale(1)',opacity:1},{transform:'scale(1.12)',opacity:1,offset:.12},{transform:'scale(.12)',opacity:0,offset:.38},{transform:'scale(.12)',opacity:0}],duration),
+          play(fx.edge,[{opacity:1},{opacity:.5,offset:.4},{opacity:0}],duration),
+          play(fx.burst,[{transform:'scale(.12) rotate(-8deg)',opacity:0},{transform:'scale(.55) rotate(0deg)',opacity:1,offset:.18},{transform:'scale(1.12) rotate(12deg)',opacity:.75,offset:.55},{transform:'scale(1.45) rotate(20deg)',opacity:0}],duration),
+          play(fx.spiral,[{transform:'scale(.65) rotate(-40deg)',opacity:0},{transform:'scale(.9) rotate(0deg)',opacity:1,offset:.35},{transform:'scale(1.06) rotate(55deg)',opacity:.7,offset:.65},{transform:'scale(1.2) rotate(95deg)',opacity:0}],duration)
+        ];
+      }));
+    } finally {clear();this.root.dataset.fxPhase = 'idle';}
   }
   async cascade(before, after, {turbo = false, reduced = false} = {}) {
     this.target = after;

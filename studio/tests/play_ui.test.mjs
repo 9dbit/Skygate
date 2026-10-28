@@ -19,6 +19,7 @@ function boot(project=null){
     window.SkygateActiveRelease={id:'test-snapshot',createdAt:'2026-10-28T00:00:00Z',project,overrides:{}};
     window.SkygateApplyLayout=()=>{};
   }
+  vm.runInContext(read('play/cascade-art.js'),context);
   vm.runInContext(read('play/reels.js'),context);
   vm.runInContext(read('play/game.js'),context);
   return {nodes,window,document,dom,state:()=>window.SlotGameTest.getState(),click:async id=>{nodes.get(id).events.click({target:nodes.get(id)});await new Promise(setImmediate);}};
@@ -64,7 +65,7 @@ test('menu, rules, bet, sound and reset controls are wired',async()=>{
   await ui.click('minus');assert.equal(ui.state().bet,20);
   await ui.click('menu');assert.equal(ui.nodes.get('menuDialog').open,true);
   await ui.click('closeMenu');assert.equal(ui.nodes.get('menuDialog').open,false);
-  for(const id of ['help','freeInfo','payInfo']){await ui.click(id);assert.equal(ui.nodes.get('modal').open,true);await ui.click('closeModal');}
+  for(const id of ['help','payInfo']){await ui.click(id);assert.equal(ui.nodes.get('modal').open,true);await ui.click('closeModal');}
   await ui.click('sound');assert.equal(ui.state().sound,true);assert.equal(ui.nodes.get('muteMark').hidden,true);
   await ui.click('sound');assert.equal(ui.state().sound,false);
   await ui.click('spin');await ui.click('reset');assert.equal(ui.state().credits,100000);assert.equal(ui.state().rounds,0);
@@ -73,9 +74,10 @@ test('menu, rules, bet, sound and reset controls are wired',async()=>{
 });
 
 test('seed 41 completes natural free spins and replay without a renderer error',async()=>{
-  const ui=boot();ui.nodes.get('seedInput').value='41';await ui.click('seedApply');
+  const ui=boot();const giftTitles=[];let title='';Object.defineProperty(ui.nodes.get('toastTitle'),'textContent',{get:()=>title,set:v=>{title=v;giftTitles.push(v);}});ui.nodes.get('seedInput').value='41';await ui.click('seedApply');
   await ui.click('spin');const s=ui.state();assert.equal(s.last.round.bonus.triggered,true);assert.equal(s.last.round.bonus.spins.length,20);
   assert(!ui.nodes.get('status').textContent.includes('Error saat render'),ui.nodes.get('status').textContent);
+  assert(giftTitles.includes('HADIAH FREE SPINS'));assert(!ui.nodes.has('freeInfo'));assert(!ui.nodes.has('banner'));
   assert.equal(s.bonusRemaining,0);assert.equal(s.roundWin,s.last.round.winX*20);assert.equal(s.credits,100000-20+s.last.round.winX*20);
   await ui.click('replay');assert.equal(ui.state().credits,s.credits);assert.equal(ui.state().rounds,1);assert(!ui.nodes.get('status').textContent.includes('Error saat render'));
 });

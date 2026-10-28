@@ -34,9 +34,9 @@ function startSkygate() {
   let suspended=false;
   const waiting=new Map();
   const motionOptions=()=>({turbo:state.turbo,reduced:isReduced()||suspended||document.hidden});
-  const delay = ms => new Promise(ok => {
+  const delay = (ms,turboMs=40) => new Promise(ok => {
     if(motionOptions().reduced){ok();return;}
-    const timer=setTimeout(()=>{waiting.delete(timer);ok();},state.turbo?Math.min(40,ms):ms);
+    const timer=setTimeout(()=>{waiting.delete(timer);ok();},state.turbo?Math.min(turboMs,ms):ms);
     waiting.set(timer,ok);
   });
   function sound(kind='tick') {
@@ -96,7 +96,6 @@ function startSkygate() {
   function status(msg,hint=msg){E('status').textContent=msg;E('playHint').textContent=hint;}
   async function presentSpin(spin, bet, context) {
     state.orbTotal=0;
-    E('banner').textContent=context==='base'?(published?.presentation==='olympus-gold'?'ROUND WIN':'KEMENANGAN'):'FREE SPINS';
     status(context==='base'?'BASE SPIN · Seeking 8+ symbols':'FREE SPIN · Multiplier bank growing on qualifying orb wins',context==='base'?'Cari 8+ simbol yang sama':`${state.bonusRemaining} free spins tersisa`);
     refresh();
     await reels.spin(spin.initial,motionOptions());displayGrid=spin.initial;
@@ -107,7 +106,7 @@ function startSkygate() {
       status(`TUMBLE ${tumble.step} · ${winSummary} · +${credit(tumble.awardX*bet)} demo credits`,`+${credit(tumble.awardX*bet)} kredit · simbol baru jatuh`);
       state.roundWin=Math.min(cfg.round_max_win_x*bet,state.roundWin+tumble.awardX*bet);
       sound('win');refresh();
-      await delay(280);
+      await reels.shatter(tumble.removedPositions,motionOptions());
       sound('tumble');await reels.cascade(tumble.before,tumble.after,motionOptions());displayGrid=tumble.after;
     }
     render(spin.final);sound('stop');
@@ -127,8 +126,8 @@ function startSkygate() {
     if (round.bonus.triggered) {
       state.bonusRemaining=cfg.bonus_start_spins;
       status(`BONUS TRIGGER · ${cfg.bonus_start_spins} FREE SPINS (virtual)`,`${cfg.bonus_start_spins} free spins dimulai`);
-      celebrate('FREE SPINS',`${cfg.bonus_start_spins} PUTARAN`, 'bonus');
-      sound('bonus');refresh();await delay(520);
+      celebrate('HADIAH FREE SPINS',`${cfg.bonus_start_spins} PUTARAN`, 'bonus');
+      sound('bonus');refresh();await delay(1150,450);
       for(const spin of round.bonus.spins) {
         state.bonusRemaining=spin.leftBefore;
         state.bonusMultiplier=spin.bankAfterX;
@@ -136,13 +135,12 @@ function startSkygate() {
         runningTotal+=spin.payoutX;
         state.roundWin=Math.min(cfg.round_max_win_x,runningTotal)*bet;
         state.bonusRemaining=spin.leftAfter;
-        if(spin.retriggered)status(`RETRIGGER · +${cfg.bonus_retrigger_add_spins} FREE SPINS (virtual)`,`+${cfg.bonus_retrigger_add_spins} free spins tambahan`);
+        if(spin.retriggered){status(`RETRIGGER · +${cfg.bonus_retrigger_add_spins} FREE SPINS (virtual)`,`+${cfg.bonus_retrigger_add_spins} free spins tambahan`);celebrate('HADIAH TAMBAHAN',`+${cfg.bonus_retrigger_add_spins} FREE SPINS`,'bonus');}
         refresh();await delay(170);
       }
       state.bonusRemaining=0;
     }
     state.roundWin=round.winX*bet;
-    E('banner').textContent=round.bonus.triggered?'TOTAL BONUS':published?.presentation==='olympus-gold'?'ROUND TOTAL':'TOTAL KEMENANGAN';
     refresh();
   }
   async function runRound(replay=false) {
@@ -182,7 +180,6 @@ function startSkygate() {
     engine=makeEngine(state.seed);
     Object.assign(state,{credits:startingCredit,rounds:0,spent:0,paid:0,hits:0,bonuses:0,roundWin:0,cascade:0,orbTotal:0,bonusRemaining:0,bonusMultiplier:0,last:null});
     E('seedInput').value=String(state.seed);
-    E('banner').textContent=published?.presentation==='olympus-gold'?'ROUND TOTAL':'KEMENANGAN';
     render(idleBoard());refresh();
     status('Tekan SPIN · 8+ simbol yang sama untuk menang','Cocokkan 8+ simbol di mana saja');
   }
@@ -231,7 +228,6 @@ function startSkygate() {
     if(section)E(section).scrollIntoView({block:'start'});
   };
   E('help').addEventListener('click',()=>openRules());
-  E('freeInfo').addEventListener('click',()=>openRules('bonusRules'));
   E('payInfo').addEventListener('click',()=>openRules('payRules'));
   E('closeModal').addEventListener('click',()=>E('modal').close());
   E('menu').addEventListener('click',()=>E('menuDialog').showModal());
@@ -254,9 +250,8 @@ function startSkygate() {
     if(state.sound&&!document.hidden&&(!mixer.isReady()||!mixer.isPlaying('bgm_celestial_loop'))){void mixer.unlock().then(ready=>{if(ready&&state.sound&&!document.hidden)void mixer.play('bgm_celestial_loop');});}
   });
   E('paytable').innerHTML=Object.entries(cfg.paytable).map(([kind,values])=>`<tr><td><img src="${asset('symbols/'+art[kind]+'.png')}" alt="">${label[kind]}</td>${values.map(n=>`<td>${n}×</td>`).join('')}</tr>`).join('');
-  E('bonusRulesText').textContent=`${cfg.bonus_trigger_scatters}+ SCATTER memicu ${cfg.bonus_start_spins} free spins. Di dalam bonus, ${cfg.bonus_retrigger_scatters}+ SCATTER menambah ${cfg.bonus_retrigger_add_spins} putaran. Orb mengalikan kemenangan simbol; pengalinya terkumpul selama bonus.`;
+  E('bonusRulesText').textContent=`Hadiah ${cfg.bonus_start_spins} free spins diperoleh dari hasil spin dengan ${cfg.bonus_trigger_scatters}+ SCATTER dan berjalan otomatis. Di dalam bonus, ${cfg.bonus_retrigger_scatters}+ SCATTER memberi tambahan ${cfg.bonus_retrigger_add_spins} putaran. Orb mengalikan kemenangan simbol; pengalinya terkumpul selama bonus.`;
   E('capText').textContent=`Maksimum ${cfg.round_max_win_x.toLocaleString('id-ID')}× bet per ronde, termasuk jackpot virtual jika diaktifkan. Auto dan Turbo tidak mengubah peluang. Tidak ada deposit atau penarikan.`;
-  E('freeInfo').querySelector('small').textContent=`${cfg.bonus_trigger_scatters}+ SCATTER`;
   E('releaseInfo').textContent=release?`Versi ${release.id.slice(0,8)} · ${new Date(release.createdAt).toLocaleDateString('id-ID')}`:'SKYGATE v0.8 · Original celestial artwork';
   E('previewBadge').hidden=!window.SkygatePreview;
   E('seedInput').value=String(state.seed);

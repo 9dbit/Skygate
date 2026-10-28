@@ -6,6 +6,7 @@ import {makeDOM} from './dom-fixture.mjs';
 const source=readFileSync(new URL('../../play/reels.js',import.meta.url),'utf8');
 function setup(){
   const dom=makeDOM(),window={},timers=new Map();let id=0;
+  vm.runInNewContext(readFileSync(new URL('../../play/cascade-art.js',import.meta.url),'utf8'),{window});
   vm.runInNewContext(source,{window,document:{createElement:t=>new dom.Node(t)},setTimeout:(fn,ms)=>{timers.set(++id,{fn,ms});return id;},clearTimeout:id=>timers.delete(id)});
   const root=new dom.Node(),renderer=new window.SkygateReels(root,{asset:p=>p,art:{ruby:'ruby',emerald:'emerald',orb:'orb'},label:{ruby:'Ruby',emerald:'Emerald',orb:'Orb'}});
   const before=Array.from({length:30},(_,i)=>({id:i+1,kind:i%2?'emerald':'ruby'}));renderer.render(before);
@@ -50,6 +51,42 @@ test('turbo shortens presentation without changing the grid; reduced motion crea
   for(const timer of [...t.timers.values()])timer.fn();await playing;
   const count=t.animations.length;await t.renderer.spin(t.before,{reduced:true});await t.renderer.cascade(t.before,t.before,{reduced:true});
   assert.equal(t.animations.length,count);assert.equal(t.renderer.grid,t.before);
+});
+
+test('only winning cells charge before bursting and all effect nodes are reused',async()=>{
+  const t=setup(),selected=[0,2,5,7,12,18,23,29],created=t.created.length;
+  const playing=t.renderer.shatter(selected);
+  assert.equal(t.root.dataset.fxPhase,'charge');
+  assert.equal(t.animations.length,selected.length);
+  assert(t.animations.every(a=>selected.some(i=>t.renderer.cells[i].fx.edge===a.node)));
+  assert.equal(t.renderer.grid,t.before,'symbols remain until the charge completes');
+  await playing;
+  assert.equal(t.animations.length,selected.length*5);
+  assert.equal(t.created.length,created);
+  assert.equal(t.root.dataset.fxPhase,'idle');
+  assert.equal(t.renderer.animations.size,0);
+  assert(t.animations.every(a=>a.cancelled));
+  for(const a of t.animations){
+    assert(selected.some(i=>Object.values(t.renderer.cells[i].fx).includes(a.node)||t.renderer.cells[i].motion===a.node));
+    for(const frame of a.frames)assert(Object.keys(frame).every(k=>['transform','opacity','offset'].includes(k)));
+  }
+});
+test('cancel during lightning prevents the burst; reduced motion skips both phases',async()=>{
+  const t=setup();const playing=t.renderer.shatter([0,1,2]);
+  t.renderer.cancel();await playing;
+  assert.equal(t.animations.length,3);assert.equal(t.root.dataset.fxPhase,'idle');
+  assert.equal(t.renderer.animations.size,0);
+  await t.renderer.shatter([0,1,2],{reduced:true});
+  assert.equal(t.animations.length,3);
+});
+test('one full-board win has a bounded effect pool and turbo retains both phases',async()=>{
+  const t=setup(),all=Array.from({length:30},(_,i)=>i),created=t.created.length;
+  assert.equal(t.root.querySelectorAll('.cascade-fx').length,90);
+  await t.renderer.shatter(all,{turbo:true});
+  assert.equal(t.animations.length,150);
+  assert.equal(t.created.length,created);
+  assert(t.animations.slice(0,30).every(a=>a.options.duration===95));
+  assert(t.animations.slice(30).every(a=>a.options.duration===170));
 });
 
 test('text fitting keeps long amounts and caption stacks inside the same bounds at phone widths',()=>{
