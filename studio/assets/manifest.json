@@ -1,0 +1,199 @@
+{
+  "schema": "skygate/assets-v0.3",
+  "original_flat_JPEG_source": true,
+  "original_layered_source_not_available": true,
+  "assets": [
+    {
+      "file": "assets/asset_contact_sheet.jpg",
+      "format": "jpg",
+      "bytes": 180601,
+      "provenance": "derived scene/base graphic"
+    },
+    {
+      "file": "assets/scene/bottom_controls_reference.jpg",
+      "format": "jpg",
+      "bytes": 225550,
+      "provenance": "flattened screenshot reference"
+    },
+    {
+      "file": "assets/scene/column_left.png",
+      "format": "png",
+      "bytes": 78047,
+      "provenance": "separated PNG cutout from concept"
+    },
+    {
+      "file": "assets/scene/column_right.png",
+      "format": "png",
+      "bytes": 75488,
+      "provenance": "separated PNG cutout from concept"
+    },
+    {
+      "file": "assets/scene/controls_reference.jpg",
+      "format": "jpg",
+      "bytes": 74273,
+      "provenance": "flattened screenshot reference"
+    },
+    {
+      "file": "assets/scene/guardian.png",
+      "format": "png",
+      "bytes": 95013,
+      "provenance": "separated PNG cutout from concept"
+    },
+    {
+      "file": "assets/scene/hero_composite_reference.jpg",
+      "format": "jpg",
+      "bytes": 211792,
+      "provenance": "flattened screenshot reference"
+    },
+    {
+      "file": "assets/scene/logo.png",
+      "format": "png",
+      "bytes": 74085,
+      "provenance": "separated PNG cutout from concept"
+    },
+    {
+      "file": "assets/scene/reference_original.jpg",
+      "format": "jpg",
+      "bytes": 1165760,
+      "provenance": "flattened screenshot reference"
+    },
+    {
+      "file": "assets/scene/sky_background.jpg",
+      "format": "jpg",
+      "bytes": 69475,
+      "provenance": "derived scene/base graphic"
+    },
+    {
+      "file": "assets/studio_moodboard_reference.png",
+      "format": "png",
+      "bytes": 2901968,
+      "provenance": "flattened screenshot reference"
+    },
+    {
+      "file": "assets/symbols/amber.png",
+      "format": "png",
+      "bytes": 33111,
+      "provenance": "separated PNG cutout from concept"
+    },
+    {
+      "file": "assets/symbols/amethyst.png",
+      "format": "png",
+      "bytes": 30389,
+      "provenance": "separated PNG cutout from concept"
+    },
+    {
+      "file": "assets/symbols/chalice.png",
+      "format": "png",
+      "bytes": 37110,
+      "provenance": "separated PNG cutout from concept"
+    },
+    {
+      "file": "assets/symbols/crown.png",
+      "format": "png",
+      "bytes": 43935,
+      "provenance": "separated PNG cutout from concept"
+    },
+    {
+      "file": "assets/symbols/emerald.png",
+      "format": "png",
+      "bytes": 32788,
+      "provenance": "separated PNG cutout from concept"
+    },
+    {
+      "file": "assets/symbols/hourglass.png",
+      "format": "png",
+      "bytes": 39917,
+      "provenance": "separated PNG cutout from concept"
+    },
+    {
+      "file": "assets/symbols/orb.png",
+      "format": "png",
+      "bytes": 44260,
+      "provenance": "separated PNG cutout from concept"
+    },
+    {
+      "file": "assets/symbols/pearl.png",
+      "format": "png",
+      "bytes": 36494,
+      "provenance": "separated PNG cutout from concept"
+    },
+    {
+      "file": "assets/symbols/ring.png",
+      "format": "png",
+      "bytes": 41682,
+      "provenance": "separated PNG cutout from concept"
+    },
+    {
+      "file": "assets/symbols/ruby.png",
+      "format": "png",
+      "bytes": 35685,
+      "provenance": "separated PNG cutout from concept"
+    },
+    {
+      "file": "assets/symbols/sapphire.png",
+      "format": "png",
+      "bytes": 34332,
+      "provenance": "separated PNG cutout from concept"
+    },
+    {
+      "file": "assets/symbols/scatter.png",
+      "format": "png",
+      "bytes": 30828,
+      "provenance": "separated PNG cutout from concept"
+    },
+    {
+      "file": "assets/symbols/topaz.png",
+      "format": "png",
+      "bytes": 32736,
+      "provenance": "separated PNG cutout from concept"
+    },
+    {
+      "file": "assets/ui/blue_button.svg",
+      "format": "svg",
+      "bytes": 697,
+      "provenance": "original scalable UI SVG"
+    },
+    {
+      "file": "assets/ui/gold_banner.svg",
+      "format": "svg",
+      "bytes": 731,
+      "provenance": "original scalable UI SVG"
+    },
+    {
+      "file": "assets/ui/jackpot_grand.svg",
+      "format": "svg",
+      "bytes": 680,
+      "provenance": "original scalable UI SVG"
+    },
+    {
+      "file": "assets/ui/jackpot_major.svg",
+      "format": "svg",
+      "bytes": 680,
+      "provenance": "original scalable UI SVG"
+    },
+    {
+      "file": "assets/ui/jackpot_mini.svg",
+      "format": "svg",
+      "bytes": 679,
+      "provenance": "original scalable UI SVG"
+    },
+    {
+      "file": "assets/ui/jackpot_minor.svg",
+      "format": "svg",
+      "bytes": 680,
+      "provenance": "original scalable UI SVG"
+    },
+    {
+      "file": "assets/ui/reel_frame.svg",
+      "format": "svg",
+      "bytes": 1165,
+      "provenance": "original scalable UI SVG"
+    },
+    {
+      "file": "assets/ui/spin_button.svg",
+      "format": "svg",
+      "bytes": 831,
+      "provenance": "original scalable UI SVG"
+    }
+  ]
+}

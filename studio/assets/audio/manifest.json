@@ -1,0 +1,84 @@
+{
+  "original_audio": true,
+  "source": "Procedurally synthesized in this project. No third-party music, samples, or copyrighted melodies.",
+  "tracks": [
+    {
+      "id": "bgm_celestial_loop",
+      "path": "assets/audio/bgm_celestial_loop.ogg",
+      "duration_sec": 24.0,
+      "size_bytes": 124825
+    },
+    {
+      "id": "spin_start",
+      "path": "assets/audio/spin_start.ogg",
+      "duration_sec": 1.12,
+      "size_bytes": 6926
+    },
+    {
+      "id": "reel_stop",
+      "path": "assets/audio/reel_stop.ogg",
+      "duration_sec": 0.43,
+      "size_bytes": 4810
+    },
+    {
+      "id": "tumble",
+      "path": "assets/audio/tumble.ogg",
+      "duration_sec": 0.9,
+      "size_bytes": 6265
+    },
+    {
+      "id": "symbol_win",
+      "path": "assets/audio/symbol_win.ogg",
+      "duration_sec": 1.2,
+      "size_bytes": 7380
+    },
+    {
+      "id": "multiplier",
+      "path": "assets/audio/multiplier.ogg",
+      "duration_sec": 1.3,
+      "size_bytes": 6404
+    },
+    {
+      "id": "bonus_intro",
+      "path": "assets/audio/bonus_intro.ogg",
+      "duration_sec": 3.0,
+      "size_bytes": 12639
+    },
+    {
+      "id": "big_win",
+      "path": "assets/audio/big_win.ogg",
+      "duration_sec": 2.55,
+      "size_bytes": 11574
+    },
+    {
+      "id": "mega_win",
+      "path": "assets/audio/mega_win.ogg",
+      "duration_sec": 3.7,
+      "size_bytes": 15091
+    },
+    {
+      "id": "jackpot",
+      "path": "assets/audio/jackpot.ogg",
+      "duration_sec": 5.0,
+      "size_bytes": 20736
+    },
+    {
+      "id": "ui_click",
+      "path": "assets/audio/ui_click.ogg",
+      "duration_sec": 0.11,
+      "size_bytes": 4182
+    },
+    {
+      "id": "free_spin_start",
+      "path": "assets/audio/free_spin_start.ogg",
+      "duration_sec": 1.4,
+      "size_bytes": 7561
+    },
+    {
+      "id": "ambient_thunder",
+      "path": "assets/audio/ambient_thunder.ogg",
+      "duration_sec": 2.8,
+      "size_bytes": 9691
+    }
+  ]
+}

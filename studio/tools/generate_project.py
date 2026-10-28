@@ -1,0 +1,69 @@
+from pathlib import Path
+import json,shutil
+R=Path(__file__).resolve().parents[1]
+src=Path('/mnt/data/Slot_Game/02-Math-Simulator')
+shutil.copy2(src/'config.json',R/'math'/'base-config.json')
+shutil.copy2(src/'engine.js',R/'math'/'engine.js')
+base=json.loads((src/'config.json').read_text())
+base['profile_id']='skygate-studio-v0.3-synthetic'
+base['name']='Skygate Studio editable synthetic demo'
+base['description']='Editable math experiment. No real wagers. Deterministic RNG for reproducibility only.'
+(R/'math'/'base-config.js').write_text('window.SKY_BASE_CONFIG = '+json.dumps(base,ensure_ascii=False,indent=2)+';\n',encoding='utf-8')
+path=lambda p:'assets/'+p
+layers=[
+{'id':'sky','name':'Sky Background','kind':'image','asset':'scene/sky_background.jpg','x':0,'y':0,'w':1080,'h':1920,'z':1,'opacity':100,'locked':True},
+{'id':'column_l','name':'Left Marble Column','kind':'image','asset':'scene/column_left.png','x':0,'y':0,'w':110,'h':548,'z':2,'opacity':88},
+{'id':'column_r','name':'Right Marble Column','kind':'image','asset':'scene/column_right.png','x':975,'y':0,'w':105,'h':548,'z':2,'opacity':88},
+{'id':'logo','name':'Skygate Logo','kind':'image','asset':'scene/logo.png','x':26,'y':48,'w':514,'h':270,'z':7,'opacity':100},
+{'id':'guardian','name':'Sky Guardian','kind':'image','asset':'scene/guardian.png','x':435,'y':43,'w':633,'h':425,'z':6,'opacity':100},
+{'id':'winbanner','name':'Tumble Win Banner','kind':'image','asset':'ui/gold_banner.svg','x':56,'y':390,'w':968,'h':157,'z':10,'opacity':100},
+{'id':'winlabel','name':'Win Label','kind':'text','text':'TUMBLE WIN','x':281,'y':420,'w':520,'h':47,'z':14,'font':40,'color':'#ffe7a2','opacity':100},
+{'id':'winamount','name':'Win Amount','kind':'text','text':'240.00','x':286,'y':461,'w':510,'h':62,'z':14,'font':62,'color':'#ffdf75','opacity':100},
+{'id':'reels','name':'6 × 5 Reel Grid','kind':'grid','x':45,'y':558,'w':990,'h':712,'z':21,'opacity':100},
+{'id':'reelframe','name':'Ornate Reel Frame','kind':'image','asset':'ui/reel_frame.svg','x':23,'y':536,'w':1034,'h':756,'z':22,'opacity':100},
+{'id':'buybtn','name':'Feature Button Frame','kind':'image','asset':'ui/blue_button.svg','x':70,'y':1337,'w':456,'h':120,'z':26,'opacity':100},
+{'id':'buytext','name':'Feature Button Label','kind':'text','text':'BUY FREE SPINS','x':100,'y':1372,'w':398,'h':62,'z':27,'font':38,'color':'#fff0be','opacity':100},
+{'id':'antebtn','name':'Ante Button Frame','kind':'image','asset':'ui/gold_banner.svg','x':550,'y':1339,'w':450,'h':119,'z':26,'opacity':100},
+{'id':'antetext','name':'Ante Button Label','kind':'text','text':'ANTE BET  OFF','x':590,'y':1372,'w':361,'h':58,'z':27,'font':34,'color':'#f5dbcc','opacity':100},
+{'id':'controlboard','name':'Control Deck','kind':'panel','x':20,'y':1510,'w':1040,'h':295,'z':29,'opacity':100},
+{'id':'credits','name':'Virtual Credit Display','kind':'text','text':'CREDIT   100,000','x':54,'y':1572,'w':420,'h':51,'z':31,'font':36,'color':'#ffecb2','opacity':100},
+{'id':'betlabel','name':'Bet Display','kind':'text','text':'BET     20','x':57,'y':1638,'w':320,'h':57,'z':31,'font':37,'color':'#ffe7b0','opacity':100},
+{'id':'spinbutton','name':'Main Spin Button','kind':'image','asset':'ui/spin_button.svg','x':401,'y':1495,'w':279,'h':279,'z':34,'opacity':100,'action':'spin'},
+{'id':'autobtn','name':'Auto Button','kind':'circle','text':'AUTO','x':726,'y':1617,'w':129,'h':124,'z':33,'font':25,'opacity':100},
+{'id':'turbobtn','name':'Turbo Button','kind':'circle','text':'TURBO','x':880,'y':1617,'w':130,'h':124,'z':33,'font':23,'opacity':100},
+{'id':'menubtn','name':'Menu Icon','kind':'circle','text':'☰','x':48,'y':1791,'w':101,'h':94,'z':33,'font':54,'opacity':100},
+{'id':'soundbtn','name':'Sound Icon','kind':'circle','text':'♫','x':820,'y':1791,'w':101,'h':94,'z':33,'font':55,'opacity':100},
+{'id':'infobtn','name':'Info Icon','kind':'circle','text':'ℹ','x':936,'y':1791,'w':101,'h':94,'z':33,'font':55,'opacity':100}
+]
+def init(x):
+ return {**dict(rotate=0,visible=True,locked=False),**x}
+layers=[init(x) for x in layers]
+# stage shows a fixed sample grid; preview engine replaces these dynamically
+sample=['emerald','ring','ruby','crown','sapphire','topaz',
+'amethyst','hourglass','sapphire','emerald','chalice','ruby',
+'crown','topaz','orb','amethyst','ring','emerald',
+'sapphire','ruby','hourglass','chalice','topaz','crown',
+'emerald','amethyst','topaz','ring','sapphire','hourglass']
+tracks=[{'id':'bgm_celestial_loop','name':'Celestial BGM','event':'background','loop':True,'volume':54,'fade':700},
+{'id':'spin_start','name':'Spin Start','event':'spin','loop':False,'volume':74,'fade':0},
+{'id':'reel_stop','name':'Reel Stop','event':'reel_stop','loop':False,'volume':72,'fade':0},
+{'id':'tumble','name':'Tumble Cascade','event':'tumble','loop':False,'volume':74,'fade':0},
+{'id':'symbol_win','name':'Win Small','event':'win','loop':False,'volume':74,'fade':0},
+{'id':'multiplier','name':'Multiplier','event':'multiplier','loop':False,'volume':72,'fade':0},
+{'id':'bonus_intro','name':'Free Spin Intro','event':'bonus','loop':False,'volume':76,'fade':0},
+{'id':'free_spin_start','name':'Free Spin Start','event':'free_spin','loop':False,'volume':72,'fade':0},
+{'id':'big_win','name':'Big Win','event':'bigwin','loop':False,'volume':78,'fade':0},
+{'id':'mega_win','name':'Mega Win','event':'megawin','loop':False,'volume':80,'fade':0},
+{'id':'jackpot','name':'Jackpot Celebration','event':'jackpot','loop':False,'volume':85,'fade':0},
+{'id':'ui_click','name':'UI Click','event':'click','loop':False,'volume':65,'fade':0},
+{'id':'ambient_thunder','name':'Ambient Thunder','event':'thunder','loop':False,'volume':50,'fade':0}]
+project={'schema':'skygate/studio-v0.3','projectName':'SKYGATE','virtualCreditsOnly':True,'stage':{'width':1080,'height':1920},'layers':layers,'grid':sample,'assets':{},'tracks':tracks,'audio':{'muted':False,'master':75},'math':base,'jackpot':{'enabled':False,'type':'fixed-demo','tiers':[
+{'id':'grand','name':'GRAND','awardX':2000,'perMillion':1,'color':'#f05370'},
+{'id':'major','name':'MAJOR','awardX':500,'perMillion':4,'color':'#ad6aff'},
+{'id':'minor','name':'MINOR','awardX':100,'perMillion':20,'color':'#508ff3'},
+{'id':'mini','name':'MINI','awardX':25,'perMillion':40,'color':'#5bc79f'}]},
+'winPresentation':{'smallX':1.0,'bigX':10,'megaX':25,'superX':100},'targetRTP':96.5,'seed':20261027,'bet':20,'credit':100000,
+'ui':{'theme':'gold-purple','showReference':False,'showGridGuides':False}}
+(R/'project.json').write_text(json.dumps(project,ensure_ascii=False,indent=2))
+(R/'project-data.js').write_text('window.SKY_PROJECT_DEFAULT = '+json.dumps(project,ensure_ascii=False)+';\n')
+print('project ready,',len(layers),'layers,',len(tracks),'audio tracks')

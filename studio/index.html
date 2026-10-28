@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/><meta name="theme-color" content="#120d20"/><title>SKYGATE Studio • Slot Game Asset & Math Editor</title><link rel="stylesheet" href="studio.css"></head>
+<body>
+<div class="studio-app">
+  <header class="topbar">
+    <div class="brand"><div class="logo-mark">ϟ</div><div class="brand-title"><b>SKYGATE <span>STUDIO</span></b><small>SLOT GAME · VIRTUAL-CREDIT DEVELOPMENT</small></div></div>
+    <div class="top-actions"><span class="state-chip"><span class="state-dot"></span> LOCAL STUDIO <b>v0.3</b></span><button id="undoBtn" class="top-button" title="Undo (Ctrl/Cmd+Z)">↶ Undo</button><button id="saveBtn" class="top-button">⌁ Save local</button><button id="importBtn" class="top-button">↥ Import</button><button id="exportBtn" class="top-button">↧ Export JSON</button><button id="bundleBtn" class="top-button highlight">⬡ Export changes ZIP</button><input type="file" id="importInput" accept="application/json,.json" hidden/></div>
+  </header>
+  <div class="studio-shell">
+    <aside class="sidebar">
+      <div class="sidebar-caption">WORKSPACE</div>
+      <nav class="nav" id="mainNav" aria-label="Studio sections">
+        <button type="button" data-tab="layers" class="nav-button active"><span>◈</span> Layout & Layers</button>
+        <button type="button" data-tab="assets" class="nav-button"><span>▦</span> Asset Library</button>
+        <button type="button" data-tab="audio" class="nav-button"><span>♫</span> Music & SFX</button>
+        <button type="button" data-tab="math" class="nav-button"><span>∑</span> Math & Wins</button>
+        <button type="button" data-tab="jackpot" class="nav-button"><span>♛</span> Jackpot Studio</button>
+        <button type="button" data-tab="test" class="nav-button"><span>▷</span> Preview & Tests</button>
+      </nav>
+      <div class="sidebar-header"><b id="sideTitle">LAYER TREE</b><span id="sideCount">23 layers</span></div>
+      <div id="sideContent" class="side-content" aria-live="polite"></div>
+      <div class="sidebar-footer"><span class="tiny-accent">●</span> 1080 × 1920 portrait source<br/><span>All assets independently addressable.</span></div>
+    </aside>
+    <main class="workspace">
+      <div class="workspace-header"><div><div class="microtitle">LIVE MOBILE VIEWPORT</div><h1>Skygate · Portrait 9:16</h1></div><div class="stage-controls"><button class="pill-btn selected" id="editModeBtn">✧ Edit</button><button class="pill-btn" id="previewModeBtn">▶ Playtest</button><button class="square-btn" id="showRefBtn" title="Show / hide original flattened reference">▧</button><button class="square-btn" id="guidesBtn" title="Grid guides">⌗</button></div></div>
+      <div class="viewport-wrap"><div class="phone"><div class="screen-notch" aria-hidden="true"></div><div id="stage" class="stage edit-mode" aria-label="Mobile game editor canvas"><div id="stageLayers" class="stage-layers"></div><div id="stageGuides" class="stage-guides" hidden></div><div id="referenceOverlay" class="reference-overlay" hidden><img src="assets/scene/reference_original.jpg" alt="Original concept reference"></div><div id="stageOverlay" class="stage-overlay"></div></div><div class="phone-bottom" aria-hidden="true"></div></div></div>
+      <div class="viewport-footer"><span><i class="yellow-dot"></i> <strong id="statusMode">Edit mode</strong> · Drag a layer to reposition</span><div class="viewer-actions"><span id="stageSummary">1080 × 1920</span><button class="bottom-btn" id="resetSelectionBtn">Deselect</button><button class="bottom-btn strong" id="demoSpinBtn">▶ Demo Spin</button></div></div>
+      <div class="trace-bar"><span class="trace-badge">◈ LIVE RESULT</span><span id="traceStatus">Ready to inspect win events and sound cues.</span></div>
+    </main>
+    <aside class="inspector"><div class="inspector-top"><div><small class="microtitle">STUDIO INSPECTOR</small><h2 id="panelTitle">Layer properties</h2></div><div class="settings-icon">⚙</div></div><div id="inspectorContent" class="inspector-content"></div><div class="inspector-bottom"><span>Synced to <b>local project</b></span><span id="saveStatus">Unsaved</span></div></aside>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</div>
+<script src="assets/audio/waveforms.js"></script><script src="project-data.js"></script><script src="math/engine.js"></script><script src="math/studio_math.js"></script><script src="studio.js"></script>
+</body></html>
