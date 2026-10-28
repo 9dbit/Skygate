@@ -120,3 +120,10 @@ Studio imports can now set `presentation: "olympus-gold"`, use a shared image sk
 The Olympus preset is in `studio/themes/olympus-gold/project.json`. Its portable asset ZIP supplies the generated images, matching existing jewel sprites and vector control glyphs. Build the package with `scripts/build-olympus-package.py <asset-workspace>` (Pillow and CairoSVG required). A standalone playable review can be built with `node scripts/build-play-preview.mjs <output.html> <project.json> <source-paths.json>`.
 
 40 automated tests cover skin/crop validation, live control bindings, legacy layouts, explicit public Studio testing and existing game/publication protections. The public-testing option preserves the configured password and requires an explicit service variable. Deploying the renderer does not itself publish the Olympus project or alter the active release; import and publication are separate Studio actions.
+
+
+### v0.10.1 — splash and first-paint loading
+
+The supplied storm guardian and Soft Tech artwork form the loading screen, with soft logo zoom and gold lightning (disabled for reduced motion). The game stays hidden and inert from the initial HTML until the current release is applied and scene/symbol images have decoded. Play then reveals the latest scene directly, without a second intro. Snapshot, image, stylesheet, or startup failures retain the splash with Retry; late completion cannot unlock a timed-out load. Studio previews enter automatically after readiness. Home and bonus Continue dialogs are retained.
+
+Validation: 68 tests pass. Chromium checks cover 320×568, 390×844, 430×932 and 844×390, delayed snapshots/assets, fetch/image failures, successful retry, reduced motion and automatic Studio preview entry. Physical iOS testing is still pending.

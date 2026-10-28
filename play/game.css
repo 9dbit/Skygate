@@ -192,3 +192,28 @@ dialog::backdrop{background:#02060bbd;backdrop-filter:blur(5px)}
 #featureAmount{color:#8cc6ff;font-size:32px}th{color:#dbc395;letter-spacing:.025em}td{color:#e2eaf3}td,th{border-bottom-color:#b3955433}tr:nth-child(even){background:#ffffff03}input{background:#0b1723;border-color:#9c7c454d}summary{min-height:44px;color:#d4b67b}.session-stats{color:#a2b5c7}.session-stats b{color:var(--sg-cream)}.activity-status{background:#0b1823;border-color:var(--sg-line);color:#b8c8d7}
 button:focus-visible,input:focus-visible{outline:2px solid #8ecbff;outline-offset:3px}.fx-edge{inset:0;width:100%;height:100%;object-fit:fill;transform:none}
 @media(max-width:360px){.dialog-head{padding:14px}.dialog-body{padding:14px}.stepper{gap:8px}.menu-actions{grid-template-columns:1fr}.purchase-panel>strong{font-size:34px}.dialog-head h2{font-size:18px}}
+
+/* First paint belongs to the splash, never to the legacy fallback layout. */
+.boot-splash{isolation:isolate;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:space-between;min-height:100svh;padding:calc(env(safe-area-inset-top,0px) + 30px) 24px calc(env(safe-area-inset-bottom,0px) + 24px);text-align:center}
+.splash-art{position:absolute;inset:0;z-index:-3;max-width:680px;margin:auto;overflow:hidden}
+.splash-background,.splash-lightning{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center}
+.splash-lightning{stroke:#ffdf8a;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 5px #ffc54a);opacity:0;animation:splash-storm 7s ease-in-out infinite}
+.bolt-branch{stroke-width:1;opacity:.6}
+.splash-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(#03091088,transparent 24%,#03091018 48%,#030910bc 73%,#030910 100%)}
+.splash-title span{font:600 9px/1.4 system-ui;letter-spacing:.33em;color:#e0d1b0}
+.splash-title h1{margin:8px 0 0;font:700 clamp(27px,7vw,40px)/1.05 Georgia,serif;letter-spacing:.09em;text-shadow:0 2px 12px #000}
+.splash-title strong{display:block;color:#6aafff;font-size:.65em;letter-spacing:.2em;margin-top:5px}
+.splash-footer{width:min(100%,320px);display:flex;flex-direction:column;align-items:center;margin-top:auto}
+.splash-logo{width:190px;height:auto;max-height:145px;object-fit:contain;animation:soft-tech-breathe 4s ease-in-out infinite;filter:drop-shadow(0 0 14px #338aff33)}
+#bootStatus{margin:4px 0 14px;min-height:20px;font:400 12px/1.5 system-ui;color:#c1ceda}
+.boot-progress{height:2px;width:120px;overflow:hidden;background:#bda26433;margin:0 0 18px;border-radius:2px}
+.boot-progress span{display:block;width:45%;height:100%;background:#e6c479;animation:splash-loading 1.8s ease-in-out infinite}
+.splash-play,.splash-retry{width:100%;min-height:56px;border:1px solid #dfbf7c;border-radius:14px;background:linear-gradient(135deg,#354148,#10202d 55%,#07121d);color:#f8e7bc;box-shadow:inset 0 0 0 3px #060c15,inset 0 0 0 4px #c3a16044,0 6px 28px #0007;font:750 16px/1 system-ui;letter-spacing:.2em;display:flex;align-items:center;justify-content:center;gap:14px}
+.splash-play:not(:disabled){background:linear-gradient(130deg,#2866a0,#102b4a 60%,#091827)}
+.splash-play:disabled{opacity:.45}.splash-footer>small{margin-top:18px;color:#80909e;font:500 8px/1.4 system-ui;letter-spacing:.17em}
+@keyframes splash-storm{0%,30%,70%,100%{opacity:0}40%{opacity:.7}51%{opacity:.12}58%{opacity:.45}}
+@keyframes soft-tech-breathe{0%,100%{transform:scale(.96)}50%{transform:scale(1.04)}}
+@keyframes splash-loading{0%{transform:translateX(-110%)}100%{transform:translateX(330%)}}
+@media(max-height:600px){.boot-splash{padding-top:18px;padding-bottom:16px}.splash-logo{width:142px;max-height:104px}.splash-title span{font-size:8px}.splash-footer>small{margin-top:12px}}
+@media(max-height:420px) and (orientation:landscape){.splash-title{align-self:flex-start}.splash-footer{align-self:flex-end;width:240px;margin-top:-100px}.splash-logo{width:120px;max-height:85px}}
+@media(prefers-reduced-motion:reduce){.splash-lightning,.splash-logo,.boot-progress span{animation:none}.splash-lightning{opacity:.2}.boot-progress span{width:100%}}

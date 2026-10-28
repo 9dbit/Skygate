@@ -252,7 +252,7 @@ function startSkygate() {
     E('coinPlus').disabled=locked()||Settings.coins.indexOf(state.coin)>=Settings.coins.length-1||Settings.total(state.level,Settings.coins[Settings.coins.indexOf(state.coin)+1],state.ante)>300;
     E('autoTurbo').checked=state.speed==='turbo';E('autoQuick').checked=state.speed==='quick';E('autoSkip').checked=preferences.skipScreens;
     E('autoCount').value=Math.max(0,Settings.autoCounts.indexOf(preferences.autospins));E('autoCountValue').textContent=preferences.autospins;E('autoStart').textContent='START AUTOPLAY ('+preferences.autospins+')';
-    E('batterySetting').checked=preferences.battery;E('soundSetting').checked=state.sound;E('lockSetting').checked=preferences.spinLocked;E('promoSetting').checked=preferences.promotions;E('introSetting').checked=preferences.intro;
+    E('batterySetting').checked=preferences.battery;E('soundSetting').checked=state.sound;E('lockSetting').checked=preferences.spinLocked;E('promoSetting').checked=preferences.promotions;
     E('promoBadge').hidden=!preferences.promotions;E('spin').classList.toggle('battery-saver',preferences.battery);
   }
   function setBet(next){if(locked()||!next)return;state.level=next.level;state.coin=next.coin;state.bet=Settings.total(next.level,next.coin);refresh();}
@@ -287,7 +287,6 @@ function startSkygate() {
     E('soundSetting').addEventListener('change',()=>void toggleSound());
     E('lockSetting').addEventListener('change',()=>{preferences.spinLocked=E('lockSetting').checked;savePreferences();refresh();});
     E('promoSetting').addEventListener('change',()=>{preferences.promotions=E('promoSetting').checked;savePreferences();refresh();});
-    E('introSetting').addEventListener('change',()=>{preferences.intro=E('introSetting').checked;savePreferences();});
     E('home').addEventListener('click',()=>void showHome());E('promoBadge').addEventListener('click',()=>{if(!locked())void showHome();});
     E('history').addEventListener('click',()=>{E('menuDialog').close();E('historyRows').innerHTML=state.history.length?state.history.map(h=>`<article class="history-entry"><b>ROUND ${h.round} · ${h.buy?'BUY FREE SPINS':h.ante?'ANTE BET':'BASE SPIN'}</b><small>${h.time}${h.bonus?' · FREE SPINS':''}</small><span>BET ${credit(h.cost)} · WIN ${credit(h.award)}</span></article>`).join(''):'Belum ada putaran.';E('historyDialog').showModal();});
     for(const id of ['credits','betText']){const node=E(id);node.setAttribute('role','button');node.setAttribute('tabindex','0');node.setAttribute('aria-label','Ganti tampilan kredit atau koin');const toggle=()=>{preferences.coinsView=!preferences.coinsView;savePreferences();refresh();};node.addEventListener('click',toggle);node.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle();}});}
@@ -353,13 +352,20 @@ function startSkygate() {
   E('previewBadge').hidden=!window.SkygatePreview;
   E('seedInput').value=String(state.seed);
   resetGame(initialSeed);
-  if(preferences.intro && !window.SkygatePreview){let seen=false;try{seen=window.sessionStorage?.getItem('skygate-intro-seen');window.sessionStorage?.setItem('skygate-intro-seen','1');}catch{}if(!seen)void showHome();}
-  if(window.SkygatePreview){
+  if(!window.SkygateBoot && preferences.intro && !window.SkygatePreview){let seen=false;try{seen=window.sessionStorage?.getItem('skygate-intro-seen');window.sessionStorage?.setItem('skygate-intro-seen','1');}catch{}if(!seen)void showHome();}
+  if(window.SkygateBoot){
+    const scene=document.querySelector('.published-scene') || document.querySelector('.game');
+    const images=[...scene.querySelectorAll('img'), ...document.querySelectorAll('#bootSplash img')];
+    const symbols=Object.values(art).map(name=>asset('symbols/'+name+'.png'));
+    void window.SkygateBoot.ready(images,symbols).then(()=>{
+      if(window.SkygatePreview)window.parent.postMessage({type:'skygate-preview-ready',id:release.id},location.origin);
+    }).catch(error=>window.SkygateBoot.fail(error));
+  }else if(window.SkygatePreview){
     Promise.all(Array.from(document.images).map(img=>img.decode())).then(()=>{
       window.parent.postMessage({type:'skygate-preview-ready',id:release.id},location.origin);
     }).catch(()=>status('Ada gambar yang gagal dimuat. Perbaiki aset di Studio lalu siapkan preview baru.'));
   }
   window.SlotGameTest={getState:()=>({...state,last:state.last?{...state.last}:null}),getGrid:()=>displayGrid,engineProfile:cfg.profile_id};
 }
-if(window.SkygateReleaseReady){window.SkygateReleaseReady.then(startSkygate).catch(error=>{document.getElementById('status').textContent=error.message;document.getElementById('playHint').textContent=error.message;document.getElementById('spin').disabled=true;});}
+if(window.SkygateReleaseReady){window.SkygateReleaseReady.then(startSkygate).catch(error=>{document.getElementById('status').textContent=error.message;document.getElementById('playHint').textContent=error.message;document.getElementById('spin').disabled=true;window.SkygateBoot?.fail(error);});}
 else startSkygate();

@@ -1,15 +1,41 @@
 <!doctype html>
-<html lang="id">
+<html lang="id" data-boot="loading">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#101020"><meta name="color-scheme" content="dark">
 <title>SKYGATE 5000 · Celestial Cascades</title>
-<link rel="icon" href="assets/symbols/crown.png"><link rel="stylesheet" href="game.css?v=0.10.0">
-<link rel="preload" as="image" href="assets/scene/hero_composite_reference.jpg">
+<link rel="icon" href="assets/symbols/crown.png"><link rel="stylesheet" id="gameStyles" href="game.css?v=0.10.1">
+<style>
+html:not([data-boot="entered"]) .game{visibility:hidden!important;pointer-events:none!important}
+#bootSplash{position:fixed;inset:0;z-index:1000;background:#060b10;color:#f5e5bc}
+#bootSplash[hidden]{display:none}
+</style>
+<link rel="preload" as="image" href="assets/splash/storm-guardian.jpeg">
 </head>
 <body>
-<main class="game" aria-label="Skygate — permainan kredit virtual">
-  <header class="hero"><img src="assets/scene/hero_composite_reference.jpg" alt="SKYGATE — penjaga langit di antara kuil dan kilat" fetchpriority="high"><h1 class="sr-only">Skygate 5000</h1><span class="hero-caption">5000</span></header>
+<section id="bootSplash" class="boot-splash" aria-label="Skygate 5000 loading">
+  <div class="splash-art" aria-hidden="true">
+    <img class="splash-background" src="assets/splash/storm-guardian.jpeg" alt="" fetchpriority="high">
+    <svg class="splash-lightning" viewBox="0 0 736 1313" preserveAspectRatio="xMidYMid slice" fill="none">
+      <path class="bolt-main" d="M0 112 23 143 40 147 49 197 79 229 87 274 110 307 104 334 145 377 174 409 181 454 164 498 156 540 180 586 202 620 213 685 224 714 232 767 263 797 277 832 249 866 216 892 188 921 170 960 180 1003 168 1063 145 1091 155 1143 169 1185 177 1250"/>
+      <path class="bolt-branch" d="M107 324 91 369 72 392 64 432M161 512 136 544 129 583 108 611 98 647M233 768 213 795 222 835 201 872M171 961 146 944 131 908"/>
+    </svg>
+  </div>
+  <div class="splash-shade" aria-hidden="true"></div>
+  <header class="splash-title"><span>CELESTIAL CASCADES</span><h1>SKYGATE <strong>5000</strong></h1></header>
+  <div class="splash-footer">
+    <img class="splash-logo" src="assets/splash/soft-tech.png" alt="Soft Tech" width="1500" height="1088">
+    <p id="bootStatus" role="status" aria-live="polite">Memuat dunia Skygate…</p>
+    <div id="bootProgress" class="boot-progress" aria-hidden="true"><span></span></div>
+    <button id="bootPlay" class="splash-play" type="button" disabled><span aria-hidden="true">▶</span> PLAY</button>
+    <button id="bootRetry" class="splash-retry" type="button" hidden>COBA LAGI</button>
+    <small>KREDIT VIRTUAL · SKYGATE 5000</small>
+    <noscript>Aktifkan JavaScript untuk memuat game.</noscript>
+  </div>
+</section>
+<script src="boot.js?v=0.10.1"></script>
+<main inert class="game" aria-label="Skygate — permainan kredit virtual">
+  <header class="hero"><img src="assets/scene/hero_composite_reference.jpg" alt="SKYGATE — penjaga langit di antara kuil dan kilat"><h1 class="sr-only">Skygate 5000</h1><span class="hero-caption">5000</span></header>
   <section class="win-banner" aria-label="Kemenangan ronde"><span class="win-star" aria-hidden="true">✦</span><div class="win-value"><strong id="win">0.00</strong></div></section>
   <section class="board" aria-label="Papan permainan"><div class="reels" id="reels" aria-label="Enam kolom lima baris simbol" role="img"></div><div id="bonusRibbon" class="bonus-ribbon" hidden>FREE SPINS</div></section>
   <section class="feature-row" aria-label="Informasi permainan">
@@ -24,7 +50,7 @@
     <div class="wallet"><div class="credit-line"><label>KREDIT VIRTUAL</label><strong id="credits">100,000.00</strong></div><div class="bet-line"><button id="minus" class="round small" aria-label="Kurangi bet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button><div><label>BET</label><strong id="betText">20</strong></div><button id="plus" class="round small" aria-label="Tambah bet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button></div></div>
     <div class="spin-row">
       <button class="round mode-control" id="auto" aria-label="Pengaturan autoplay" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7a8 8 0 1 0 1 9M19 3v4h-4"/><path class="play-mark" d="m10 8 6 4-6 4Z"/></svg><small id="autoStatus">AUTO</small></button>
-      <button class="spin" id="spin" aria-label="Mulai spin" title="Spin (Enter)"><img src="assets/ui/spin_button_clean.svg?v=0.10.0" alt=""><span class="spin-caption">SPIN</span></button>
+      <button class="spin" id="spin" aria-label="Mulai spin" title="Spin (Enter)"><img src="assets/ui/spin_button_clean.svg?v=0.10.1" alt=""><span class="spin-caption">SPIN</span></button>
       <button class="round mode-control" id="turbo" aria-label="Kecepatan spin" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-8 12h6l-1 8 9-13h-6Z"/></svg><small id="turboStatus">NORMAL</small></button>
     </div>
   </section>
@@ -32,7 +58,7 @@
   <div id="winToast" class="win-toast" hidden aria-live="polite"><small id="toastTitle"></small><strong id="toastAmount"></strong></div><span id="previewBadge" class="preview-badge" hidden>PRIVATE PREVIEW</span>
 </main>
 <dialog id="modal" aria-labelledby="modalTitle"><div class="dialog-head"><h2 id="modalTitle">GAME RULES</h2><button class="close" id="closeModal" aria-label="Tutup aturan">×</button></div><div class="dialog-body"><p>Semua permainan memakai kredit virtual yang tidak memiliki nilai uang.</p><section id="tumbleRules"><h3>TUMBLE FEATURE</h3><p>8 atau lebih simbol yang sama membayar di posisi mana pun. Kemenangan setiap jenis simbol dijumlahkan. Simbol pemenang menghilang, simbol di atasnya turun, lalu posisi kosong diisi. Tumble berlanjut sampai tidak ada kemenangan atau batas kemenangan tercapai.</p><p>Di akhir rangkaian, semua orb dijumlahkan dan mengalikan total kemenangan simbol. SCATTER membayar terpisah tanpa pengali orb.</p><p id="orbRules"></p></section><section id="bonusRules"><h3>Free spins</h3><p id="bonusRulesText">4 atau lebih simbol mahkota SCATTER memicu 15 free spins. Di dalam bonus, 3 atau lebih SCATTER menambah 5 putaran. Orb mengalikan kemenangan simbol; pengalinya terkumpul selama bonus.</p></section><section id="payRules"><h3>Win table</h3><p>8+ simbol yang sama di mana saja menang. Simbol pemenang menghilang lalu simbol baru jatuh. Nilai tabel adalah kemenangan aktual berdasarkan base bet dan tampilan nilai atau koin.</p><div class="paytable-wrap"><table><thead><tr><th>Simbol</th><th>8–9</th><th>10–11</th><th>12+</th></tr></thead><tbody id="paytable"></tbody></table></div></section><section><h3>ANTE BET & BUY FREE SPINS</h3><p>Base bet = BET × COIN VALUE × 20. Ante menggunakan pengali bet 25×, sehingga biaya spin naik 25% sementara pembayaran tetap memakai base bet. Buy Free Spins berharga 100× base bet dan hanya tersedia ketika Ante OFF. Pembelian harus dikonfirmasi sebelum kredit dikurangi.</p><p id="anteRulesNote"></p></section>
-<section><h3>HOW TO PLAY</h3><p>Tekan SPIN untuk bermain. Tahan tombol SPIN untuk putaran turbo berulang; lepas untuk berhenti. Tombol kecepatan bergilir NORMAL → QUICK → TURBO. Tombol AUTO membuka pengaturan jumlah putaran, kecepatan, dan Skip Screens. Klik AUTO lagi untuk menghentikan sesi setelah ronde berjalan selesai.</p><p>Klik CREDIT atau BET untuk berganti tampilan nilai dan koin. Menu bet menyediakan BET, COIN VALUE, TOTAL BET, dan BET MAX. Buka menu untuk suara, battery saver, posisi tombol spin, dan riwayat. Tombol × menutup panel; geser vertikal untuk membaca.</p><p>Skip Screens melewati layar pembuka dan hasil bonus otomatis. Jika dimatikan, tekan LANJUT untuk meneruskan. Kemenangan dibayar setelah seluruh rangkaian putaran selesai. Riwayat mencatat satu hasil untuk satu siklus bonus.</p><label class="intro-choice"><input id="introSetting" type="checkbox" checked> Intro Screen</label></section>
+<section><h3>HOW TO PLAY</h3><p>Tekan SPIN untuk bermain. Tahan tombol SPIN untuk putaran turbo berulang; lepas untuk berhenti. Tombol kecepatan bergilir NORMAL → QUICK → TURBO. Tombol AUTO membuka pengaturan jumlah putaran, kecepatan, dan Skip Screens. Klik AUTO lagi untuk menghentikan sesi setelah ronde berjalan selesai.</p><p>Klik CREDIT atau BET untuk berganti tampilan nilai dan koin. Menu bet menyediakan BET, COIN VALUE, TOTAL BET, dan BET MAX. Buka menu untuk suara, battery saver, posisi tombol spin, dan riwayat. Tombol × menutup panel; geser vertikal untuk membaca.</p><p>Skip Screens melewati layar pembuka dan hasil bonus otomatis. Jika dimatikan, tekan LANJUT untuk meneruskan. Kemenangan dibayar setelah seluruh rangkaian putaran selesai. Riwayat mencatat satu hasil untuk satu siklus bonus.</p></section>
 <p class="muted" id="capText">Maksimum kemenangan 5.000× bet per ronde. Auto dan Turbo tidak mengubah peluang. Ini model simulasi sintetis, bukan RTP tersertifikasi. Tidak ada deposit atau penarikan.</p></div></dialog>
 <dialog id="menuDialog" aria-labelledby="menuTitle"><div class="dialog-head"><h2 id="menuTitle">SYSTEM SETTINGS</h2><button class="close" id="closeMenu" aria-label="Tutup menu">×</button></div><div class="dialog-body"><div class="settings-links"><button id="home">⌂ HOME</button><button id="history">↗ GAME HISTORY</button></div><h3>GENERAL SETTINGS</h3>
 <label class="setting-row"><span>BATTERY SAVER<small>Kurangi efek dan gerakan</small></span><input id="batterySetting" type="checkbox" role="switch"></label>
@@ -47,5 +73,5 @@
 <dialog id="buyDialog" aria-labelledby="buyTitle"><div class="dialog-head"><h2 id="buyTitle">BUY FREE SPINS</h2><button class="close" id="closeBuy" aria-label="Tutup pembelian">×</button></div><div class="dialog-body"><div class="purchase-panel"><h3>BUY FREE SPINS</h3><strong id="confirmBuyPrice">200.00</strong><small>KREDIT VIRTUAL · 100× BASE BET</small><div class="confirm-actions"><button id="cancelBuy" aria-label="Batal pembelian">BATAL</button><button id="confirmBuy" aria-label="Konfirmasi beli free spins">KONFIRMASI</button></div></div><p id="buyMessage" role="status"></p><label>TOTAL BASE BET</label><div class="stepper"><button id="buyMinus" aria-label="Kurangi base bet pembelian">−</button><output id="buyBaseBet">2.00</output><button id="buyPlus" aria-label="Tambah base bet pembelian">+</button></div></div></dialog>
 <dialog id="historyDialog" aria-labelledby="historyTitle"><div class="dialog-head"><h2 id="historyTitle">GAME HISTORY</h2><button class="close" id="closeHistory" aria-label="Tutup riwayat">×</button></div><div class="dialog-body"><div id="historyRows">Belum ada putaran.</div></div></dialog>
 <dialog id="featureDialog" aria-labelledby="featureTitle"><div class="dialog-head"><h2 id="featureTitle">SKYGATE 5000</h2></div><div class="dialog-body"><strong id="featureAmount"></strong><p id="featureDescription"></p><button id="featureContinue" class="primary-action">LANJUT</button></div></dialog>
-<script src="settings-model.js?v=0.10.0"></script><script src="config.js?v=0.10.0"></script><script src="engine.js?v=0.10.0"></script><script src="audio_engine.js?v=0.10.0"></script><script src="studio_math.js?v=0.10.0"></script><script src="text-fit.js?v=0.10.0"></script><script src="cascade-art.js?v=0.10.0"></script><script src="reels.js?v=0.10.0"></script><script src="release.js?v=0.10.0"></script><script src="game.js?v=0.10.0"></script>
+<script src="settings-model.js?v=0.10.1"></script><script src="config.js?v=0.10.1"></script><script src="engine.js?v=0.10.1"></script><script src="audio_engine.js?v=0.10.1"></script><script src="studio_math.js?v=0.10.1"></script><script src="text-fit.js?v=0.10.1"></script><script src="cascade-art.js?v=0.10.1"></script><script src="reels.js?v=0.10.1"></script><script src="release.js?v=0.10.1"></script><script src="game.js?v=0.10.1"></script>
 </body></html>
