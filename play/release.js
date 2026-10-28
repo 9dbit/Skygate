@@ -41,7 +41,11 @@ window.SkygateApplyLayout=(project,asset)=>{
     }else if(l.id==='antetext'){
       // The matching functional button supplies its own accessible label.
       wrap.textContent='WIN TABLE';wrap.classList.add('feature-label');
-    }else if(l.kind==='image'){const image=document.createElement('img');image.src=asset(l.asset);image.alt=l.name;image.draggable=false;cropImage(image,l.crop);wrap.classList.add('image-crop');wrap.append(image);}
+    }else if(l.kind==='image'){const image=document.createElement('img');image.src=asset(l.asset);image.alt=l.name;image.draggable=false;cropImage(image,l.crop);wrap.classList.add('image-crop');
+      if(l.id==='logo'){
+        wrap.classList.add('brand-logo');const mark=document.createElement('span');mark.className='brand-top';mark.append(image);
+        image.alt='Skygate';const number=document.createElement('strong');number.className='brand-number';number.textContent='5000';wrap.append(mark,number);
+      }else wrap.append(image);}
     else if(l.kind==='text'||l.kind==='circle')wrap.textContent=l.text;
     if(l.kind==='text'){
       const content=document.createElement('span');content.className='text-content';

@@ -2,7 +2,16 @@
 
 Greek-mythology-inspired **virtual-credit** game development playground. Includes a layout studio, modular icon assets, original music and sound effects, math experimentation, free spins, and simulated jackpot controls. This is not connected to deposits, withdrawals, or real-money gambling.
 
-### Current release: v0.9.0 — 29 October 2026 (Asia/Jakarta)
+### Current release: v0.10.0 — Skygate 5000
+
+- Shared obsidian/gold panels with sapphire actions across rules, settings, bet, autoplay, purchase, history and bonus screens.
+- Main-screen Menu / Bet / Volume / Rules controls have labeled 44×46 px touch targets.
+- A bottom fade overlays the background with black at up to 30% opacity, beneath functional controls.
+- The existing gold wordmark is paired with a live sapphire-blue 5000 submark.
+- Winning symbols vibrate during the lightning charge. Lightning is anchored to the cell perimeter and stretched to its rectangular geometry; it does not scale or vibrate with the artwork.
+- Reduced motion skips the charge/vibration/burst sequence. Existing game math and settlement are preserved.
+
+### v0.9.0 behavior — 29 October 2026 (Asia/Jakarta)
 
 - Reference rules and controls are implemented: nine-symbol paytable, SCATTER awards, 15 free spins with retriggers, 2–500× orbs, a 5000× round cap, Buy Free Spins at 100× base bet, and +25% Ante that disables purchase.
 - Normal / Quick / Turbo, autoplay 10–1000, purchase confirmation, bet/coin controls, session history and settings are available. Paytable amounts follow the selected base bet and coin display.

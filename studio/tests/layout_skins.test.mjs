@@ -59,7 +59,9 @@ test('live layout keeps bet controls on canvas and moves Auto caption into its e
   assert.match(d.nodes.get('auto').className,/skinned-control/);
   assert.match(d.nodes.get('auto').querySelector('svg').innerHTML,/currentColor/);
   const scene=d.game.children.at(-1),logo=scene.children.find(n=>n.dataset.layer==='logo');
-  assert.equal(logo.children[0].style.objectFit,'fill');
+  assert.equal(logo.children[0].children[0].style.objectFit,'fill');
+  assert.equal(logo.children[1].textContent,'5000');
+  assert.equal(logo.children[1].className,'brand-number');
   assert.equal(d.nodes.get('anteFeature').children[0].className,'feature-skin');
 });
 

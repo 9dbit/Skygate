@@ -266,7 +266,7 @@ function startSkygate() {
     if(preferences.skipScreens&&!manual){await delay(1200,450);E('featureDialog').close();return;}
     await new Promise(resolve=>{finishFeature=()=>{E('featureDialog').close();finishFeature=null;resolve();};});
   }
-  async function showHome(){E('menuDialog').close();await featureScreen('SKYGATE','WIN UP TO 5000×','8+ simbol membayar di mana saja. 4+ SCATTER memberi 15 Free Spins. Semua nilai adalah kredit virtual.',true);}
+  async function showHome(){E('menuDialog').close();await featureScreen('SKYGATE 5000','WIN UP TO 5000×','8+ simbol membayar di mana saja. 4+ SCATTER memberi 15 Free Spins. Semua nilai adalah kredit virtual.',true);}
   function setupSettings(){
     for(const [button,dialog] of [['closeAuto','autoDialog'],['closeBet','betDialog'],['closeBuy','buyDialog'],['cancelBuy','buyDialog'],['closeHistory','historyDialog']])E(button).addEventListener('click',()=>E(dialog).close());
     E('featureContinue').addEventListener('click',()=>finishFeature?.());

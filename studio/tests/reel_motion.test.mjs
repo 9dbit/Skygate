@@ -57,11 +57,16 @@ test('only winning cells charge before bursting and all effect nodes are reused'
   const t=setup(),selected=[0,2,5,7,12,18,23,29],created=t.created.length;
   const playing=t.renderer.shatter(selected);
   assert.equal(t.root.dataset.fxPhase,'charge');
-  assert.equal(t.animations.length,selected.length);
-  assert(t.animations.every(a=>selected.some(i=>t.renderer.cells[i].fx.edge===a.node)));
+  assert.equal(t.animations.length,selected.length*2);
+  assert(t.animations.every(a=>selected.some(i=>t.renderer.cells[i].fx.edge===a.node||t.renderer.cells[i].motion===a.node)));
   assert.equal(t.renderer.grid,t.before,'symbols remain until the charge completes');
+  const edges=t.animations.filter(a=>selected.some(i=>t.renderer.cells[i].fx.edge===a.node));
+  assert(edges.every(a=>a.frames.every(f=>!('transform' in f))),'lightning stays fixed on cell borders');
+  const vibrations=t.animations.filter(a=>selected.some(i=>t.renderer.cells[i].motion===a.node));
+  assert.equal(vibrations.length,selected.length);
+  assert(vibrations.every(a=>a.frames.some(f=>f.transform.includes('-1.5px'))));
   await playing;
-  assert.equal(t.animations.length,selected.length*5);
+  assert.equal(t.animations.length,selected.length*6);
   assert.equal(t.created.length,created);
   assert.equal(t.root.dataset.fxPhase,'idle');
   assert.equal(t.renderer.animations.size,0);
@@ -74,19 +79,19 @@ test('only winning cells charge before bursting and all effect nodes are reused'
 test('cancel during lightning prevents the burst; reduced motion skips both phases',async()=>{
   const t=setup();const playing=t.renderer.shatter([0,1,2]);
   t.renderer.cancel();await playing;
-  assert.equal(t.animations.length,3);assert.equal(t.root.dataset.fxPhase,'idle');
+  assert.equal(t.animations.length,6);assert.equal(t.root.dataset.fxPhase,'idle');
   assert.equal(t.renderer.animations.size,0);
   await t.renderer.shatter([0,1,2],{reduced:true});
-  assert.equal(t.animations.length,3);
+  assert.equal(t.animations.length,6);
 });
 test('one full-board win has a bounded effect pool and turbo retains both phases',async()=>{
   const t=setup(),all=Array.from({length:30},(_,i)=>i),created=t.created.length;
   assert.equal(t.root.querySelectorAll('.cascade-fx').length,90);
   await t.renderer.shatter(all,{turbo:true});
-  assert.equal(t.animations.length,150);
+  assert.equal(t.animations.length,180);
   assert.equal(t.created.length,created);
-  assert(t.animations.slice(0,30).every(a=>a.options.duration===95));
-  assert(t.animations.slice(30).every(a=>a.options.duration===170));
+  assert(t.animations.slice(0,60).every(a=>a.options.duration===95));
+  assert(t.animations.slice(60).every(a=>a.options.duration===170));
 });
 
 test('text fitting keeps long amounts and caption stacks inside the same bounds at phone widths',()=>{
