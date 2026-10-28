@@ -259,7 +259,8 @@ function startSkygate() {
   function changeTotal(direction){setBet(Settings.step(state.bet,direction,state.ante));}
   function setSpeed(next){state.speed=next;preferences.speed=next;savePreferences();refresh();status(next.toUpperCase()+' SPINS ENABLED');celebrate(next.toUpperCase()+' SPINS','ENABLED','speed');}
   async function featureScreen(title,amount,description,manual=false){
-    if(suspended||document.hidden)return;
+    // A canceled round stays suppressed through settlement; idle Home can reopen on return.
+    if(document.hidden||(suspended&&state.busy))return;
     E('featureTitle').textContent=title;E('featureAmount').textContent=amount;E('featureDescription').textContent=description;
     E('featureDialog').showModal();
     if(preferences.skipScreens&&!manual){await delay(1200,450);E('featureDialog').close();return;}

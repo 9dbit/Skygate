@@ -8,12 +8,13 @@ Greek-mythology-inspired **virtual-credit** game development playground. Include
 - Normal / Quick / Turbo, autoplay 10–1000, purchase confirmation, bet/coin controls, session history and settings are available. Paytable amounts follow the selected base bet and coin display.
 - Winning symbols use lightning, fireworks and tumble motion. Virtual credits are debited once before presentation and awards settle once after presentation, including interruption; replay never changes the ledger.
 - `/health` reads the version from `package.json`. Verify the deployed Git commit in Railway as well; the immutable Studio artwork snapshot has a separate release ID.
-- Validation: 61 automated tests pass. Native iPhone Safari/audio checks remain pending. Proprietary outcome weights, certified RTP and exact Ante frequency are **not** established by the reference screenshots; see [reference rules and limitations](docs/reference-rules-v1.md).
+- Home opens again after returning from background. Interrupted rounds remain suppressed until settlement; returning does not restart audio or autoplay.
+- Validation: 64 automated tests pass, including manual bonus confirmation and background interruption. Native iPhone Safari/audio checks remain pending. Proprietary outcome weights, certified RTP and exact Ante frequency are **not** established by the reference screenshots; see [reference rules and limitations](docs/reference-rules-v1.md).
 
 The v0.4–v0.8 sections below describe historical changes. Older statements that Buy/Ante are unavailable, Auto is fixed at 10, or settlement happens before animation are superseded by this section. Studio access is controlled by the current Railway environment; earlier checkpoints do not prove the current access mode.
 
 - `/` or `/studio/` - studio editor (optional password protection) (mobile 9:16 preview, edit layers, asset swap, audio, math, win, jackpot settings)
-- `/play/` - illustrated portrait game v0.5 (virtual credits)
+- `/play/` - illustrated portrait game (virtual credits)
 - `/health` - Railway liveness endpoint
 
 ### Run
