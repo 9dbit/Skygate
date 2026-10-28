@@ -13,7 +13,9 @@ ASSETS = ROOT / 'assets'
 OUT = ROOT / 'deliverables'
 OUT.mkdir(exist_ok=True)
 project = json.loads((REPO/'studio/project.json').read_text())
-project.update(projectName='SKYGATE · Olympus Gold', presentation='olympus-gold', credit=100000, bet=20, seed=20261027)
+project.update(projectName='SKYGATE · Olympus Gold', presentation='olympus-gold', credit=100000, bet=2, seed=20261027)
+project['math']=json.loads((REPO/'studio/math/reference-config.json').read_text())
+project['jackpot']['enabled']=False
 layers = []
 files = {}
 sources = {}
@@ -49,20 +51,18 @@ art('reelframe','Gold Ionic columns · reel architecture','reel_architecture.png
 add('reels','Live 6 × 5 symbols','grid',122,596,836,578,21)
 art('winbanner','Round total · laurel banner','win_banner.png',92,457,896,145,24)
 text('winamount','Live round amount','0.00',205,487,670,84,25,86)
-art('antebtn','Win table · button panel','feature_panel.png',293,1268,495,105,26)
-text('antetext','Win table · live rules action','WIN TABLE',403,1288,330,34,27,33)
-text('wintable_sub','Win table · caption','8+ MATCHING SYMBOLS',402,1330,330,20,27,15,'#ece6d9')
-text('pay_arrow','Win table · chevron','›',737,1290,33,52,28,50)
+art('buybtn','Buy Free Spins · live purchase','feature_panel.png',35,1268,495,105,26)
+art('antebtn','Ante Bet · live toggle','feature_panel.png',551,1268,495,105,26)
 art('controlboard','Credit and bet · marble panel','feature_panel.png',28,1390,1024,114,29)
 text('credits','Live credit value','100,000.00',60,1409,460,72,31,43)
-text('betlabel','Live bet value','20',747,1409,150,72,31,43)
+text('betlabel','Live bet value','2.00',747,1409,150,72,31,43)
 control('minusbtn','Decrease bet','−',643,1402,90)
 control('plusbtn','Increase bet','+',930,1402,90)
 art('spinbutton','Spin · gold laurel medallion','spin_medallion.png',366,1471,348,348,42)
 control('autobtn','Auto · live toggle','▶',202,1552,143)
 control('turbobtn','Turbo · live toggle','ϟ',735,1552,143)
 text('autolabel','Auto · live start/stop caption','AUTO',197,1704,153,33,43,25,'#fff9e6')
-text('turbolabel','Turbo caption','TURBO',728,1704,157,33,43,25,'#fff9e6')
+text('turbolabel','Spin speed · live caption','NORMAL',728,1704,157,33,43,25,'#fff9e6')
 control('menubtn','Menu','☰',32,1814,90)
 control('soundbtn','Sound · live mute toggle','♪',850,1814,90)
 control('infobtn','Rules and information','i',958,1814,90)
@@ -145,7 +145,7 @@ Publish, prepare the snapshot, check it, then publish the snapshot.
 
 Requires the v0.8 renderer for cropped image layers, skinned controls and on-canvas
 bet controls. All artwork remains independently replaceable. Dynamic amounts and
-orb multipliers are live text. Game math and starting credit/bet are unchanged.
+orb multipliers are live text. Visible reference rules, nine-symbol paytable and base bet 2 are included. RNG weights are synthetic; reference RTP is not certified.
 
 The seventeen new raster assets were created with built-in Imagegen using the
 supplied gold/black reference. All nine outcome sprites are separate files with

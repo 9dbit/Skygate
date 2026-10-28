@@ -11,6 +11,7 @@ export const shippedAssets = [
   ...['sky_background.jpg','hero_composite_reference.jpg','guardian.png','logo.png','column_left.png','column_right.png'].map(x=>`scene/${x}`),
   ...['gold_banner','blue_button','spin_button','spin_button_clean','reel_frame','jackpot_mini','jackpot_minor','jackpot_major','jackpot_grand'].map(x=>`ui/${x}.svg`),
   ...tracks.map(x=>`audio/${x}.mp3`),
+  'ui/confirmation-panel-v1.png',
 ];
 export class ReleaseError extends Error { constructor(message,status=400){super(message);this.status=status;} }
 const fail=message=>{throw new ReleaseError(message);};
@@ -53,12 +54,11 @@ export function validateProject(input, overrideKeys=[]){
   for(const id of ['minusbtn','plusbtn']){
     const l=layers.find(l=>l.id===id);if(l&&(l.kind!=='circle'||!l.visible||l.opacity<20||l.w<90||l.h<90||l.x<0||l.y<0||l.x+l.w>1081||l.y+l.h>1921))fail(`Keep ${id} usable and inside the canvas`);
   }
-  // These buttons describe the implemented rules, not unimplemented purchases.
-  for(const l of layers){if(l.id==='buytext')l.text='FREE SPINS';if(l.id==='antetext')l.text='WIN TABLE';}
+
   if(!Array.isArray(p.grid)||p.grid.length!==30||p.grid.some(x=>!symbols.includes(x)))fail('Expected 30 valid symbols');
   const c=clone(p.math||{});
   try{math.validateConfig(c);}catch(e){fail('Math: '+e.message);}
-  const regular=symbols.slice(0,7), outcomes=[...regular,'scatter','orb'];
+  const regular=c.reference_rules?['crown','hourglass','ring','chalice','ruby','amethyst','topaz','emerald','sapphire']:symbols.slice(0,7), outcomes=[...regular,'scatter','orb'];
   if(Object.keys(c.symbol_weights).sort().join()!==outcomes.sort().join()||Object.keys(c.paytable).sort().join()!==regular.sort().join())fail('Expected the nine supported outcomes');
   for(const v of Object.values(c.symbol_weights))num(v,.000001,1000000,'symbol weight');
   for(const a of Object.values(c.paytable))for(const v of a)num(v,0,100000,'payout');
@@ -66,10 +66,17 @@ export function validateProject(input, overrideKeys=[]){
   c.multiplier_values.forEach(v=>integer(v,1,10000,'multiplier'));c.multiplier_weights.forEach(v=>num(v,.000001,1000000,'multiplier weight'));
   for(const k of ['bonus_trigger_scatters','bonus_retrigger_scatters'])integer(c[k],1,30,k);
   for(const k of ['bonus_start_spins','bonus_retrigger_add_spins'])integer(c[k],1,200,k);
-  integer(c.safety_max_tumbles,1,80,'tumble limit');integer(c.safety_max_bonus_spins,1,200,'bonus limit');num(c.round_max_win_x,1,100000,'round cap');
+  integer(c.safety_max_tumbles,1,c.reference_rules?10000:80,'tumble limit');integer(c.safety_max_bonus_spins,1,c.reference_rules?10000:200,'bonus limit');num(c.round_max_win_x,1,100000,'round cap');
   // Config metadata is limited separately; unknown fields never cross the boundary.
   const config=Object.fromEntries(['grid_columns','grid_rows','min_match','symbol_weights','paytable','multiplier_values','multiplier_weights','bonus_start_spins','bonus_trigger_scatters','bonus_retrigger_scatters','bonus_retrigger_add_spins','round_max_win_x','safety_max_tumbles','safety_max_bonus_spins'].map(k=>[k,c[k]]));
-  config.profile_id='studio-published-v0.6';
+  if(c.reference_rules){
+    config.reference_rules=true;
+    if(!c.bonus_symbol_weights || Object.keys(c.bonus_symbol_weights).sort().join()!==outcomes.sort().join())fail('Expected bonus reel weights');
+    config.bonus_symbol_weights=Object.fromEntries(outcomes.map(k=>[k,num(c.bonus_symbol_weights[k],.000001,1000000,'bonus weight')]));
+    config.ante_scatter_weight_multiplier=num(c.ante_scatter_weight_multiplier,1,10,'ante scatter weight');
+    config.scatter_paytable=Object.fromEntries(['4','5','6'].map(k=>[k,num(c.scatter_paytable?.[k],0,100000,'scatter pay')]));
+  }
+  config.profile_id=c.reference_rules?'skygate-reference-rules-v1':'studio-published-v0.6';
   const jackpot={enabled:!!p.jackpot?.enabled,type:'fixed-demo',tiers:(p.jackpot?.tiers||[]).map(t=>({id:str(t.id,16,'jackpot id'),name:str(t.name,30,'jackpot name'),awardX:num(t.awardX,0,100000,'jackpot award'),perMillion:num(t.perMillion,0,1e6,'jackpot odds'),color:color(t.color)}))};
   if(jackpot.tiers.length!==4||new Set(jackpot.tiers.map(t=>t.id)).size!==4||jackpot.tiers.some(t=>!['mini','minor','major','grand'].includes(t.id)))fail('Expected four jackpot tiers');
   try{studioMath.validateJackpot(jackpot);}catch(e){fail(e.message);}
@@ -78,7 +85,7 @@ export function validateProject(input, overrideKeys=[]){
   const audioTracks=p.tracks.map(t=>{if(!tracks.includes(t.id))fail('Unknown track');return {id:t.id,name:str(t.name,80,'track name'),loop:!!t.loop,volume:num(t.volume,0,100,'track volume'),fade:num(t.fade,0,5000,'audio fade')};});
   const winPresentation=Object.fromEntries(['smallX','bigX','megaX','superX'].map(k=>[k,num(p.winPresentation?.[k],0,100000,k)]));
   if(!(winPresentation.smallX<=winPresentation.bigX&&winPresentation.bigX<=winPresentation.megaX&&winPresentation.megaX<=winPresentation.superX))fail('Win thresholds must increase');
-  return {schema:p.schema,projectName:str(p.projectName||'SKYGATE',80,'project name'),presentation:p.presentation==='olympus-gold'?'olympus-gold':'classic',virtualCreditsOnly:true,stage:{width:1080,height:1920},layers,grid:[...p.grid],math:config,jackpot,audio,tracks:audioTracks,winPresentation,seed:integer(p.seed,1,4294967295,'seed'),bet:num(p.bet,1,200,'bet'),credit:num(p.credit,1,100000000,'starting credit')};
+  return {schema:p.schema,projectName:str(p.projectName||'SKYGATE',80,'project name'),presentation:p.presentation==='olympus-gold'?'olympus-gold':'classic',virtualCreditsOnly:true,stage:{width:1080,height:1920},layers,grid:[...p.grid],math:config,jackpot,audio,tracks:audioTracks,winPresentation,seed:integer(p.seed,1,4294967295,'seed'),bet:num(p.bet,.2,300,'bet'),credit:num(p.credit,1,100000000,'starting credit')};
 }
 
 function decodeOverride(key,item){

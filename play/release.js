@@ -19,7 +19,7 @@ window.SkygateApplyLayout=(project,asset)=>{
   if(project.presentation==='olympus-gold')game.classList.add('olympus-gold');
   const cropImage=(img,c)=>{if(c)Object.assign(img.style,{position:'absolute',left:-c.x/c.w*100+'%',top:-c.y/c.h*100+'%',width:100/c.w+'%',height:100/c.h+'%',objectFit:'fill'});};
   const bindings={winamount:'win',credits:'credits',betlabel:'betText',reels:'reels',spinbutton:'spin',autobtn:'auto',turbobtn:'turbo',menubtn:'menu',soundbtn:'sound',infobtn:'help',minusbtn:'minus',plusbtn:'plus',autolabel:'autoStatus',turbolabel:'turboStatus'};
-  const retired=new Set(['winlabel','virtual_note','buybtn','buytext','freespins_sub','free_arrow','swirl_icon']);
+  const retired=new Set(['winlabel','virtual_note','buytext','freespins_sub','free_arrow','swirl_icon']);
   // Moving a button detaches its captions until the scene is appended. Capture
   // all bindings first so later caption layers retain their live DOM nodes.
   const boundNodes=Object.fromEntries(Object.entries(bindings).map(([id,target])=>[id,document.getElementById(target)]));
@@ -34,9 +34,10 @@ window.SkygateApplyLayout=(project,asset)=>{
       if(l.id==='spinbutton'){node.querySelector('img').src=asset(l.asset);cropImage(node.querySelector('img'),l.crop);}
       if(l.kind==='circle'&&l.asset){const bg=document.createElement('img');bg.src=asset(l.asset);bg.alt='';bg.className='control-skin';cropImage(bg,l.crop);node.prepend(bg);node.classList.add('skinned-control');if(l.id==='autobtn'&&project.presentation==='olympus-gold')node.querySelector('svg').innerHTML='<path d="m8 5 11 7-11 7Z" fill="currentColor" stroke="none"/>';}
       if(l.id==='reels'){wrap.classList.add('live-grid');wrap.append(document.getElementById('bonusRibbon'));}
-    }else if(l.id==='antebtn'){
-      const control=document.getElementById('payInfo');control.className='published-feature';const bg=document.createElement('img');bg.src=asset(l.asset);bg.alt='';bg.className='feature-skin';cropImage(bg,l.crop);control.prepend(bg);wrap.append(control);
-      control.setAttribute('aria-label','Win table · nilai simbol');
+    }else if(l.id==='antebtn'||l.id==='buybtn'){
+      const reference=project.math.reference_rules;
+      const control=document.getElementById(l.id==='buybtn'?'buyFeature':reference?'anteFeature':'payInfo');control.classList.add('published-feature');if(reference)control.classList.add('live-feature');const bg=document.createElement('img');bg.src=asset(l.asset);bg.alt='';bg.className='feature-skin';cropImage(bg,l.crop);control.prepend(bg);wrap.append(control);
+      if(!reference)control.setAttribute('aria-label','Win table · nilai simbol');
     }else if(l.id==='antetext'){
       // The matching functional button supplies its own accessible label.
       wrap.textContent='WIN TABLE';wrap.classList.add('feature-label');

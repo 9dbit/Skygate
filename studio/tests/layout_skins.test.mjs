@@ -60,7 +60,7 @@ test('live layout keeps bet controls on canvas and moves Auto caption into its e
   assert.match(d.nodes.get('auto').querySelector('svg').innerHTML,/currentColor/);
   const scene=d.game.children.at(-1),logo=scene.children.find(n=>n.dataset.layer==='logo');
   assert.equal(logo.children[0].style.objectFit,'fill');
-  assert.equal(d.nodes.get('payInfo').children[0].className,'feature-skin');
+  assert.equal(d.nodes.get('anteFeature').children[0].className,'feature-skin');
 });
 
 test('legacy Studio projects still put unsupported bet controls in the menu',()=>{
@@ -71,12 +71,12 @@ test('legacy Studio projects still put unsupported bet controls in the menu',()=
   assert.equal(d.nodes.get('autoStatus').parent,d.nodes.get('auto'));
 });
 
-test('amount-only releases omit obsolete labels and the Free Spins control',()=>{
+test('amount-only releases retain new Buy and Ante controls without obsolete labels',()=>{
   const p=preset(),clean=validateProject(p,keys(p));
-  assert(!clean.layers.some(l=>['winlabel','virtual_note','buybtn','buytext'].includes(l.id)));
+  assert(!clean.layers.some(l=>['winlabel','virtual_note','buytext'].includes(l.id)));
   const d=dom();d.window.SkygateApplyLayout(p,path=>'assets/'+path);
   const scene=d.game.children.at(-1);
-  assert(!scene.children.some(l=>['winlabel','virtual_note','buybtn','buytext'].includes(l.dataset.layer)));
+  assert(!scene.children.some(l=>['winlabel','virtual_note','buytext'].includes(l.dataset.layer)));
   assert(!d.nodes.has('freeInfo'));assert(!d.nodes.has('banner'));
   const broken=preset();broken.layers=broken.layers.filter(l=>l.id!=='winamount');
   assert.throws(()=>validateProject(broken,keys(broken)),/Keep winamount visible/);

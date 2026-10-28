@@ -90,7 +90,7 @@ window.SkygateReels = class {
     this.root.dataset.fxPhase = 'idle';
     if (this.target) this.render(this.target);
   }
-  async spin(grid, {turbo = false, reduced = false} = {}) {
+  async spin(grid, {turbo = false, quick = false, reduced = false} = {}) {
     this.cancel(); this.target = grid;
     const generation = this.generation;
     if (reduced || !this.columns[0].track.animate) {this.render(grid); return;}
@@ -102,8 +102,8 @@ window.SkygateReels = class {
       await Promise.all(this.columns.map(async ({track, cells}, col) => {
         const rolling = this.animate(track, [
           {transform: 'translate3d(0,-50%,0)'}, {transform: 'translate3d(0,0,0)'}
-        ], {duration: turbo ? 140 : 240, iterations: Infinity, easing: 'linear'});
-        await this.wait(turbo ? 100 + col * 16 : 360 + col * 55);
+        ], {duration: turbo ? 140 : quick ? 180 : 240, iterations: Infinity, easing: 'linear'});
+        await this.wait(turbo ? 100 + col * 16 : quick ? 210 + col * 30 : 360 + col * 55);
         rolling.cancel(); this.animations.delete(rolling);
         if (generation !== this.generation) return;
         cells.forEach((cell, row) => this.update(cell, grid[(row % 5) * 6 + col]));
@@ -111,13 +111,13 @@ window.SkygateReels = class {
           {transform: 'translate3d(0,-62%,0)', offset: 0},
           {transform: 'translate3d(0,-49.3%,0)', offset: .78},
           {transform: 'translate3d(0,-50%,0)', offset: 1}
-        ], {duration: turbo ? 100 : 230, easing: 'cubic-bezier(.16,.7,.28,1)'}));
+        ], {duration: turbo ? 100 : quick ? 150 : 230, easing: 'cubic-bezier(.16,.7,.28,1)'}));
       }));
     } finally {
       this.root.classList.remove('rolling'); this.render(grid); this.target = null;
     }
   }
-  async shatter(positions, {turbo = false, reduced = false} = {}) {
+  async shatter(positions, {turbo = false, quick = false, reduced = false} = {}) {
     const selected = [...new Set(positions)].filter(i => Number.isInteger(i) && i >= 0 && i < 30);
     if (!selected.length || reduced || !this.cells[0].motion.animate) return;
     const generation = this.generation, active = [];
@@ -133,11 +133,11 @@ window.SkygateReels = class {
         {opacity:1,transform:'scale(1)',offset:.25},
         {opacity:.65,transform:'scale(1)',offset:.6},
         {opacity:1,transform:'scale(1)'}
-      ], turbo ? 95 : 320)));
+      ], turbo ? 95 : quick ? 190 : 320)));
       if (generation !== this.generation) return;
       clear();
       this.root.dataset.fxPhase = 'burst';
-      const duration = turbo ? 170 : 440;
+      const duration = turbo ? 170 : quick ? 270 : 440;
       await Promise.all(selected.flatMap(i => {
         const {motion, fx} = this.cells[i];
         return [
@@ -149,7 +149,7 @@ window.SkygateReels = class {
       }));
     } finally {clear();this.root.dataset.fxPhase = 'idle';}
   }
-  async cascade(before, after, {turbo = false, reduced = false} = {}) {
+  async cascade(before, after, {turbo = false, quick = false, reduced = false} = {}) {
     this.target = after;
     this.render(after);
     if (reduced || !this.cells[0].motion.animate) {this.target = null; return;}
@@ -162,7 +162,7 @@ window.SkygateReels = class {
         return this.finish(this.animate(this.cells[i].motion, [
           {transform: `translate3d(0,${rows * 100}%,0)`, opacity: old === undefined ? .2 : 1},
           {transform: 'translate3d(0,0,0)', opacity: 1}
-        ], {duration: turbo ? 95 : 290, delay: turbo ? 0 : (i % 6) * 12,
+        ], {duration: turbo ? 95 : quick ? 180 : 290, delay: turbo ? 0 : (i % 6) * (quick ? 7 : 12),
           easing: 'cubic-bezier(.2,.7,.25,1)', fill: 'backwards'}));
       }));
     } finally {this.target = null;}

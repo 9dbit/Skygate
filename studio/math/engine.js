@@ -93,14 +93,27 @@
     const symbols = Object.entries(cfg.symbol_weights);
     const multipliers = cfg.multiplier_values.map((v, i) => [v, cfg.multiplier_weights[i]]);
     let tileId = 0, paidIndex = 0;
+    let activeSymbols = symbols;
     function drawTile() {
-      const kind = weightedChoice(rng, symbols);
+      const kind = weightedChoice(rng, activeSymbols);
       const tile = { id: ++tileId, kind };
       if (kind === 'orb') tile.multiplier = weightedChoice(rng, multipliers);
       return tile;
     }
-    function oneSpin(mode, bank, trace) {
+    function oneSpin(mode, bank, trace, options = {}, budget = cfg.round_max_win_x) {
+      activeSymbols = Object.entries(mode === 'bonus' && cfg.bonus_symbol_weights ? cfg.bonus_symbol_weights : cfg.symbol_weights)
+        .map(([kind, weight]) => [kind, weight * (kind === 'scatter' && mode === 'base' && options.ante ? cfg.ante_scatter_weight_multiplier || 1 : 1)]);
       let grid = Array.from({length: cfg.grid_rows * cfg.grid_columns}, drawTile);
+      if (options.buyBonus && mode === 'base') {
+        // A purchased feature starts with four real SCATTER tiles, then follows
+        // exactly the same tumble and bonus resolver as a natural trigger.
+        for (let i=0;i<grid.length;i++) if(grid[i].kind==='scatter') {
+          const kind=weightedChoice(rng,activeSymbols.filter(([s])=>s!=='scatter'&&s!=='orb'));
+          grid[i]={id:++tileId,kind};
+        }
+        const columns=[0,1,2,3,4,5];
+        for(let n=0;n<4;n++){const col=columns.splice(Math.floor(rng.next()*columns.length),1)[0];grid[Math.floor(rng.next()*5)*6+col]={id:++tileId,kind:'scatter'};}
+      }
       const initial = trace ? grid.map(t => ({...t})) : undefined;
       const cascades = trace ? [] : undefined;
       let totalSymbolWinX = 0, tumbles = 0;
@@ -111,6 +124,10 @@
         totalSymbolWinX += evaluated.awardX;
         tumbles++;
         const before = trace ? grid.map(t => ({...t})) : undefined;
+        if(cfg.reference_rules && resolvePayout(totalSymbolWinX,sumOrbs(grid),bank,mode==='bonus').payoutX >= budget){
+          if(trace)cascades.push({step:step+1,before,winning:evaluated.groups,awardX:evaluated.awardX,removedPositions:evaluated.groups.flatMap(g=>g.positions),newPositions:[],after:before});
+          break;
+        }
         const tumble = applyTumble(grid, evaluated.groups, cfg, drawTile);
         grid = tumble.grid;
         maxScatters = Math.max(maxScatters, countKind(grid, 'scatter'));
@@ -119,15 +136,19 @@
       const safetyTruncated = tumbles >= cfg.safety_max_tumbles && evaluateBoard(grid, cfg).groups.length > 0;
       const orbSumX = sumOrbs(grid);
       const payout = resolvePayout(Number(totalSymbolWinX.toFixed(10)), orbSumX, bank, mode === 'bonus');
-      const result = {mode, symbolWinX: Number(totalSymbolWinX.toFixed(10)), orbSumX, scatters: maxScatters, tumbles, payoutX: payout.payoutX, appliedMultiplierX: payout.appliedMultiplierX, bankAfterX: payout.nextBankX, safetyTruncated};
+      const scatterWinX=cfg.scatter_paytable?.[Math.min(maxScatters,6)] || 0;
+      const capped=cfg.reference_rules && payout.payoutX+scatterWinX>=budget;
+      if(cfg.reference_rules && safetyTruncated && !capped)throw Error('Round void: tumble safety watchdog');
+      const result = {mode, symbolWinX: Number(totalSymbolWinX.toFixed(10)), orbSumX, scatters: maxScatters, tumbles, payoutX: cfg.reference_rules?Math.min(budget,payout.payoutX+scatterWinX):payout.payoutX, appliedMultiplierX: payout.appliedMultiplierX, bankAfterX: payout.nextBankX, safetyTruncated: capped?false:safetyTruncated,...(cfg.reference_rules?{scatterWinX,capHit:capped}:{})};
       if (trace) { result.initial = initial; result.cascades = cascades; result.final = grid.map(t => ({...t})); }
       return result;
     }
     function playRound(options = {}) {
       const trace = !!options.trace;
+      if(options.ante && options.buyBonus)throw Error('Buy Free Spins is unavailable during Ante Bet');
       const beforeRng = rng.state();
       const index = ++paidIndex;
-      const base = oneSpin('base', 0, trace);
+      const base = oneSpin('base', 0, trace, options);
       const triggered = base.scatters >= cfg.bonus_trigger_scatters;
       let totalX = base.payoutX;
       let bank = 0, freeSpinsRemaining = triggered ? cfg.bonus_start_spins : 0;
@@ -137,16 +158,17 @@
       while (freeSpinsRemaining > 0 && bonusSpinsPlayed < cfg.safety_max_bonus_spins && totalX < cfg.round_max_win_x) {
         const leftBefore = freeSpinsRemaining--;
         bonusSpinsPlayed++;
-        const spin = oneSpin('bonus', bank, trace);
+        const spin = oneSpin('bonus', bank, trace, {}, cfg.round_max_win_x-totalX);
         bank = spin.bankAfterX;
         totalX += spin.payoutX;
         allTumbles += spin.tumbles;
-        const retriggered = spin.scatters >= cfg.bonus_retrigger_scatters;
+        const retriggered = totalX < cfg.round_max_win_x && spin.scatters >= cfg.bonus_retrigger_scatters;
         if (retriggered) { retriggers++; freeSpinsRemaining += cfg.bonus_retrigger_add_spins; extraSpins += cfg.bonus_retrigger_add_spins; }
         safetyTruncated = safetyTruncated || spin.safetyTruncated;
         if (trace) bonusSpins.push({...spin, index: bonusSpinsPlayed, leftBefore, leftAfter: freeSpinsRemaining, retriggered});
       }
       if (freeSpinsRemaining > 0 && totalX < cfg.round_max_win_x) safetyTruncated = true;
+      if(cfg.reference_rules && safetyTruncated)throw Error('Round void: bonus safety watchdog');
       const capHit = totalX >= cfg.round_max_win_x;
       return {
         schema: SCHEMA,

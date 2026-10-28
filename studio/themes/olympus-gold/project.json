@@ -139,9 +139,9 @@
     },
     {
       "id": "antebtn",
-      "name": "Win table \u00b7 button panel",
+      "name": "Ante Bet \u00b7 live toggle",
       "kind": "image",
-      "x": 293,
+      "x": 551,
       "y": 1268,
       "w": 495,
       "h": 105,
@@ -157,57 +157,6 @@
         "w": 0.9866482504604052,
         "h": 0.5649171270718232
       }
-    },
-    {
-      "id": "antetext",
-      "name": "Win table \u00b7 live rules action",
-      "kind": "text",
-      "x": 403,
-      "y": 1288,
-      "w": 330,
-      "h": 34,
-      "z": 27,
-      "rotate": 0,
-      "opacity": 100,
-      "visible": true,
-      "locked": false,
-      "text": "WIN TABLE",
-      "font": 33,
-      "color": "#fff0b8"
-    },
-    {
-      "id": "wintable_sub",
-      "name": "Win table \u00b7 caption",
-      "kind": "text",
-      "x": 402,
-      "y": 1330,
-      "w": 330,
-      "h": 20,
-      "z": 27,
-      "rotate": 0,
-      "opacity": 100,
-      "visible": true,
-      "locked": false,
-      "text": "8+ MATCHING SYMBOLS",
-      "font": 15,
-      "color": "#ece6d9"
-    },
-    {
-      "id": "pay_arrow",
-      "name": "Win table \u00b7 chevron",
-      "kind": "text",
-      "x": 737,
-      "y": 1290,
-      "w": 33,
-      "h": 52,
-      "z": 28,
-      "rotate": 0,
-      "opacity": 100,
-      "visible": true,
-      "locked": false,
-      "text": "\u203a",
-      "font": 50,
-      "color": "#fff0b8"
     },
     {
       "id": "controlboard",
@@ -400,7 +349,7 @@
     },
     {
       "id": "turbolabel",
-      "name": "Turbo caption",
+      "name": "Spin speed \u00b7 live caption",
       "kind": "text",
       "x": 728,
       "y": 1704,
@@ -411,7 +360,7 @@
       "opacity": 100,
       "visible": true,
       "locked": false,
-      "text": "TURBO",
+      "text": "NORMAL",
       "font": 25,
       "color": "#fff9e6"
     },
@@ -488,19 +437,25 @@
       }
     },
     {
-      "id": "trophy_icon",
-      "name": "Trophy \u00b7 feature icon",
+      "id": "buybtn",
+      "name": "Buy Free Spins \u00b7 live purchase",
       "kind": "image",
-      "x": 319,
-      "y": 1287,
-      "w": 70,
-      "h": 70,
-      "z": 28,
+      "x": 35,
+      "y": 1268,
+      "w": 495,
+      "h": 105,
+      "z": 26,
       "rotate": 0,
       "opacity": 100,
       "visible": true,
       "locked": false,
-      "asset": "custom/trophy.svg"
+      "asset": "custom/feature_panel.png",
+      "crop": {
+        "x": 0.006445672191528545,
+        "y": 0.20718232044198895,
+        "w": 0.9866482504604052,
+        "h": 0.5649171270718232
+      }
     }
   ],
   "grid": [
@@ -647,58 +602,70 @@
     "master": 75
   },
   "math": {
-    "profile_id": "skygate-studio-v0.3-synthetic",
-    "name": "Skygate Studio editable synthetic demo",
-    "description": "Editable math experiment. No real wagers. Deterministic RNG for reproducibility only.",
+    "profile_id": "skygate-reference-rules-v1",
+    "name": "Skygate screenshot rules",
+    "description": "Visible mechanics transcribed from supplied screenshots. Original synthetic weights; no certified RTP claim.",
     "grid_columns": 6,
     "grid_rows": 5,
     "min_match": 8,
     "symbol_weights": {
-      "ruby": 14,
-      "sapphire": 15,
-      "emerald": 16,
-      "amethyst": 15,
+      "crown": 5,
+      "hourglass": 7,
+      "ring": 9,
+      "chalice": 10,
+      "ruby": 12,
+      "amethyst": 14,
       "topaz": 17,
-      "amber": 17,
-      "pearl": 16,
-      "scatter": 2,
-      "orb": 2
+      "emerald": 20,
+      "sapphire": 24,
+      "scatter": 1.7,
+      "orb": 1.4
     },
     "paytable": {
+      "crown": [
+        10,
+        25,
+        50
+      ],
+      "hourglass": [
+        2.5,
+        10,
+        25
+      ],
+      "ring": [
+        2,
+        5,
+        15
+      ],
+      "chalice": [
+        1.5,
+        2,
+        12
+      ],
       "ruby": [
-        0.464,
-        1.45,
-        4.64
-      ],
-      "sapphire": [
-        0.377,
-        1.16,
-        3.48
-      ],
-      "emerald": [
-        0.29,
-        0.928,
-        2.9
+        1,
+        1.5,
+        10
       ],
       "amethyst": [
-        0.261,
-        0.812,
-        2.61
+        0.8,
+        1.2,
+        8
       ],
       "topaz": [
-        0.203,
-        0.638,
-        2.03
+        0.5,
+        1,
+        5
       ],
-      "amber": [
-        0.174,
-        0.58,
-        1.74
+      "emerald": [
+        0.4,
+        0.9,
+        4
       ],
-      "pearl": [
-        0.145,
-        0.464,
-        1.45
+      "sapphire": [
+        0.25,
+        0.75,
+        2
       ]
     },
     "multiplier_values": [
@@ -706,33 +673,63 @@
       3,
       4,
       5,
+      6,
       8,
       10,
+      12,
       15,
       20,
       25,
-      50
+      50,
+      100,
+      250,
+      500
     ],
     "multiplier_weights": [
-      36,
-      24,
-      12,
+      35,
+      23,
+      13,
       10,
-      7,
+      8,
+      6,
       4,
       3,
       2,
+      1.5,
       1,
-      1
+      0.5,
+      0.2,
+      0.06,
+      0.02
     ],
     "bonus_start_spins": 15,
     "bonus_trigger_scatters": 4,
     "bonus_retrigger_scatters": 3,
     "bonus_retrigger_add_spins": 5,
     "round_max_win_x": 5000,
-    "safety_max_tumbles": 80,
-    "safety_max_bonus_spins": 200,
-    "research_note": "RTP, hit rate and bonus frequency must be measured from this synthetic configuration; no target RTP is guaranteed."
+    "safety_max_tumbles": 10000,
+    "safety_max_bonus_spins": 10000,
+    "research_note": "Reference RTP 96.50%; Skygate RTP unverified. Reels and RNG weights were not supplied. Ante weights increase bonus frequency; exact 2x frequency not certified.",
+    "reference_rules": true,
+    "bonus_symbol_weights": {
+      "crown": 5,
+      "hourglass": 7,
+      "ring": 9,
+      "chalice": 10,
+      "ruby": 12,
+      "amethyst": 14,
+      "topaz": 17,
+      "emerald": 20,
+      "sapphire": 24,
+      "scatter": 1.7,
+      "orb": 2.8
+    },
+    "ante_scatter_weight_multiplier": 1.25,
+    "scatter_paytable": {
+      "4": 3,
+      "5": 5,
+      "6": 100
+    }
   },
   "jackpot": {
     "enabled": false,
@@ -776,7 +773,7 @@
   },
   "targetRTP": 96.5,
   "seed": 20261027,
-  "bet": 20,
+  "bet": 2,
   "credit": 100000,
   "ui": {
     "theme": "gold-purple",
