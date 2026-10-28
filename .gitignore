@@ -1,4 +1,6 @@
 node_modules/
+play/assets/
+play/audio_engine.js
 .env
 .env.*
 !.env.example

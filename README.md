@@ -1,9 +1,9 @@
-# SKYGATE Studio Editor v0.4.2
+# SKYGATE v0.5 — Portrait Game & Studio
 
 Greek-mythology-inspired **virtual-credit** game development playground. Includes a layout studio, modular icon assets, original music and sound effects, math experimentation, free spins, and simulated jackpot controls. This is not connected to deposits, withdrawals, or real-money gambling.
 
 - `/` or `/studio/` - studio editor (optional password protection) (mobile 9:16 preview, edit layers, asset swap, audio, math, win, jackpot settings)
-- `/play/` - virtual-credit playable proof-of-concept v0.2
+- `/play/` - illustrated portrait game v0.5 (virtual credits)
 - `/health` - Railway liveness endpoint
 
 ### Run
@@ -54,4 +54,17 @@ Continuity: `studio/CONTINUITY_CHECKPOINT_v0.4.md`.
 - `npm test` includes 25 passing tests covering route protection, login, public endpoints, redirects, fail-closed configuration, and the existing game math.
 - GitHub `main` is connected to the existing Railway `skygate-web` production service. Verify a release through the matching deployment commit and terminal `SUCCESS`; `/health` reports the runtime version.
 
-Current handoff: `studio/CONTINUITY_CHECKPOINT_v0.4.2.md`. Previous v0.4/v0.4.1 deployment-status notes are historical; v0.4.1 at `8681099c` was confirmed deployed before this patch. Native iPhone Safari and authenticated browser UI checks are still pending.
+Current handoff: `studio/CONTINUITY_CHECKPOINT_v0.5.md`. Previous v0.4/v0.4.1 deployment-status notes are historical; v0.4.1 at `8681099c` was confirmed deployed before this patch. Native iPhone Safari and authenticated browser UI checks are still pending.
+
+
+### v0.5 illustrated playable game
+
+`/play/` now uses the Skygate reference composition: illustrated guardian/logo header, burgundy/gold 6×5 board, separate jewel sprites, live win banner, purple spin control and compact mobile deck. The hero illustration is a composed scene; board symbols, numbers, animations and buttons are independent live elements. The main screen no longer displays the old research-demo header.
+
+- Spin, tumble, free-spin outcomes, auto 10 / stop, turbo, bet controls, sound, rules/paytable, replay, JSON export and reset are wired.
+- The two feature buttons open free-spin rules and the win table. Bonus purchase and ante betting are not implemented or advertised as functioning controls.
+- Menu contains deterministic research controls. The synthetic math engine is unchanged; the virtual ledger settles before animation so a rendering interruption cannot lose awards.
+- Sound uses the existing tap-activated Web Audio mixer and MP3 tracks. Auto stops and audio pauses when the page is hidden; returning requires a tap to restart sound.
+- `npm start` / `npm test` prepare the public game asset bundle. Docker prepares it after archive extraction. Only an explicit list of shipped art/audio is copied; Studio routes and project files retain authentication.
+- Game sessions start at 100,000 virtual credits / 20 bet. Reloading starts a new session. Studio browser-local edits do not publish to the public game automatically.
+- Runtime version is 0.5.0; the Studio editor retains its independent v0.4.2 interface version.

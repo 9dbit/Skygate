@@ -93,8 +93,10 @@ test('protected Studio uses the resolved path for authentication', async t => {
   await t.test('public play and health stay available, including HEAD', async () => {
     const health = await get(port, '/health');
     assert.equal(health.status, 200);
-    assert.equal(JSON.parse(health.body).version, '0.4.2');
+    assert.equal(JSON.parse(health.body).version, '0.5.0');
     assert.equal((await get(port, '/play/')).status, 200);
+    for (const path of ['/play/game.js', '/play/assets/symbols/ruby.png', '/play/assets/audio/bgm_celestial_loop.mp3', '/play/assets/scene/hero_composite_reference.jpg']) assert.equal((await get(port, path)).status, 200, path);
+    assert.equal((await get(port, '/play/assets/project.json')).status, 404);
     for (const path of ['/health', '/play/', '/studio/']) {
       const res = await get(port, path, { method: 'HEAD', auth: authorization });
       assert.equal(res.status, 200);

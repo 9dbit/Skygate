@@ -28,7 +28,7 @@ createServer(async(req,res)=>{
   // Authorize the same canonical path that will be resolved on disk. Encoded
   // separators/dot segments must never turn a public path into a private file.
   raw=posix.normalize(raw);
-  if(raw==='/health') {res.writeHead(200,{...base,'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({ok:true,service:'skygate-studio',version:'0.4.2'}));return;}
+  if(raw==='/health') {res.writeHead(200,{...base,'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({ok:true,service:'skygate-studio',version:'0.5.0'}));return;}
   // Only the two app directories are web roots; repository files are not routes.
   if(raw!=='/'&&raw!=='/studio'&&!raw.startsWith('/studio/')&&raw!=='/play'&&!raw.startsWith('/play/')){res.writeHead(404,base);res.end('Not Found');return;}
   if(raw.split('/').some(part=>part.startsWith('.'))){res.writeHead(404,base);res.end('Not Found');return;}
