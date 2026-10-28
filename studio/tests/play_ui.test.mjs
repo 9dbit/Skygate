@@ -28,7 +28,7 @@ test('public game uses standalone illustrated sprites and all assets exist',()=>
   assert.equal(new Set([...board.matchAll(/src="([^"]+)"/g)].map(m=>m[1])).size,9);
   for(const file of ['play/index.html','play/game.css', 'play/game.js']){
     const text=read(file);
-    for(const match of text.matchAll(/(?:src="|href="|url\(')(assets\/[^"'`$]+?)(?:"|'|\))/g))assert(existsSync(resolve(root,'play',match[1])),match[1]);
+    for(const match of text.matchAll(/(?:src="|href="|url\(')(assets\/[^"'`$]+?)(?:"|'|\))/g))assert(existsSync(resolve(root,'play',match[1].split('?')[0])),match[1]);
   }
   assert(!read('play/index.html').includes('/studio/'));
 });

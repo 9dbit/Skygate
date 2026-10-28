@@ -35,3 +35,8 @@ Railway project `626b6a33-c7f1-4ec5-a9c7-6834349fa3bd`, service `fff3472b-24bb-4
 ## Release handoff
 
 The owner explicitly authorized publication to the public `9dbit/Skygate` repository and deployment to the existing Railway service on 28 October 2026. A self-contained review HTML was built from the game sources. Rebuild using `node scripts/build-play-preview.mjs /absolute/output.html` after asset preparation. Verify the matching Railway deployment and the public game in-browser before reporting completion.
+
+
+## Deployment and browser verification
+
+Deployment `009dd8f0-aa57-4fd7-a513-a0568ceb01f2` at commit `e4bf9a1` reached SUCCESS. The public game was opened in Chrome: all 39 rendered images loaded, the illustrated portrait board fit the viewport without horizontal overflow, a spin settled and returned control, and Auto produced live tumble results. A final visual follow-up cleans the shared spin vector and fits win text inside the gold banner. Native iPhone hardware/audio verification remains separate.

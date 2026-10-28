@@ -14,7 +14,7 @@ for(const group of ['scene','symbols','ui','audio'])for(const file of readdirSyn
 let html=read('index.html');
 const css=read('game.css').replace(/url\('([^']+)'\)/g,(_,p)=>`url('${assets[p]}')`);
 html=html.replace(/<link rel="stylesheet"[^>]+>/,`<style>${css}</style>`);
-html=html.replace(/(src|href)="(assets\/[^\"]+)"/g,(_,attr,p)=>`${attr}="${assets[p]}"`);
+html=html.replace(/(src|href)="(assets\/[^\"]+)"/g,(_,attr,p)=>`${attr}="${assets[p.split('?')[0]]}"`);
 html=html.replace(/<script src="([^?]+)\?[^\"]+"><\/script>/g,(_,file)=>{
  let script=read(file);
  if(file==='game.js')script=script
