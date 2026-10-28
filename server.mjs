@@ -11,6 +11,9 @@ const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8'
 const base={'X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin','X-Frame-Options':'SAMEORIGIN'};
 const authUser=process.env.SKYGATE_STUDIO_USER || 'studio';
 const authPassword=process.env.SKYGATE_STUDIO_PASSWORD || '';
+// Explicit, reversible opt-in for the owner's password-free Studio testing.
+// Keep NODE_ENV, stored credentials, durable storage and request validation intact.
+const publicStudioTesting=process.env.SKYGATE_STUDIO_PUBLIC_TESTING==='true';
 const releases=createReleaseStore(process.env.SKYGATE_RELEASE_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || (process.env.NODE_ENV==='production'?null:resolve(root,'.local-data')));
 const csrf=randomBytes(32).toString('hex');
 const json=(res,status,value)=>{res.writeHead(status,{...base,'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(value));};
@@ -39,12 +42,12 @@ createServer(async(req,res)=>{
   raw=posix.normalize(raw);
   const api=raw.startsWith('/studio/api/');
   if(!['GET','HEAD'].includes(req.method||'')&&!(api&&req.method==='POST')){res.writeHead(405,{...base,Allow:'GET, HEAD'});res.end();return;}
-  if(raw==='/health') {res.writeHead(200,{...base,'Content-Type':'application/json','Cache-Control':'no-store'});res.end(req.method==='HEAD'?'':JSON.stringify({ok:true,service:'skygate-studio',version:'0.7.0'}));return;}
+  if(raw==='/health') {res.writeHead(200,{...base,'Content-Type':'application/json','Cache-Control':'no-store'});res.end(req.method==='HEAD'?'':JSON.stringify({ok:true,service:'skygate-studio',version:'0.8.0'}));return;}
   // Only the two app directories are web roots; repository files are not routes.
   if(raw!=='/'&&raw!=='/studio'&&!raw.startsWith('/studio/')&&raw!=='/play'&&!raw.startsWith('/play/')){res.writeHead(404,base);res.end('Not Found');return;}
   if(raw.split('/').some(part=>part.startsWith('.'))){res.writeHead(404,base);res.end('Not Found');return;}
   const privateRoute=needsAuth(raw);
-  if(privateRoute&&process.env.NODE_ENV==='production'&&(api||raw.startsWith('/studio/preview')||authPassword||process.env.SKYGATE_STUDIO_REQUIRE_AUTH==='true')){
+  if(privateRoute&&!publicStudioTesting&&process.env.NODE_ENV==='production'&&(api||raw.startsWith('/studio/preview')||authPassword||process.env.SKYGATE_STUDIO_REQUIRE_AUTH==='true')){
     const privateHeaders={...base,'X-Robots-Tag':'noindex, nofollow, noarchive','Cache-Control':'no-store'};
     if(!authPassword){res.writeHead(503,privateHeaders);res.end('Studio access is not configured');return;}
     if(!isAuthed(req)){res.writeHead(401,{...privateHeaders,'WWW-Authenticate':'Basic realm="SKYGATE Studio", charset="UTF-8"'});res.end('Private studio: authentication required');return;}

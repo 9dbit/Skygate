@@ -13,7 +13,7 @@ async function start(t, overrides = {}) {
     cwd: root,
     env: { ...process.env, PORT: '0', NODE_ENV: 'production',
       SKYGATE_STUDIO_USER: 'qa', SKYGATE_STUDIO_PASSWORD: 'test-only-do-not-use',
-      SKYGATE_STUDIO_REQUIRE_AUTH: 'true', ...overrides },
+      SKYGATE_STUDIO_REQUIRE_AUTH: 'true', SKYGATE_STUDIO_PUBLIC_TESTING: '', ...overrides },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   t.after(async () => {
@@ -93,7 +93,7 @@ test('protected Studio uses the resolved path for authentication', async t => {
   await t.test('public play and health stay available, including HEAD', async () => {
     const health = await get(port, '/health');
     assert.equal(health.status, 200);
-    assert.equal(JSON.parse(health.body).version, '0.7.0');
+    assert.equal(JSON.parse(health.body).version, '0.8.0');
     assert.equal((await get(port, '/play/')).status, 200);
     for (const path of ['/play/game.js', '/play/assets/symbols/ruby.png', '/play/assets/audio/bgm_celestial_loop.mp3', '/play/assets/scene/hero_composite_reference.jpg']) assert.equal((await get(port, path)).status, 200, path);
     assert.equal((await get(port, '/play/assets/project.json')).status, 404);
@@ -135,4 +135,17 @@ test('unconfigured local development still loads Studio', async t => {
   const port = await start(t, { NODE_ENV: 'development', SKYGATE_STUDIO_PASSWORD: '',
     SKYGATE_STUDIO_REQUIRE_AUTH: '' });
   assert.equal((await get(port, '/studio/')).status, 200);
+});
+
+test('explicit public Studio testing opens editor and drafts while retaining request protections', async t => {
+  const port = await start(t, { SKYGATE_STUDIO_PUBLIC_TESTING: 'true' });
+  for (const path of ['/studio/', '/studio/project.json', '/studio/preview/', '/studio/api/releases']) {
+    assert.equal((await get(port, path)).status, 200, path);
+  }
+  assert.equal((await get(port, '/studio/api/publish', { method: 'POST' })).status, 403);
+  assert.equal((await get(port, '/studio/.env')).status, 404);
+  assert.equal((await get(port, '/package.json')).status, 404);
+  const protectedPort = await start(t, { SKYGATE_STUDIO_PUBLIC_TESTING: 'false' });
+  assert.equal((await get(protectedPort, '/studio/')).status, 401);
+  assert.equal((await get(protectedPort, '/studio/api/releases')).status, 401);
 });

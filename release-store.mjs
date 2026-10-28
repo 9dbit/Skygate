@@ -33,9 +33,13 @@ export function validateProject(input, overrideKeys=[]){
     if(!l||!/^[-a-zA-Z0-9_]{1,80}$/.test(l.id)||ids.has(l.id))fail('Layer ids must be unique');ids.add(l.id);
     if(!['image','grid','text','panel','circle'].includes(l.kind))fail('Unsupported layer kind');
     const out={id:l.id,name:str(l.name||l.id,120,'layer name'),kind:l.kind,x:num(l.x,-1080,2160,'x'),y:num(l.y,-1920,3840,'y'),w:num(l.w,4,2160,'width'),h:num(l.h,4,3840,'height'),z:integer(l.z,0,100,'z-index'),rotate:num(l.rotate??0,-180,180,'rotation'),opacity:num(l.opacity??100,0,100,'opacity'),visible:l.visible!==false,locked:!!l.locked};
-    if(l.kind==='image'){
+    if(l.kind==='image'||(l.kind==='circle'&&l.asset)){
       if(!allowed.has(l.asset)&&!(typeof l.asset==='string'&&/^custom\/[a-zA-Z0-9_.-]{1,160}$/.test(l.asset)&&keys.has('asset:'+l.asset)))fail(`Missing or unsupported image: ${l.id}`);
       out.asset=l.asset;
+    }
+    if(l.crop&&out.asset){
+      const c=l.crop;out.crop={x:num(c.x,0,.99,'crop x'),y:num(c.y,0,.99,'crop y'),w:num(c.w,.01,1,'crop width'),h:num(c.h,.01,1,'crop height')};
+      if(c.x+c.w>1.000001||c.y+c.h>1.000001)fail('Crop must stay inside its source image');
     }
     if(l.kind==='text'||l.kind==='circle'){out.text=str(l.text||'',180,'layer text');out.font=num(l.font||40,8,170,'font');out.color=color(l.color);}
     if(l.kind==='grid'&&l.id!=='reels')fail('Only one live reel grid is supported');
@@ -45,6 +49,9 @@ export function validateProject(input, overrideKeys=[]){
     const l=layers.find(l=>l.id===id);
     if(!l||l.kind!==kind||!l.visible||l.opacity<20||l.x<0||l.y<0||l.x+l.w>1081||l.y+l.h>1921)fail(`Keep ${id} visible and inside the canvas`);
     if(['spinbutton','autobtn','turbobtn','menubtn','soundbtn','infobtn'].includes(id)&&(l.w<90||l.h<90))fail(`${id} is too small for touch`);
+  }
+  for(const id of ['minusbtn','plusbtn']){
+    const l=layers.find(l=>l.id===id);if(l&&(l.kind!=='circle'||!l.visible||l.opacity<20||l.w<90||l.h<90||l.x<0||l.y<0||l.x+l.w>1081||l.y+l.h>1921))fail(`Keep ${id} usable and inside the canvas`);
   }
   // These buttons describe the implemented rules, not unimplemented purchases.
   for(const l of layers){if(l.id==='buytext')l.text='FREE SPINS';if(l.id==='antetext')l.text='WIN TABLE';}
@@ -71,7 +78,7 @@ export function validateProject(input, overrideKeys=[]){
   const audioTracks=p.tracks.map(t=>{if(!tracks.includes(t.id))fail('Unknown track');return {id:t.id,name:str(t.name,80,'track name'),loop:!!t.loop,volume:num(t.volume,0,100,'track volume'),fade:num(t.fade,0,5000,'audio fade')};});
   const winPresentation=Object.fromEntries(['smallX','bigX','megaX','superX'].map(k=>[k,num(p.winPresentation?.[k],0,100000,k)]));
   if(!(winPresentation.smallX<=winPresentation.bigX&&winPresentation.bigX<=winPresentation.megaX&&winPresentation.megaX<=winPresentation.superX))fail('Win thresholds must increase');
-  return {schema:p.schema,projectName:str(p.projectName||'SKYGATE',80,'project name'),virtualCreditsOnly:true,stage:{width:1080,height:1920},layers,grid:[...p.grid],math:config,jackpot,audio,tracks:audioTracks,winPresentation,seed:integer(p.seed,1,4294967295,'seed'),bet:num(p.bet,1,200,'bet'),credit:num(p.credit,1,100000000,'starting credit')};
+  return {schema:p.schema,projectName:str(p.projectName||'SKYGATE',80,'project name'),presentation:p.presentation==='olympus-gold'?'olympus-gold':'classic',virtualCreditsOnly:true,stage:{width:1080,height:1920},layers,grid:[...p.grid],math:config,jackpot,audio,tracks:audioTracks,winPresentation,seed:integer(p.seed,1,4294967295,'seed'),bet:num(p.bet,1,200,'bet'),credit:num(p.credit,1,100000000,'starting credit')};
 }
 
 function decodeOverride(key,item){

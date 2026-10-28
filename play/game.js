@@ -88,13 +88,13 @@ function startSkygate() {
     E('muteMark').hidden=state.sound;
     E('bonusRibbon').hidden=!state.bonusRemaining;
     E('bonusRibbon').textContent=`FREE SPINS · ${state.bonusRemaining} LEFT · ×${state.bonusMultiplier||1}`;
-    E('auto').querySelector('small').textContent=state.auto?'STOP':'AUTO';
+    E('autoStatus').textContent=state.auto?'STOP':'AUTO';
   }
   function status(msg,hint=msg){E('status').textContent=msg;E('playHint').textContent=hint;}
   async function presentSpin(spin, bet, context) {
     state.orbTotal=0;
     render(spin.initial,[],Array.from({length:30},(_,i)=>i));
-    E('banner').textContent=context==='base'?'KEMENANGAN':'FREE SPINS';
+    E('banner').textContent=context==='base'?(published?.presentation==='olympus-gold'?'ROUND WIN':'KEMENANGAN'):'FREE SPINS';
     status(context==='base'?'BASE SPIN · Seeking 8+ symbols':'FREE SPIN · Multiplier bank growing on qualifying orb wins',context==='base'?'Cari 8+ simbol yang sama':`${state.bonusRemaining} free spins tersisa`);
     refresh(); await delay(240);
     for(const tumble of spin.cascades) {
@@ -140,7 +140,7 @@ function startSkygate() {
       state.bonusRemaining=0;
     }
     state.roundWin=round.winX*bet;
-    E('banner').textContent=round.bonus.triggered?'TOTAL BONUS':'TOTAL KEMENANGAN';
+    E('banner').textContent=round.bonus.triggered?'TOTAL BONUS':published?.presentation==='olympus-gold'?'ROUND TOTAL':'TOTAL KEMENANGAN';
     refresh();
   }
   async function runRound(replay=false) {
@@ -180,7 +180,7 @@ function startSkygate() {
     engine=makeEngine(state.seed);
     Object.assign(state,{credits:startingCredit,rounds:0,spent:0,paid:0,hits:0,bonuses:0,roundWin:0,cascade:0,orbTotal:0,bonusRemaining:0,bonusMultiplier:0,last:null});
     E('seedInput').value=String(state.seed);
-    E('banner').textContent='KEMENANGAN';
+    E('banner').textContent=published?.presentation==='olympus-gold'?'ROUND TOTAL':'KEMENANGAN';
     render(idleBoard());refresh();
     status('Tekan SPIN · 8+ simbol yang sama untuk menang','Cocokkan 8+ simbol di mana saja');
   }
@@ -251,7 +251,7 @@ function startSkygate() {
   E('bonusRulesText').textContent=`${cfg.bonus_trigger_scatters}+ SCATTER memicu ${cfg.bonus_start_spins} free spins. Di dalam bonus, ${cfg.bonus_retrigger_scatters}+ SCATTER menambah ${cfg.bonus_retrigger_add_spins} putaran. Orb mengalikan kemenangan simbol; pengalinya terkumpul selama bonus.`;
   E('capText').textContent=`Maksimum ${cfg.round_max_win_x.toLocaleString('id-ID')}× bet per ronde, termasuk jackpot virtual jika diaktifkan. Auto dan Turbo tidak mengubah peluang. Tidak ada deposit atau penarikan.`;
   E('freeInfo').querySelector('small').textContent=`${cfg.bonus_trigger_scatters}+ SCATTER`;
-  E('releaseInfo').textContent=release?`Versi ${release.id.slice(0,8)} · ${new Date(release.createdAt).toLocaleDateString('id-ID')}`:'SKYGATE v0.7 · Original celestial artwork';
+  E('releaseInfo').textContent=release?`Versi ${release.id.slice(0,8)} · ${new Date(release.createdAt).toLocaleDateString('id-ID')}`:'SKYGATE v0.8 · Original celestial artwork';
   E('previewBadge').hidden=!window.SkygatePreview;
   E('seedInput').value=String(state.seed);
   resetGame(initialSeed);

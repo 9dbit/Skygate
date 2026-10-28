@@ -90,3 +90,13 @@ The bundled `/play/` screen now uses a midnight palette, fine gold board edge, c
 The main screen shows short Indonesian round feedback; seed, round and tumble diagnostics remain in the menu. The redesigned sheets, reduced-motion support, safe-area sizing and non-scrolling portrait stage preserve existing controls and game outcomes. The clean spin SVG is an additional shipped asset, so older Studio layouts can keep their original spin artwork.
 
 Validation: 36 automated checks pass, including deterministic spins, free spins, replay, virtual-credit accounting and the publication/authentication workflow. Browser visual verification is recorded separately from native iPhone testing.
+
+### v0.8 Studio artwork skins
+
+Temporary public Studio testing is an explicit opt-in: set `SKYGATE_STUDIO_PUBLIC_TESTING=true` on the Skygate service. This opens the editor, draft previews and publishing/rollback to anyone who can reach the URL. It does not change `NODE_ENV`, remove existing credentials, change persistent storage or disable same-origin/CSRF checks. Set it to `false` to restore the existing password protection. Use only while the owner intends the test editor to be public.
+
+Studio imports can now set `presentation: "olympus-gold"`, use a shared image skin on independently editable circular controls, and retain normalized source-crop geometry without changing source image bytes. Optional `minusbtn` / `plusbtn` layers place functioning bet controls on the stage; older projects retain their menu bet controls. Auto/Turbo captions can be separate live text layers.
+
+The Olympus preset is in `studio/themes/olympus-gold/project.json`. Its portable asset ZIP supplies the generated images, matching existing jewel sprites and vector control glyphs. Build the package with `scripts/build-olympus-package.py <asset-workspace>` (Pillow and CairoSVG required). A standalone playable review can be built with `node scripts/build-play-preview.mjs <output.html> <project.json> <source-paths.json>`.
+
+40 automated tests cover skin/crop validation, live control bindings, legacy layouts, explicit public Studio testing and existing game/publication protections. The public-testing option preserves the configured password and requires an explicit service variable. Deploying the renderer does not itself publish the Olympus project or alter the active release; import and publication are separate Studio actions.

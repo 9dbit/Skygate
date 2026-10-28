@@ -36,11 +36,11 @@
     try{await task();}catch(error){if([403,409].includes(error.status)){try{await refresh();}catch{}}message(error.message||'Belum berhasil. Coba lagi.');}
     finally{busy=false;controls();}
   }
-  async function png(blob){
+  async function png(blob,maxEdge=4096){
     const url=URL.createObjectURL(blob);
     try{
       const image=new Image();image.src=url;await image.decode();
-      const scale=Math.min(1,4096/Math.max(image.naturalWidth,image.naturalHeight));
+      const scale=Math.min(1,maxEdge/Math.max(image.naturalWidth,image.naturalHeight));
       const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.naturalWidth*scale));canvas.height=Math.max(1,Math.round(image.naturalHeight*scale));
       canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
       return await new Promise((yes,no)=>canvas.toBlob(file=>file?yes(file):no(Error('Gambar tidak dapat disiapkan')),'image/png'));
@@ -57,7 +57,9 @@
     message('Menyiapkan snapshot dan aset…');
     const bundle=await window.SKYGATE_STUDIO.getPublishBundle();const overrides={};let total=0;
     for(const [key,original] of bundle.overrides){
-      const blob=key.startsWith('asset:')?await png(original):original;
+      // Keep full-resolution uploads in the editable project; ship reel sprites
+      // at a bounded resolution well above their displayed mobile size.
+      const blob=key.startsWith('asset:')?await png(original,key.startsWith('asset:symbols/')?512:4096):original;
       const max=key.startsWith('asset:')?6:12;if(blob.size>max*1024*1024)throw Error(`${key}: batas ${max} MB per aset`);
       total+=blob.size;if(total>24*1024*1024)throw Error('Total aset tambahan maksimal 24 MB');
       overrides[key]={mime:blob.type,data:await base64(blob)};

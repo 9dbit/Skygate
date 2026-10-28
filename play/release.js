@@ -16,7 +16,9 @@
 window.SkygateApplyLayout=(project,asset)=>{
   const game=document.querySelector('.game');
   const scene=document.createElement('div');scene.className='published-scene';
-  const bindings={winlabel:'banner',winamount:'win',credits:'credits',betlabel:'betText',reels:'reels',spinbutton:'spin',autobtn:'auto',turbobtn:'turbo',menubtn:'menu',soundbtn:'sound',infobtn:'help'};
+  if(project.presentation==='olympus-gold')game.classList.add('olympus-gold');
+  const cropImage=(img,c)=>{if(c)Object.assign(img.style,{position:'absolute',left:-c.x/c.w*100+'%',top:-c.y/c.h*100+'%',width:100/c.w+'%',height:100/c.h+'%',objectFit:'fill'});};
+  const bindings={winlabel:'banner',winamount:'win',credits:'credits',betlabel:'betText',reels:'reels',spinbutton:'spin',autobtn:'auto',turbobtn:'turbo',menubtn:'menu',soundbtn:'sound',infobtn:'help',minusbtn:'minus',plusbtn:'plus',autolabel:'autoStatus',turbolabel:'turboStatus'};
   for(const l of project.layers){
     const wrap=document.createElement('div');wrap.className='published-layer '+l.kind+'-layer';wrap.dataset.layer=l.id;
     Object.assign(wrap.style,{left:l.x/1080*100+'%',top:l.y/1920*100+'%',width:l.w/1080*100+'%',height:l.h/1920*100+'%',zIndex:l.z,opacity:l.opacity/100,transform:`rotate(${l.rotate}deg)`,display:l.visible?'':'none',fontSize:(l.font||40)/1080*100+'cqw',color:l.color||'#ffe5af'});
@@ -24,22 +26,22 @@ window.SkygateApplyLayout=(project,asset)=>{
     if(node){
       if(l.id==='credits'||l.id==='betlabel'){const label=document.createElement('span');label.textContent=l.id==='credits'?'CREDIT ': 'BET ';wrap.append(label);}
       wrap.append(node);
-      if(l.id==='spinbutton')node.querySelector('img').src=asset(l.asset);
+      if(l.id==='spinbutton'){node.querySelector('img').src=asset(l.asset);cropImage(node.querySelector('img'),l.crop);}
+      if(l.kind==='circle'&&l.asset){const bg=document.createElement('img');bg.src=asset(l.asset);bg.alt='';bg.className='control-skin';cropImage(bg,l.crop);node.prepend(bg);node.classList.add('skinned-control');if(l.id==='autobtn'&&project.presentation==='olympus-gold')node.querySelector('svg').innerHTML='<path d="m8 5 11 7-11 7Z" fill="currentColor" stroke="none"/>';}
       if(l.id==='reels'){wrap.classList.add('live-grid');wrap.append(document.getElementById('bonusRibbon'));}
     }else if(l.id==='buybtn'||l.id==='antebtn'){
-      const control=document.getElementById(l.id==='buybtn'?'freeInfo':'payInfo');control.className='published-feature';control.style.backgroundImage=`url("${asset(l.asset)}")`;wrap.append(control);
+      const control=document.getElementById(l.id==='buybtn'?'freeInfo':'payInfo');control.className='published-feature';const bg=document.createElement('img');bg.src=asset(l.asset);bg.alt='';bg.className='feature-skin';cropImage(bg,l.crop);control.prepend(bg);wrap.append(control);
     }else if(l.id==='buytext'||l.id==='antetext'){
       // The matching functional button supplies its own accessible label.
       wrap.textContent=l.id==='buytext'?'FREE SPINS':'WIN TABLE';wrap.classList.add('feature-label');
-    }else if(l.kind==='image'){const image=document.createElement('img');image.src=asset(l.asset);image.alt=l.name;image.draggable=false;wrap.append(image);}
+    }else if(l.kind==='image'){const image=document.createElement('img');image.src=asset(l.asset);image.alt=l.name;image.draggable=false;cropImage(image,l.crop);wrap.classList.add('image-crop');wrap.append(image);}
     else if(l.kind==='text'||l.kind==='circle')wrap.textContent=l.text;
     scene.append(wrap);
   }
-  const betControls=document.createElement('div');betControls.className='published-bet-controls';
-  const minus=document.getElementById('minus'),plus=document.getElementById('plus');
-  betControls.append(minus,plus);document.querySelector('.menu-actions').before(betControls);
+  const missingBet=['minusbtn','plusbtn'].filter(id=>!project.layers.some(l=>l.id===id));
+  if(missingBet.length){const betControls=document.createElement('div');betControls.className='published-bet-controls';for(const id of missingBet)betControls.append(document.getElementById(bindings[id]));document.querySelector('.menu-actions').before(betControls);}
   // Preserve activity details in the menu and a visible virtual-credit identity.
   document.getElementById('status').classList.add('published-status');
-  const identity=document.createElement('span');identity.className='published-identity';identity.textContent='VIRTUAL CREDITS · v0.7';scene.append(identity);
+  const identity=document.createElement('span');identity.className='published-identity';identity.textContent=project.presentation==='olympus-gold'?'VIRTUAL CREDITS\nSKYGATE · OLYMPUS':'VIRTUAL CREDITS · v0.8';scene.append(identity);
   game.append(scene);game.classList.add('has-published-scene');
 };
