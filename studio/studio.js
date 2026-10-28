@@ -397,6 +397,13 @@
     window.addEventListener('resize',resizeText);
     document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveLocal(true);}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='z'){e.preventDefault();doUndo();}});
   }
-  restoreLocal();attach();render();loadOverrides();
-  window.SKYGATE_STUDIO={version:'0.4.1',getState:()=>deep(state),getSelected:()=>selected,getOverrideKeys:()=>[...overrideBlobs.keys()],runSimulation,demoSpin,saveLocal,exportProject,exportChangesZip,importChangesZip,playAudio,stopAll,selectTab,audioReady:()=>audioKit.isReady(),audioPlaying:id=>audioKit.isPlaying(id),openMobilePanel:setMobilePanel};
+  async function restoreRelease(project, overrides){
+    const next=validateLoaded({...deep(DEFAULT),...project,tracks:project.tracks.map(t=>({...DEFAULT.tracks.find(d=>d.id===t.id),...t}))});
+    remember();state=next;invalidateEngine();lastRound=null;previewVisualGrid=null;
+    for(const key of [...overrideBlobs.keys()])await clearOverride(key);
+    for(const [key,blob] of overrides)await storeOverride(key,blob);
+    saveLocal();render();toast('Snapshot loaded into this browser.');
+  }
+  restoreLocal();attach();render();const overridesReady=loadOverrides();
+  window.SKYGATE_STUDIO={version:'0.6.0',getPublishBundle:async()=>{await overridesReady;return {project:deep(state),overrides:[...overrideBlobs]};},restoreRelease,getState:()=>deep(state),getSelected:()=>selected,getOverrideKeys:()=>[...overrideBlobs.keys()],runSimulation,demoSpin,saveLocal,exportProject,exportChangesZip,importChangesZip,playAudio,stopAll,selectTab,audioReady:()=>audioKit.isReady(),audioPlaying:id=>audioKit.isPlaying(id),openMobilePanel:setMobilePanel};
 })();

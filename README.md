@@ -68,3 +68,17 @@ Current handoff: `studio/CONTINUITY_CHECKPOINT_v0.5.md`. Previous v0.4/v0.4.1 de
 - `npm start` / `npm test` prepare the public game asset bundle. Docker prepares it after archive extraction. Only an explicit list of shipped art/audio is copied; Studio routes and project files retain authentication.
 - Game sessions start at 100,000 virtual credits / 20 bet. Reloading starts a new session. Studio browser-local edits do not publish to the public game automatically.
 - Runtime version is 0.5.0; the Studio editor retains its independent v0.4.2 interface version.
+
+### v0.6 Studio releases
+
+Open **Preview & Publish** in Studio. Prepare a snapshot, inspect its private playable preview, then publish that exact snapshot. Layouts, shipped/custom images, audio mixes and uploads, math, virtual jackpot settings, seed, starting credit and bet are included. The live game loads one immutable release at page load. An ongoing session never changes math mid-round.
+
+- Releases persist on the Railway volume mounted at `/data`. Local development uses `.local-data`; `SKYGATE_RELEASE_DIR` overrides the storage root. Production publishing fails closed without durable storage or Studio authentication.
+- Draft previews and assets require the existing Studio login. Publishing deliberately makes the selected snapshot and its assets public. Editor-only metadata and arbitrary filesystem paths are excluded.
+- **Rollback** switches to the preceding live snapshot (or the bundled game after the first release). Published asset URLs remain available for existing sessions. A version check rejects concurrent stale writes.
+- **Load snapshot into editor** restores its configuration and custom assets in any authenticated browser. Editing remains local until the next explicit snapshot/publish. Export changes ZIP before replacing local work.
+- Images are converted to PNG before upload (up to 4096 px, 6 MB each). Audio supports MP3/OGG/WAV (12 MB each); combined custom assets are limited to 24 MB per snapshot. Archive limits: 24 snapshots / 350 MB of uploaded data. Old versions are not silently deleted.
+- Fixed game bindings (reels, spin, win, credit/bet and control ids) must remain visible inside the canvas. Their positions and sizes remain editable. Free Spins and Win Table open rules; bonus purchase/ante are not implemented.
+- Seed 41 now completes its natural free-spin round and replay; the previous undefined variable in the bonus animation has been removed. Multiplier, big-win and virtual jackpot overlays respect reduced motion. Page hide stops Auto/audio; a fresh tap resumes sound.
+
+Validation: automated HTTP publication/rollback, restart durability, draft isolation, auth/CSRF, schema/media limits, seeded bonus and published-game integration. Native iPhone Safari/audio hardware validation remains pending.

@@ -17,10 +17,7 @@ html=html.replace(/<link rel="stylesheet"[^>]+>/,`<style>${css}</style>`);
 html=html.replace(/(src|href)="(assets\/[^\"]+)"/g,(_,attr,p)=>`${attr}="${assets[p.split('?')[0]]}"`);
 html=html.replace(/<script src="([^?]+)\?[^\"]+"><\/script>/g,(_,file)=>{
  let script=read(file);
- if(file==='game.js')script=script
-  .replace("resolve:id=>'assets/audio/'+id+'.mp3'", "resolve:id=>window.SKY_PREVIEW_ASSETS['assets/audio/'+id+'.mp3']")
-  .replaceAll('src="assets/symbols/${sprite}.png"', 'src="${window.SKY_PREVIEW_ASSETS[\'assets/symbols/\'+sprite+\'.png\']}"')
-  .replaceAll('src="assets/symbols/${art[kind]}.png"', 'src="${window.SKY_PREVIEW_ASSETS[\'assets/symbols/\'+art[kind]+\'.png\']}"');
+
  return `<script>${script.replaceAll('</script','<\\/script')}</script>`;
 });
 html=html.replace('<script>',`<script>window.SKY_PREVIEW_ASSETS=${JSON.stringify(assets)};</script><script>`);

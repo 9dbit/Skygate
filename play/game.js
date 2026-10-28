@@ -1,27 +1,37 @@
 /* Skygate portrait renderer v0.5. All outcomes come from the unchanged synthetic engine. */
-(() => {
+function startSkygate() {
   'use strict';
-  const cfg = window.SlotGameConfig;
+  const release=window.SkygateActiveRelease;
+  const published=release?.project;
+  const cfg = published?.math || window.SlotGameConfig;
   const MathEngine = window.SlotGameMath;
   if (!cfg || !MathEngine) throw new Error('Missing research math engine / browser config');
   const E = id => document.getElementById(id);
+  const asset=path=>window.SKY_PREVIEW_ASSETS?.['assets/'+path] || (release?.overrides?.['asset:'+path]? (window.SkygatePreview?'/studio/api/media/':'/play/media/')+release.overrides['asset:'+path].file:'assets/'+path);
+  if(published)window.SkygateApplyLayout(published,asset);
   const art = {ruby:'ruby', sapphire:'sapphire', emerald:'emerald', amethyst:'amethyst', topaz:'topaz', amber:'ring', pearl:'chalice', scatter:'crown', orb:'orb'};
+  if(published)Object.assign(art,{amber:'amber',pearl:'pearl',scatter:'scatter'});
   const label = {ruby:'Ruby', sapphire:'Sapphire', emerald:'Emerald', amethyst:'Amethyst', topaz:'Topaz', amber:'Ring', pearl:'Chalice', scatter:'Scatter Crown', orb:'Multiplier Orb'};
-  const initialSeed = 20261027;
-  const state = {seed:initialSeed, credits:100000, bet:20, rounds:0, spent:0, paid:0, hits:0, bonuses:0,
+  if(published)Object.assign(label,{amber:'Amber',pearl:'Pearl'});
+  const initialSeed = published?.seed || 20261027;
+  const startingCredit=published?.credit || 100000;
+  const thresholds=published?.winPresentation || {bigX:10,megaX:25,superX:100};
+  const state = {seed:initialSeed, credits:startingCredit, bet:published?.bet || 20, rounds:0, spent:0, paid:0, hits:0, bonuses:0,
     busy:false, auto:false, turbo:false, sound:false, roundWin:0, cascade:0, orbTotal:0, bonusRemaining:0,
     bonusMultiplier:0, last:null};
-  let engine = MathEngine.createEngine(cfg, state.seed);
-  const audioSettings={muted:true,master:70};
+  const makeEngine=seed=>published?window.SkygateStudioMath.createStudioEngine(cfg,published.jackpot,seed):MathEngine.createEngine(cfg,seed);
+  let engine = makeEngine(state.seed);
+  const audioSettings={muted:true,master:published?.audio.master ?? 70};
   const audioTracks=Object.fromEntries(['bgm_celestial_loop','spin_start','reel_stop','tumble','symbol_win','multiplier','bonus_intro','free_spin_start','big_win','mega_win','ui_click'].map(id=>[id,{id,loop:id==='bgm_celestial_loop',volume:id==='bgm_celestial_loop'?35:70,fade:id==='bgm_celestial_loop'?600:0}]));
-  const mixer=new window.SkyAudioMixer({resolve:id=>'assets/audio/'+id+'.mp3',track:id=>audioTracks[id],settings:()=>audioSettings,onError:()=>status('Suara belum tersedia. Ketuk ikon suara untuk mencoba lagi.')});
+  if(published)for(const track of published.tracks)audioTracks[track.id]=track;
+  const mixer=new window.SkyAudioMixer({resolve:id=>release?.overrides?.['audio:'+id]?(window.SkygatePreview?'/studio/api/media/':'/play/media/')+release.overrides['audio:'+id].file:asset('audio/'+id+'.mp3'),track:id=>audioTracks[id],settings:()=>audioSettings,onError:()=>status('Suara belum tersedia. Ketuk ikon suara untuk mencoba lagi.')});
   let displayGrid=[];
   const credit = n => Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
   const isReduced = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const delay = ms => new Promise(ok => setTimeout(ok, isReduced() ? 0 : state.turbo ? Math.min(40,ms) : ms));
   function sound(kind='tick') {
     if (!state.sound || document.hidden) return;
-    const id=({tick:'spin_start',win:'symbol_win',tumble:'tumble',bonus:'bonus_intro',free:'free_spin_start',stop:'reel_stop',big:'big_win',mega:'mega_win',orb:'multiplier'})[kind]||'ui_click';
+    const id=({tick:'spin_start',win:'symbol_win',tumble:'tumble',bonus:'bonus_intro',free:'free_spin_start',stop:'reel_stop',big:'big_win',mega:'mega_win',orb:'multiplier',jackpot:'jackpot'})[kind]||'ui_click';
     void mixer.play(id);
   }
   async function toggleSound() {
@@ -39,13 +49,13 @@
       const classes=['tile',wins.has(i)?'win':'',newCells.has(i)?'fresh':''].filter(Boolean).join(' ');
       const sprite=art[t.kind]||'ruby';
       const info=`${label[t.kind]||t.kind}${t.multiplier?' x'+t.multiplier:''}`;
-      return `<div class="${classes}" title="${info}" aria-label="${info}"><img class="symbol" src="assets/symbols/${sprite}.png" alt="" draggable="false">${t.multiplier?`<b class="orb-num">${t.multiplier}×</b>`:''}${t.kind==='scatter'?'<small class="scatter-label">SCATTER</small>':''}</div>`;
+      return `<div class="${classes}" title="${info}" aria-label="${info}"><img class="symbol" src="${asset('symbols/'+sprite+'.png')}" alt="" draggable="false">${t.multiplier?`<b class="orb-num">${t.multiplier}×</b>`:''}${t.kind==='scatter'?'<small class="scatter-label">SCATTER</small>':''}</div>`;
     }).join('');
   }
   function idleBoard() {
     const types=['emerald','amber','ruby','scatter','sapphire','topaz','amethyst','pearl','sapphire','emerald','pearl','ruby','scatter','topaz','orb','amethyst','amber','emerald','sapphire','ruby','pearl','amber','topaz','scatter','emerald','amethyst','topaz','amber','sapphire','pearl'];
     return Array.from({length:cfg.grid_rows*cfg.grid_columns},(_,i)=>{
-      const kind=types[i%types.length];
+      const kind=published?.grid[i] || types[i%types.length];
       return {id:i+1,kind,...(kind==='orb'?{multiplier:2}:{})};
     });
   }
@@ -101,6 +111,7 @@
     status(spin.symbolWinX>0
       ?`${context==='bonus'?'FREE SPIN':'SPIN'} · Symbol win ×${spin.symbolWinX.toFixed(3)} · applied orb ×${spin.appliedMultiplierX}`
       :`${context==='bonus'?'FREE SPIN':'SPIN'} · No symbol combination`);
+    if(spin.symbolWinX>0 && spin.appliedMultiplierX>1){sound('orb');celebrate('MULTIPLIER','×'+spin.appliedMultiplierX,'multiplier');}
     refresh();
     await delay(220);
   }
@@ -111,8 +122,8 @@
     state.roundWin=runningTotal*bet;refresh();
     if (round.bonus.triggered) {
       state.bonusRemaining=cfg.bonus_start_spins;
-      status('BONUS TRIGGER · 15 FREE SPINS (virtual)');
-      state.roundWin=Math.min(cfg.round_max_win_x*bet,state.roundWin+tumble.awardX*bet);
+      status(`BONUS TRIGGER · ${cfg.bonus_start_spins} FREE SPINS (virtual)`);
+      celebrate('FREE SPINS',`${cfg.bonus_start_spins} PUTARAN`, 'bonus');
       sound('bonus');refresh();await delay(520);
       for(const spin of round.bonus.spins) {
         state.bonusRemaining=spin.leftBefore;
@@ -121,7 +132,7 @@
         runningTotal+=spin.payoutX;
         state.roundWin=Math.min(cfg.round_max_win_x,runningTotal)*bet;
         state.bonusRemaining=spin.leftAfter;
-        if(spin.retriggered)status('RETRIGGER · +5 FREE SPINS (virtual)');
+        if(spin.retriggered)status(`RETRIGGER · +${cfg.bonus_retrigger_add_spins} FREE SPINS (virtual)`);
         refresh();await delay(170);
       }
       state.bonusRemaining=0;
@@ -154,7 +165,8 @@
     refresh();
     try {
       await animateRound(round,bet);
-      if(round.winX>=25)sound('mega');else if(round.winX>=10)sound('big');
+      if(round.jackpot?.hit){sound('jackpot');celebrate(round.jackpot.tier.toUpperCase()+' JACKPOT',credit(round.jackpot.awardX*bet),'jackpot');}
+      else if(round.winX>=thresholds.bigX){const big=round.winX>=thresholds.superX?'SUPER WIN':round.winX>=thresholds.megaX?'MEGA WIN':'BIG WIN';sound(round.winX>=thresholds.megaX?'mega':'big');celebrate(big,credit(round.winX*bet),'win');}
       status(`${replay?'REPLAY (tanpa debit)':'ROUND '+state.rounds} · ${credit(round.winX*bet)} kredit virtual · ${round.totalTumbles} tumbles · seed ${state.seed}`);
     } catch(e) {console.error(e);status(`Error saat render: ${String(e.message||e)}`);}
     finally {state.busy=false;refresh();}
@@ -163,8 +175,8 @@
     if (state.busy) return;
     state.auto=false;
     state.seed=MathEngine.uint32(seed);
-    engine=MathEngine.createEngine(cfg,state.seed);
-    Object.assign(state,{credits:100000,rounds:0,spent:0,paid:0,hits:0,bonuses:0,roundWin:0,cascade:0,orbTotal:0,bonusRemaining:0,bonusMultiplier:0,last:null});
+    engine=makeEngine(state.seed);
+    Object.assign(state,{credits:startingCredit,rounds:0,spent:0,paid:0,hits:0,bonuses:0,roundWin:0,cascade:0,orbTotal:0,bonusRemaining:0,bonusMultiplier:0,last:null});
     E('seedInput').value=String(state.seed);
     E('banner').textContent='TUMBLE WIN';
     render(idleBoard());refresh();
@@ -189,6 +201,11 @@
     const a=document.createElement('a');a.href=url;a.download=`skygate_seed-${state.seed}_round-${obj.paidIndex}.json`;
     document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  let celebrationTimer;
+  function celebrate(title,amount,kind){
+    const box=E('winToast');clearTimeout(celebrationTimer);box.hidden=false;box.dataset.kind=kind;E('toastTitle').textContent=title;E('toastAmount').textContent=amount;
+    celebrationTimer=setTimeout(()=>{box.hidden=true;},state.turbo?500:1600);
   }
   E('spin').addEventListener('click',()=>{sound('tick');void runRound();});
   E('replay').addEventListener('click',()=>{E('menuDialog').close();sound('tick');void runRound(true);});
@@ -223,12 +240,25 @@
   window.addEventListener('keydown',e=>{
     if(e.key==='Enter' && document.activeElement===document.body && !state.busy && !state.auto && !E('modal').open && !E('menuDialog').open){e.preventDefault();sound('tick');void runRound();}
   });
+  window.addEventListener('pagehide',()=>{state.auto=false;mixer.stopAll();refresh();});
   document.addEventListener('visibilitychange',()=>{if(document.hidden){state.auto=false;mixer.stopAll();refresh();}});
   document.addEventListener('pointerdown',()=>{
     if(state.sound&&!document.hidden&&(!mixer.isReady()||!mixer.isPlaying('bgm_celestial_loop'))){void mixer.unlock().then(ready=>{if(ready&&state.sound&&!document.hidden)void mixer.play('bgm_celestial_loop');});}
   });
-  E('paytable').innerHTML=Object.entries(cfg.paytable).map(([kind,values])=>`<tr><td><img src="assets/symbols/${art[kind]}.png" alt="">${label[kind]}</td>${values.map(n=>`<td>${n}×</td>`).join('')}</tr>`).join('');
+  E('paytable').innerHTML=Object.entries(cfg.paytable).map(([kind,values])=>`<tr><td><img src="${asset('symbols/'+art[kind]+'.png')}" alt="">${label[kind]}</td>${values.map(n=>`<td>${n}×</td>`).join('')}</tr>`).join('');
+  E('bonusRulesText').textContent=`${cfg.bonus_trigger_scatters}+ SCATTER memicu ${cfg.bonus_start_spins} free spins. Di dalam bonus, ${cfg.bonus_retrigger_scatters}+ SCATTER menambah ${cfg.bonus_retrigger_add_spins} putaran. Orb mengalikan kemenangan simbol; pengalinya terkumpul selama bonus.`;
+  E('capText').textContent=`Maksimum ${cfg.round_max_win_x.toLocaleString('id-ID')}× bet per ronde, termasuk jackpot virtual jika diaktifkan. Auto dan Turbo tidak mengubah peluang. Tidak ada deposit atau penarikan.`;
+  E('freeInfo').querySelector('small').textContent=`${cfg.bonus_trigger_scatters} SCATTERS TO TRIGGER`;
+  E('releaseInfo').textContent=release?`Versi ${release.id.slice(0,8)} · ${new Date(release.createdAt).toLocaleDateString('id-ID')}`:'SKYGATE v0.6 · Original celestial artwork';
+  E('previewBadge').hidden=!window.SkygatePreview;
   E('seedInput').value=String(state.seed);
   resetGame(initialSeed);
+  if(window.SkygatePreview){
+    Promise.all(Array.from(document.images).map(img=>img.decode())).then(()=>{
+      window.parent.postMessage({type:'skygate-preview-ready',id:release.id},location.origin);
+    }).catch(()=>status('Ada gambar yang gagal dimuat. Perbaiki aset di Studio lalu siapkan preview baru.'));
+  }
   window.SlotGameTest={getState:()=>({...state,last:state.last?{round:state.last.round,bet:state.last.bet}:null}),getGrid:()=>displayGrid,engineProfile:cfg.profile_id};
-})();
+}
+if(window.SkygateReleaseReady){window.SkygateReleaseReady.then(startSkygate).catch(error=>{document.getElementById('status').textContent=error.message;document.getElementById('spin').disabled=true;});}
+else startSkygate();

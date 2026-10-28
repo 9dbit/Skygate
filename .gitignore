@@ -8,3 +8,6 @@ play/audio_engine.js
 .DS_Store
 studio/previews/
 studio/SKYGATE_Studio_Standalone_v0.3.html
+
+.local-data/
+play/studio_math.js

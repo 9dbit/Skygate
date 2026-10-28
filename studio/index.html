@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="id"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/><meta name="theme-color" content="#120d20"/><title>SKYGATE Studio v0.4.2 • Mobile Slot Game Editor</title><link rel="stylesheet" href="studio.css"></head>
+<html lang="id"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/><meta name="theme-color" content="#120d20"/><title>SKYGATE Studio v0.6 • Mobile Slot Game Editor</title><link rel="stylesheet" href="studio.css"></head>
 <body>
 <div class="studio-app">
   <header class="topbar">
     <div class="brand"><div class="logo-mark">ϟ</div><div class="brand-title"><b>SKYGATE <span>STUDIO</span></b><small>SLOT GAME · VIRTUAL-CREDIT DEVELOPMENT</small></div></div>
-    <div class="top-actions"><span class="state-chip"><span class="state-dot"></span> BROWSER STUDIO <b>v0.4.2</b></span><button id="undoBtn" class="top-button" title="Undo (Ctrl/Cmd+Z)">↶ Undo</button><button id="saveBtn" class="top-button">⌁ Save local</button><button id="importBtn" class="top-button">↥ Import JSON/ZIP</button><button id="exportBtn" class="top-button">↧ Export JSON</button><button id="bundleBtn" class="top-button highlight">⬡ Export changes ZIP</button><input type="file" id="importInput" accept="application/json,application/zip,.json,.zip" hidden/></div>
+    <div class="top-actions"><span class="state-chip"><span class="state-dot"></span> PROJECT STUDIO <b>v0.6</b></span><button id="releaseBtn" class="top-button highlight">Preview & Publish</button><button id="undoBtn" class="top-button" title="Undo (Ctrl/Cmd+Z)">↶ Undo</button><button id="saveBtn" class="top-button">⌁ Save local</button><button id="importBtn" class="top-button">↥ Import JSON/ZIP</button><button id="exportBtn" class="top-button">↧ Export JSON</button><button id="bundleBtn" class="top-button highlight">⬡ Export changes ZIP</button><input type="file" id="importInput" accept="application/json,application/zip,.json,.zip" hidden/></div>
   </header>
   <nav id="mobileDock" class="mobile-dock" aria-label="Mobile editor navigation">
     <button type="button" data-mobile-tab="canvas" class="selected"><b>▣</b><span>Canvas</span></button>
@@ -41,5 +41,21 @@
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 </div>
-<script src="assets/audio/waveforms.js"></script><script src="project-data.js"></script><script src="math/engine.js"></script><script src="math/studio_math.js"></script><script src="audio_engine.js"></script><script src="studio.js"></script>
+<dialog id="releaseDialog" class="release-dialog" aria-labelledby="releaseTitle">
+  <header class="release-head"><div><small>SKYGATE RELEASES</small><h2 id="releaseTitle">Preview & Publish</h2></div><button id="closeRelease" aria-label="Tutup panel rilis">×</button></header>
+  <div class="release-layout"><section class="release-options">
+    <p>Siapkan snapshot dari proyek ini, periksa game, lalu terbitkan. Draft hanya terlihat di Studio.</p>
+    <p class="release-summary">Layout, gambar, musik, pengaturan kemenangan, dan jackpot virtual ikut diterbitkan. Teks Free Spins dan Win Table mengikuti fungsi game.</p>
+    <button id="prepareRelease" class="wide-btn">1. Siapkan preview proyek ini</button>
+    <p id="releaseStatus" role="status" aria-live="polite">Memuat versi…</p>
+    <button id="publishRelease" class="wide-btn release-primary" disabled>2. Publish snapshot ke game</button>
+    <p class="release-summary">Publish membuat snapshot dan asetnya dapat dilihat publik. Sesi berjalan tetap memakai versi sebelumnya sampai dimuat ulang.</p>
+    <a href="/play/" target="_blank" rel="noopener" class="release-game-link">Buka game live ↗</a>
+    <h3>Versi tersimpan</h3><p id="liveRelease"></p><div id="releaseHistory"></div>
+    <button id="rollbackRelease" class="wide-btn" disabled>Rollback ke versi sebelumnya</button>
+    <button id="loadRelease" class="wide-btn" disabled>Muat snapshot preview ke editor</button>
+    <p class="release-summary">Memuat snapshot mengganti proyek lokal. Gunakan Export changes ZIP untuk menyimpan pekerjaan lokal terlebih dahulu.</p>
+  </section><section class="release-preview"><p id="previewLabel">Preview snapshot akan muncul di sini.</p><iframe id="releaseFrame" title="Preview game privat" hidden allow="fullscreen"></iframe></section></div>
+</dialog>
+<script src="assets/audio/waveforms.js"></script><script src="project-data.js"></script><script src="math/engine.js"></script><script src="math/studio_math.js"></script><script src="audio_engine.js"></script><script src="studio.js?v=0.6.0"></script><script src="publish.js?v=0.6.0"></script>
 </body></html>

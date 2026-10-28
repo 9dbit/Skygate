@@ -5,18 +5,23 @@ import { resolve } from 'node:path';
 import vm from 'node:vm';
 const root=resolve(import.meta.dirname,'../..');
 const read=p=>readFileSync(resolve(root,p),'utf8');
-function boot(){
+function boot(project=null){
   const nodes=new Map([...read('play/index.html').matchAll(/id="([^"]+)"/g)].map(m=>[m[1],{
-    innerHTML:'',textContent:'',value:'',hidden:false,disabled:false,open:false,events:{},attributes:{},
+    innerHTML:'',textContent:'',value:'',hidden:false,disabled:false,open:false,events:{},attributes:{},dataset:{},
     classList:{toggle(){}},setAttribute(k,v){this.attributes[k]=v;},
     addEventListener(k,fn){this.events[k]=fn;},querySelector(){return this.small??=( {textContent:''});},
     showModal(){this.open=true;},close(){this.open=false;},scrollIntoView(){},
   }]));
   const document={hidden:false,events:{},body:{},documentElement:{},getElementById(id){assert(nodes.has(id),`Missing UI node ${id}`);return nodes.get(id);},addEventListener(k,fn){this.events[k]=fn;}};
   const window={events:{},matchMedia:()=>({matches:true}),addEventListener(k,fn){this.events[k]=fn;},SkyAudioMixer:class{unlock(){return Promise.resolve(true)}play(){return Promise.resolve(true)}stopAll(){}updateMix(){}isReady(){return true}isPlaying(){return true}}};
-  const context=vm.createContext({window,document,console:{...console,error(){}},setTimeout:fn=>queueMicrotask(fn),URL,Blob});
+  const context=vm.createContext({window,document,console:{...console,error(){}},setTimeout:fn=>queueMicrotask(fn),clearTimeout:()=>{},URL,Blob});
   for(const file of ['play/config.js','play/engine.js'])vm.runInContext(read(file),context);
   window.SlotGameMath=context.SlotGameMath;
+  if(project){
+    vm.runInContext(read('play/studio_math.js'),context);window.SkygateStudioMath=context.SkygateStudioMath;
+    window.SkygateActiveRelease={id:'test-snapshot',createdAt:'2026-10-28T00:00:00Z',project,overrides:{}};
+    window.SkygateApplyLayout=()=>{};
+  }
   vm.runInContext(read('play/game.js'),context);
   return {nodes,window,document,state:()=>window.SlotGameTest.getState(),click:async id=>{nodes.get(id).events.click({target:nodes.get(id)});await new Promise(setImmediate);}};
 }
@@ -37,7 +42,7 @@ test('spin, replay and auto settle exactly once and preserve seeded outcomes',as
   const expected=ui.window.SlotGameMath.createEngine(ui.window.SlotGameConfig,20261027);
   await ui.click('spin');
   const first=ui.state();const round=expected.playRound({trace:true});
-  assert.equal(first.rounds,1);assert.equal(first.busy,false);
+  assert.equal(first.rounds,1);assert.equal(first.busy,false);assert(!ui.nodes.get('status').textContent.includes('Error saat render'));
   assert.equal(first.credits,100000-20+round.winX*20);
   assert.equal(JSON.stringify(first.last.round),JSON.stringify(round));
   await ui.click('replay');
@@ -67,4 +72,24 @@ test('menu, rules, bet, sound and reset controls are wired',async()=>{
   await ui.click('spin');await ui.click('reset');assert.equal(ui.state().credits,100000);assert.equal(ui.state().rounds,0);
   ui.nodes.get('seedInput').value='0';await ui.click('seedApply');assert.equal(ui.state().seed,20261027);
   ui.nodes.get('seedInput').value='42';await ui.click('seedApply');assert.equal(ui.state().seed,42);
+});
+
+test('seed 41 completes natural free spins and replay without a renderer error',async()=>{
+  const ui=boot();ui.nodes.get('seedInput').value='41';await ui.click('seedApply');
+  await ui.click('spin');const s=ui.state();assert.equal(s.last.round.bonus.triggered,true);assert.equal(s.last.round.bonus.spins.length,20);
+  assert(!ui.nodes.get('status').textContent.includes('Error saat render'),ui.nodes.get('status').textContent);
+  assert.equal(s.bonusRemaining,0);assert.equal(s.roundWin,s.last.round.winX*20);assert.equal(s.credits,100000-20+s.last.round.winX*20);
+  await ui.click('replay');assert.equal(ui.state().credits,s.credits);assert.equal(ui.state().rounds,1);assert(!ui.nodes.get('status').textContent.includes('Error saat render'));
+});
+test('backgrounding cancels auto and stops sound without an automatic restart',async()=>{
+  const ui=boot();await ui.click('sound');ui.document.hidden=true;ui.document.events.visibilitychange();assert.equal(ui.state().auto,false);
+  ui.document.hidden=false;ui.window.events.pagehide();assert.equal(ui.state().auto,false);assert.equal(ui.state().credits,100000);
+});
+
+test('published settings drive bet, credits, bonus rules, math and virtual jackpot together',async()=>{
+  const p=JSON.parse(read('studio/project.json'));p.bet=35;p.credit=50000;p.seed=41;p.math.bonus_start_spins=3;p.math.bonus_retrigger_add_spins=1;
+  p.jackpot.enabled=true;p.jackpot.tiers.forEach((t,i)=>t.perMillion=i===0?1000000:0);
+  const ui=boot(p);assert.equal(ui.state().credits,50000);assert.equal(ui.state().bet,35);assert.match(ui.nodes.get('bonusRulesText').textContent,/3 free spins/);
+  await ui.click('spin');const s=ui.state();assert(s.last.round.jackpot.hit);assert.equal(s.credits,50000-35+s.last.round.winX*35);assert(!ui.nodes.get('status').textContent.includes('Error saat render'));
+  await ui.click('reset');assert.equal(ui.state().credits,50000);
 });
