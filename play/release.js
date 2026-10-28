@@ -19,10 +19,13 @@ window.SkygateApplyLayout=(project,asset)=>{
   if(project.presentation==='olympus-gold')game.classList.add('olympus-gold');
   const cropImage=(img,c)=>{if(c)Object.assign(img.style,{position:'absolute',left:-c.x/c.w*100+'%',top:-c.y/c.h*100+'%',width:100/c.w+'%',height:100/c.h+'%',objectFit:'fill'});};
   const bindings={winlabel:'banner',winamount:'win',credits:'credits',betlabel:'betText',reels:'reels',spinbutton:'spin',autobtn:'auto',turbobtn:'turbo',menubtn:'menu',soundbtn:'sound',infobtn:'help',minusbtn:'minus',plusbtn:'plus',autolabel:'autoStatus',turbolabel:'turboStatus'};
+  // Moving a button detaches its captions until the scene is appended. Capture
+  // all bindings first so later caption layers retain their live DOM nodes.
+  const boundNodes=Object.fromEntries(Object.entries(bindings).map(([id,target])=>[id,document.getElementById(target)]));
   for(const l of project.layers){
     const wrap=document.createElement('div');wrap.className='published-layer '+l.kind+'-layer';wrap.dataset.layer=l.id;
     Object.assign(wrap.style,{left:l.x/1080*100+'%',top:l.y/1920*100+'%',width:l.w/1080*100+'%',height:l.h/1920*100+'%',zIndex:l.z,opacity:l.opacity/100,transform:`rotate(${l.rotate}deg)`,display:l.visible?'':'none',fontSize:(l.font||40)/1080*100+'cqw',color:l.color||'#ffe5af'});
-    const node=bindings[l.id]&&document.getElementById(bindings[l.id]);
+    const node=boundNodes[l.id];
     if(node){
       if(l.id==='credits'||l.id==='betlabel'){const label=document.createElement('span');label.textContent=l.id==='credits'?'CREDIT ': 'BET ';wrap.append(label);}
       wrap.append(node);

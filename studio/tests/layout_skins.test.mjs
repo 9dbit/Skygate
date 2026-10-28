@@ -38,7 +38,9 @@ function dom(){
   nodes.get('spin').append(new Node('img'));
   for(const id of ['auto','turbo','menu','sound','help','minus','plus'])nodes.get(id).append(new Node('svg'));
   nodes.get('auto').append(nodes.get('autoStatus'));nodes.get('turbo').append(nodes.get('turboStatus'));
-  const document={getElementById:id=>nodes.get(id),createElement:tag=>new Node(tag),querySelector:s=>s==='.game'?game:menu};
+  // Match the browser: getElementById cannot find nodes in a detached scene.
+  const connected=node=>{for(let n=node;n;n=n.parent)if(n===root)return true;return false;};
+  const document={getElementById:id=>connected(nodes.get(id))?nodes.get(id):null,createElement:tag=>new Node(tag),querySelector:s=>s==='.game'?game:menu};
   const window={SKY_PREVIEW_ASSETS:{}};
   vm.runInNewContext(read('play/release.js'),{window,document});
   return {window,game,nodes};
