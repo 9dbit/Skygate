@@ -227,9 +227,15 @@ function startSkygate() {
     const box=E('winToast');clearTimeout(celebrationTimer);box.hidden=false;box.dataset.kind=kind;E('toastTitle').textContent=title;E('toastAmount').textContent=amount;
     celebrationTimer=setTimeout(()=>{box.hidden=true;},speed()==='turbo'?500:1600);
   }
+  let paytableKey='';
+  function refreshPaytable(){
+    const key=state.bet+':'+state.coin+':'+preferences.coinsView;if(key===paytableKey)return;paytableKey=key;
+    E('paytable').innerHTML=Object.entries(cfg.paytable).map(([kind,values])=>`<tr><td><img src="${asset('symbols/'+art[kind]+'.png')}" alt="">${label[kind]}</td>${values.map(n=>`<td>${displayMoney(n*state.bet)}</td>`).join('')}</tr>`).join('');
+    if(cfg.scatter_paytable)E('paytable').innerHTML+=`<tr><td>SCATTER</td><td colspan="3">${[4,5,6].map(n=>n+(n===6?'+':'')+' = '+displayMoney(cfg.scatter_paytable[n]*state.bet)).join(' · ')}</td></tr>`;
+  }
   let finishFeature=null;
   function refreshSettings(){
-    const base=Settings.money(state.level*state.coin*20);state.bet=base;
+    const base=Settings.money(state.level*state.coin*20);state.bet=base;refreshPaytable();
     E('betTitle').textContent='BET MULTIPLIER '+(state.ante?25:20)+'×';
     E('betLevel').textContent=state.level;E('coinValue').textContent=credit(state.coin);
     for(const id of ['totalBet','settingsTotal'])E(id).textContent=credit(totalBet());
@@ -245,7 +251,7 @@ function startSkygate() {
     E('coinMinus').disabled=locked()||Settings.coins.indexOf(state.coin)<=0;
     E('coinPlus').disabled=locked()||Settings.coins.indexOf(state.coin)>=Settings.coins.length-1||Settings.total(state.level,Settings.coins[Settings.coins.indexOf(state.coin)+1],state.ante)>300;
     E('autoTurbo').checked=state.speed==='turbo';E('autoQuick').checked=state.speed==='quick';E('autoSkip').checked=preferences.skipScreens;
-    E('autoCount').value=preferences.autospins;E('autoCountValue').textContent=preferences.autospins;E('autoStart').textContent='START AUTOPLAY ('+preferences.autospins+')';
+    E('autoCount').value=Math.max(0,Settings.autoCounts.indexOf(preferences.autospins));E('autoCountValue').textContent=preferences.autospins;E('autoStart').textContent='START AUTOPLAY ('+preferences.autospins+')';
     E('batterySetting').checked=preferences.battery;E('soundSetting').checked=state.sound;E('lockSetting').checked=preferences.spinLocked;E('promoSetting').checked=preferences.promotions;E('introSetting').checked=preferences.intro;
     E('promoBadge').hidden=!preferences.promotions;E('spin').classList.toggle('battery-saver',preferences.battery);
   }
@@ -265,7 +271,7 @@ function startSkygate() {
     E('featureContinue').addEventListener('click',()=>finishFeature?.());
     E('featureDialog').addEventListener('cancel',()=>finishFeature?.());
     E('autoStart').addEventListener('click',()=>void runAutoplay());
-    E('autoCount').addEventListener('input',()=>{preferences.autospins=Settings.normalize({autospins:E('autoCount').value}).autospins;savePreferences();refreshSettings();});
+    E('autoCount').addEventListener('input',()=>{preferences.autospins=Settings.autoCounts[Number(E('autoCount').value)]||100;savePreferences();refreshSettings();});
     for(const [id,mode] of [['autoTurbo','turbo'],['autoQuick','quick']])E(id).addEventListener('change',()=>setSpeed(E(id).checked?mode:'normal'));
     E('autoSkip').addEventListener('change',()=>{preferences.skipScreens=E('autoSkip').checked;savePreferences();});
     E('betMenu').addEventListener('click',()=>{if(!locked()){refreshSettings();E('betDialog').showModal();}});

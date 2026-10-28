@@ -48,7 +48,7 @@ test('spin, replay and auto settle exactly once and preserve seeded outcomes',as
   assert.equal(ui.state().credits,first.credits);assert.equal(ui.state().rounds,1);
   await ui.click('spin');
   assert.equal(ui.state().last.round.winX,expected.playRound({trace:true}).winX);
-  await ui.click('auto');ui.nodes.get('autoCount').value='10';ui.nodes.get('autoCount').events.input();await ui.click('autoStart');
+  await ui.click('auto');ui.nodes.get('autoCount').value='0';ui.nodes.get('autoCount').events.input();await ui.click('autoStart');
   assert.equal(ui.state().rounds,12);assert.equal(ui.state().auto,false);assert.equal(ui.state().busy,false);
 });
 test('interrupted animation does not lose virtual awards',async()=>{
@@ -96,7 +96,7 @@ test('published settings drive bet, credits, bonus rules, math and virtual jackp
 
 test('all 10 auto rounds reuse the same reel DOM and release motion resources',async()=>{
   const ui=boot();const tiles=ui.nodes.get('reels').querySelectorAll('.tile'),created=ui.dom.created.length;
-  await ui.click('auto');ui.nodes.get('autoCount').value='10';ui.nodes.get('autoCount').events.input();await ui.click('autoStart');
+  await ui.click('auto');ui.nodes.get('autoCount').value='0';ui.nodes.get('autoCount').events.input();await ui.click('autoStart');
   assert.deepEqual(ui.nodes.get('reels').querySelectorAll('.tile'),tiles);
   assert.equal(ui.dom.created.length,created,'no new elements while spinning');
   assert.equal(ui.dom.animations.length,0,'reduced motion skips reel animations');
@@ -107,7 +107,7 @@ test('autoplay opens settings before starting and honors selected count and excl
  const ui=boot();await ui.click('auto');assert(ui.nodes.get('autoDialog').open);assert.equal(ui.state().rounds,0);
  ui.nodes.get('autoQuick').checked=true;ui.nodes.get('autoQuick').events.change();assert.equal(ui.state().speed,'quick');assert(!ui.nodes.get('autoTurbo').checked);
  ui.nodes.get('autoTurbo').checked=true;ui.nodes.get('autoTurbo').events.change();assert.equal(ui.state().speed,'turbo');assert(!ui.nodes.get('autoQuick').checked);
- ui.nodes.get('autoCount').value='20';ui.nodes.get('autoCount').events.input();await ui.click('autoStart');assert.equal(ui.state().rounds,20);assert.equal(ui.state().history.length,20);
+ ui.nodes.get('autoCount').value='1';ui.nodes.get('autoCount').events.input();await ui.click('autoStart');assert.equal(ui.state().rounds,20);assert.equal(ui.state().history.length,20);
 });
 test('buy confirmation, cancel, ante lockout and 100x debit are functional',async()=>{
  const ui=boot();await ui.click('buyFeature');assert(ui.nodes.get('buyDialog').open);await ui.click('cancelBuy');assert.equal(ui.state().credits,100000);assert.equal(ui.state().rounds,0);
@@ -119,4 +119,13 @@ test('all three speeds retain identical seed outcome; display mode and battery n
  for(const speed of ['quick','turbo','normal']){await ui.click('turbo');assert.equal(ui.state().speed,speed);await ui.click('reset');await ui.click('spin');assert.equal(JSON.stringify(ui.state().last.round),result);assert.equal(ui.state().credits,credit);}
  await ui.click('credits');assert.match(ui.nodes.get('credits').textContent,/COINS/);assert.equal(ui.state().bet,2);
  ui.nodes.get('batterySetting').checked=true;ui.nodes.get('batterySetting').events.change();assert(ui.nodes.get('spin').classList.contains('battery-saver'));assert.equal(ui.state().bet,2);
+});
+
+test('credit is debited at start and award settled once only after presentation',async()=>{
+ const ui=boot();let release;const gate=new Promise(r=>release=r);const proto=ui.window.SkygateReels.prototype,original=proto.spin;proto.spin=async function(...args){await gate;return original.apply(this,args);};
+ ui.nodes.get('seedInput').value='41';await ui.click('seedApply');await ui.click('spin');assert.equal(ui.state().busy,true);assert.equal(ui.state().credits,99998);assert.equal(ui.state().paid,0);
+ release();await new Promise(setImmediate);assert.equal(ui.state().busy,false);assert.equal(ui.state().credits,Math.round((99998+ui.state().last.round.winX*2)*100)/100);assert.equal(ui.state().history.length,1);
+});
+test('rules show actual current bet payouts and update with coin view',async()=>{
+ const ui=boot();assert.match(ui.nodes.get('paytable').innerHTML,/>100.00</);await ui.click('plus');assert.match(ui.nodes.get('paytable').innerHTML,/>120.00</);await ui.click('credits');assert.match(ui.nodes.get('paytable').innerHTML,/COINS/);
 });
