@@ -38,8 +38,8 @@ window.SkygateApplyLayout=(project,asset)=>{
   const betControls=document.createElement('div');betControls.className='published-bet-controls';
   const minus=document.getElementById('minus'),plus=document.getElementById('plus');
   betControls.append(minus,plus);document.querySelector('.menu-actions').before(betControls);
-  // Status and the virtual-credit identity remain visible regardless of layout.
+  // Preserve activity details in the menu and a visible virtual-credit identity.
   document.getElementById('status').classList.add('published-status');
-  const identity=document.createElement('span');identity.className='published-identity';identity.textContent='VIRTUAL CREDITS · v0.6';scene.append(identity);
+  const identity=document.createElement('span');identity.className='published-identity';identity.textContent='VIRTUAL CREDITS · v0.7';scene.append(identity);
   game.append(scene);game.classList.add('has-published-scene');
 };

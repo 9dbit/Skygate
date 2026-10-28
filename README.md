@@ -82,3 +82,11 @@ Open **Preview & Publish** in Studio. Prepare a snapshot, inspect its private pl
 - Seed 41 now completes its natural free-spin round and replay; the previous undefined variable in the bonus animation has been removed. Multiplier, big-win and virtual jackpot overlays respect reduced motion. Page hide stops Auto/audio; a fresh tap resumes sound.
 
 Validation: automated HTTP publication/rollback, restart durability, draft isolation, auth/CSRF, schema/media limits, seeded bonus and published-game integration. Native iPhone Safari/audio hardware validation remains pending.
+
+### v0.7 portrait UI redesign
+
+The bundled `/play/` screen now uses a midnight palette, fine gold board edge, compact win card, and a symmetric Auto / Spin / Turbo dock. Secondary rules buttons use consistent vector icons. Balance and bet share a separate wallet row. Orb multipliers are rendered as circular live elements, while published Studio snapshots retain their custom sprite bindings.
+
+The main screen shows short Indonesian round feedback; seed, round and tumble diagnostics remain in the menu. The redesigned sheets, reduced-motion support, safe-area sizing and non-scrolling portrait stage preserve existing controls and game outcomes. The clean spin SVG is an additional shipped asset, so older Studio layouts can keep their original spin artwork.
+
+Validation: 36 automated checks pass, including deterministic spins, free spins, replay, virtual-credit accounting and the publication/authentication workflow. Browser visual verification is recorded separately from native iPhone testing.

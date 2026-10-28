@@ -1,4 +1,4 @@
-/* Skygate portrait renderer v0.5. All outcomes come from the unchanged synthetic engine. */
+/* Skygate portrait renderer v0.7. All outcomes come from the unchanged synthetic engine. */
 function startSkygate() {
   'use strict';
   const release=window.SkygateActiveRelease;
@@ -48,7 +48,7 @@ function startSkygate() {
     if (!grid || !grid.length) return;
     displayGrid=grid;
     E('reels').innerHTML=grid.map((t,i)=>{
-      const classes=['tile',wins.has(i)?'win':'',newCells.has(i)?'fresh':''].filter(Boolean).join(' ');
+      const classes=['tile',!published&&t.kind==='orb'?'orb':'',wins.has(i)?'win':'',newCells.has(i)?'fresh':''].filter(Boolean).join(' ');
       const sprite=art[t.kind]||'ruby';
       const info=`${label[t.kind]||t.kind}${t.multiplier?' x'+t.multiplier:''}`;
       return `<div class="${classes}" title="${info}" aria-label="${info}"><img class="symbol" src="${asset('symbols/'+sprite+'.png')}" alt="" draggable="false">${t.multiplier?`<b class="orb-num">${t.multiplier}×</b>`:''}${t.kind==='scatter'?'<small class="scatter-label">SCATTER</small>':''}</div>`;
@@ -90,18 +90,18 @@ function startSkygate() {
     E('bonusRibbon').textContent=`FREE SPINS · ${state.bonusRemaining} LEFT · ×${state.bonusMultiplier||1}`;
     E('auto').querySelector('small').textContent=state.auto?'STOP':'AUTO';
   }
-  function status(msg){E('status').textContent=msg;}
+  function status(msg,hint=msg){E('status').textContent=msg;E('playHint').textContent=hint;}
   async function presentSpin(spin, bet, context) {
     state.orbTotal=0;
     render(spin.initial,[],Array.from({length:30},(_,i)=>i));
-    E('banner').textContent=context==='base'?'TUMBLE WIN':'FREE SPIN WIN';
-    status(context==='base'?'BASE SPIN · Seeking 8+ symbols':'FREE SPIN · Multiplier bank growing on qualifying orb wins');
+    E('banner').textContent=context==='base'?'KEMENANGAN':'FREE SPINS';
+    status(context==='base'?'BASE SPIN · Seeking 8+ symbols':'FREE SPIN · Multiplier bank growing on qualifying orb wins',context==='base'?'Cari 8+ simbol yang sama':`${state.bonusRemaining} free spins tersisa`);
     refresh(); await delay(240);
     for(const tumble of spin.cascades) {
       state.cascade++;
       render(tumble.before,tumble.removedPositions,[]);
       const winSummary=tumble.winning.map(g=>`${label[g.kind]} (${g.count})`).join(' + ');
-      status(`TUMBLE ${tumble.step} · ${winSummary} · +${credit(tumble.awardX*bet)} demo credits`);
+      status(`TUMBLE ${tumble.step} · ${winSummary} · +${credit(tumble.awardX*bet)} demo credits`,`+${credit(tumble.awardX*bet)} kredit · simbol baru jatuh`);
       state.roundWin=Math.min(cfg.round_max_win_x*bet,state.roundWin+tumble.awardX*bet);
       sound('win');refresh();
       await delay(310);
@@ -112,7 +112,7 @@ function startSkygate() {
     state.orbTotal=spin.orbSumX;
     status(spin.symbolWinX>0
       ?`${context==='bonus'?'FREE SPIN':'SPIN'} · Symbol win ×${spin.symbolWinX.toFixed(3)} · applied orb ×${spin.appliedMultiplierX}`
-      :`${context==='bonus'?'FREE SPIN':'SPIN'} · No symbol combination`);
+      :`${context==='bonus'?'FREE SPIN':'SPIN'} · No symbol combination`,spin.symbolWinX>0?`Kemenangan simbol${spin.appliedMultiplierX>1?' · pengali ×'+spin.appliedMultiplierX:''}`:'Belum ada kombinasi kemenangan');
     if(spin.symbolWinX>0 && spin.appliedMultiplierX>1){sound('orb');celebrate('MULTIPLIER','×'+spin.appliedMultiplierX,'multiplier');}
     refresh();
     await delay(220);
@@ -124,7 +124,7 @@ function startSkygate() {
     state.roundWin=runningTotal*bet;refresh();
     if (round.bonus.triggered) {
       state.bonusRemaining=cfg.bonus_start_spins;
-      status(`BONUS TRIGGER · ${cfg.bonus_start_spins} FREE SPINS (virtual)`);
+      status(`BONUS TRIGGER · ${cfg.bonus_start_spins} FREE SPINS (virtual)`,`${cfg.bonus_start_spins} free spins dimulai`);
       celebrate('FREE SPINS',`${cfg.bonus_start_spins} PUTARAN`, 'bonus');
       sound('bonus');refresh();await delay(520);
       for(const spin of round.bonus.spins) {
@@ -134,18 +134,18 @@ function startSkygate() {
         runningTotal+=spin.payoutX;
         state.roundWin=Math.min(cfg.round_max_win_x,runningTotal)*bet;
         state.bonusRemaining=spin.leftAfter;
-        if(spin.retriggered)status(`RETRIGGER · +${cfg.bonus_retrigger_add_spins} FREE SPINS (virtual)`);
+        if(spin.retriggered)status(`RETRIGGER · +${cfg.bonus_retrigger_add_spins} FREE SPINS (virtual)`,`+${cfg.bonus_retrigger_add_spins} free spins tambahan`);
         refresh();await delay(170);
       }
       state.bonusRemaining=0;
     }
     state.roundWin=round.winX*bet;
-    E('banner').textContent=round.bonus.triggered?'BONUS ROUND TOTAL':'ROUND TOTAL';
+    E('banner').textContent=round.bonus.triggered?'TOTAL BONUS':'TOTAL KEMENANGAN';
     refresh();
   }
   async function runRound(replay=false) {
     if (state.busy) return;
-    if (!replay && state.credits<state.bet) {status('Kredit demo tidak cukup. Tekan reset.');return;}
+    if (!replay && state.credits<state.bet) {status('Kredit tidak cukup. Reset kredit melalui menu.');return;}
     if (replay && !state.last) {status('Belum ada ronde untuk replay.');return;}
     state.busy=true;
     const bet=replay?state.last.bet:state.bet;
@@ -169,8 +169,8 @@ function startSkygate() {
       await animateRound(round,bet);
       if(round.jackpot?.hit){sound('jackpot');celebrate(round.jackpot.tier.toUpperCase()+' JACKPOT',credit(round.jackpot.awardX*bet),'jackpot');}
       else if(round.winX>=thresholds.bigX){const big=round.winX>=thresholds.superX?'SUPER WIN':round.winX>=thresholds.megaX?'MEGA WIN':'BIG WIN';sound(round.winX>=thresholds.megaX?'mega':'big');celebrate(big,credit(round.winX*bet),'win');}
-      status(`${replay?'REPLAY (tanpa debit)':'ROUND '+state.rounds} · ${credit(round.winX*bet)} kredit virtual · ${round.totalTumbles} tumbles · seed ${state.seed}`);
-    } catch(e) {console.error(e);status(`Error saat render: ${String(e.message||e)}`);}
+      status(`${replay?'REPLAY (tanpa debit)':'ROUND '+state.rounds} · ${credit(round.winX*bet)} kredit virtual · ${round.totalTumbles} tumbles · seed ${state.seed}`,replay?'Replay selesai · saldo tetap':round.winX>0?`+${credit(round.winX*bet)} kredit virtual`:'Ronde selesai · coba spin lagi');
+    } catch(e) {console.error(e);status(`Error saat render: ${String(e.message||e)}`,'Animasi terhenti · hasil tersimpan di menu');}
     finally {state.busy=false;refresh();}
   }
   function resetGame(seed=state.seed) {
@@ -180,9 +180,9 @@ function startSkygate() {
     engine=makeEngine(state.seed);
     Object.assign(state,{credits:startingCredit,rounds:0,spent:0,paid:0,hits:0,bonuses:0,roundWin:0,cascade:0,orbTotal:0,bonusRemaining:0,bonusMultiplier:0,last:null});
     E('seedInput').value=String(state.seed);
-    E('banner').textContent='TUMBLE WIN';
+    E('banner').textContent='KEMENANGAN';
     render(idleBoard());refresh();
-    status('Tekan SPIN · 8+ simbol yang sama untuk menang');
+    status('Tekan SPIN · 8+ simbol yang sama untuk menang','Cocokkan 8+ simbol di mana saja');
   }
   async function runAutoTen() {
     if(state.auto) {state.auto=false;status('AUTO akan berhenti setelah ronde berjalan.');refresh();return;}
@@ -215,7 +215,7 @@ function startSkygate() {
   E('minus').addEventListener('click',()=>{if(!state.busy)state.bet=Math.max(1,state.bet>=20?state.bet-5:state.bet-1);refresh();});
   E('plus').addEventListener('click',()=>{if(!state.busy)state.bet=Math.min(200,state.bet>=20?state.bet+5:state.bet+1);refresh();});
   E('auto').addEventListener('click',()=>void runAutoTen());
-  E('turbo').addEventListener('click',()=>{state.turbo=!state.turbo;refresh();status('Turbo '+(state.turbo?'on':'off')+' · payout tidak berubah');});
+  E('turbo').addEventListener('click',()=>{state.turbo=!state.turbo;refresh();status('Turbo '+(state.turbo?'on':'off')+' · payout tidak berubah','Turbo '+(state.turbo?'aktif':'nonaktif'));});
   E('reset').addEventListener('click',()=>{resetGame();E('menuDialog').close();});
   E('seedApply').addEventListener('click',()=>{
     if(state.busy || state.auto)return;
@@ -250,8 +250,8 @@ function startSkygate() {
   E('paytable').innerHTML=Object.entries(cfg.paytable).map(([kind,values])=>`<tr><td><img src="${asset('symbols/'+art[kind]+'.png')}" alt="">${label[kind]}</td>${values.map(n=>`<td>${n}×</td>`).join('')}</tr>`).join('');
   E('bonusRulesText').textContent=`${cfg.bonus_trigger_scatters}+ SCATTER memicu ${cfg.bonus_start_spins} free spins. Di dalam bonus, ${cfg.bonus_retrigger_scatters}+ SCATTER menambah ${cfg.bonus_retrigger_add_spins} putaran. Orb mengalikan kemenangan simbol; pengalinya terkumpul selama bonus.`;
   E('capText').textContent=`Maksimum ${cfg.round_max_win_x.toLocaleString('id-ID')}× bet per ronde, termasuk jackpot virtual jika diaktifkan. Auto dan Turbo tidak mengubah peluang. Tidak ada deposit atau penarikan.`;
-  E('freeInfo').querySelector('small').textContent=`${cfg.bonus_trigger_scatters} SCATTERS TO TRIGGER`;
-  E('releaseInfo').textContent=release?`Versi ${release.id.slice(0,8)} · ${new Date(release.createdAt).toLocaleDateString('id-ID')}`:'SKYGATE v0.6 · Original celestial artwork';
+  E('freeInfo').querySelector('small').textContent=`${cfg.bonus_trigger_scatters}+ SCATTER`;
+  E('releaseInfo').textContent=release?`Versi ${release.id.slice(0,8)} · ${new Date(release.createdAt).toLocaleDateString('id-ID')}`:'SKYGATE v0.7 · Original celestial artwork';
   E('previewBadge').hidden=!window.SkygatePreview;
   E('seedInput').value=String(state.seed);
   resetGame(initialSeed);
@@ -262,5 +262,5 @@ function startSkygate() {
   }
   window.SlotGameTest={getState:()=>({...state,last:state.last?{round:state.last.round,bet:state.last.bet}:null}),getGrid:()=>displayGrid,engineProfile:cfg.profile_id};
 }
-if(window.SkygateReleaseReady){window.SkygateReleaseReady.then(startSkygate).catch(error=>{document.getElementById('status').textContent=error.message;document.getElementById('spin').disabled=true;});}
+if(window.SkygateReleaseReady){window.SkygateReleaseReady.then(startSkygate).catch(error=>{document.getElementById('status').textContent=error.message;document.getElementById('playHint').textContent=error.message;document.getElementById('spin').disabled=true;});}
 else startSkygate();

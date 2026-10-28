@@ -9,7 +9,7 @@ export const tracks = ['bgm_celestial_loop','spin_start','reel_stop','tumble','s
 export const shippedAssets = [
   ...symbols.map(x=>`symbols/${x}.png`),
   ...['sky_background.jpg','hero_composite_reference.jpg','guardian.png','logo.png','column_left.png','column_right.png'].map(x=>`scene/${x}`),
-  ...['gold_banner','blue_button','spin_button','reel_frame','jackpot_mini','jackpot_minor','jackpot_major','jackpot_grand'].map(x=>`ui/${x}.svg`),
+  ...['gold_banner','blue_button','spin_button','spin_button_clean','reel_frame','jackpot_mini','jackpot_minor','jackpot_major','jackpot_grand'].map(x=>`ui/${x}.svg`),
   ...tracks.map(x=>`audio/${x}.mp3`),
 ];
 export class ReleaseError extends Error { constructor(message,status=400){super(message);this.status=status;} }
