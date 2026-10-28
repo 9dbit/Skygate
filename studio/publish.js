@@ -12,7 +12,7 @@
   }
   async function api(path,body){
     const response=await fetch('/studio/api/'+path,{method:body?'POST':'GET',credentials:'same-origin',cache:'no-store',headers:body?{'Content-Type':'application/json','X-Skygate-CSRF':inventory.csrf}:{},...(body?{body:JSON.stringify(body)}:{})});
-    const data=await response.json();if(!response.ok)throw Error(data.error||'Permintaan belum berhasil');return data;
+    const data=await response.json();if(!response.ok){const error=Error(data.error||'Permintaan belum berhasil');error.status=response.status;throw error;}return data;
   }
   async function refresh(){
     inventory=await api('releases');
@@ -33,7 +33,7 @@
   }
   async function run(task){
     if(busy)return;busy=true;controls();
-    try{await task();}catch(error){message(error.message||'Belum berhasil. Coba lagi.');}
+    try{await task();}catch(error){if([403,409].includes(error.status)){try{await refresh();}catch{}}message(error.message||'Belum berhasil. Coba lagi.');}
     finally{busy=false;controls();}
   }
   async function png(blob){

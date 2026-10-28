@@ -26,3 +26,11 @@ Automated tests cover real HTTP staging → publish → rollback, persistent res
 Native iPhone hardware/audio verification remains pending. Browser cloud disallows file URLs; do not work around that boundary. Use the authorized HTTPS site for live visual checks. Access to Studio requires its existing login; never disable authentication to inspect it.
 
 Limits: 24 snapshots, 24 MB custom assets per snapshot, 350 MB cumulative upload budget; no silent archive deletion. No real-money functions, account balances, automatic cross-device draft sync or certified RNG. Shipped hero remains composed artwork. Published Studio layouts use the individual existing image layers.
+
+## Initial deployment evidence
+
+Commit 7862b69 deployed successfully as c7137f74-722f-44bd-9ca2-67d719645a67. Railway confirmed the volume mount and runtime startup. Live Chrome loaded v0.6 with no broken images and completed seed 41 (20 bonus spins / 26 tumbles / 2,388.44 virtual credits), without app console errors.
+
+A visual follow-up replaces the stage's scrollable hidden overflow with clip and bounds the decorative background. Chrome focus restoration after closing a dialog had scrolled the stage internally by 47 px; root viewport dimensions alone did not catch it. It also refreshes release state after a stale write/session error.
+
+Studio browser navigation returned ERR_INVALID_AUTH_CREDENTIALS, so live authenticated panel QA requires owner sign-in. No credentials were retrieved, printed or changed; protection remains enabled.
