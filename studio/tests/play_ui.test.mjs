@@ -89,7 +89,7 @@ test('backgrounding cancels auto and stops sound without an automatic restart',a
 test('published settings drive bet, credits, bonus rules, math and virtual jackpot together',async()=>{
   const p=JSON.parse(read('studio/project.json'));p.bet=35;p.credit=50000;p.seed=41;p.math.bonus_start_spins=3;p.math.bonus_retrigger_add_spins=1;
   p.jackpot.enabled=true;p.jackpot.tiers.forEach((t,i)=>t.perMillion=i===0?1000000:0);
-  const ui=boot(p);assert.equal(ui.state().credits,50000);assert.equal(ui.state().bet,35);assert.match(ui.nodes.get('bonusRulesText').textContent,/3 free spins/);
+  const ui=boot(p);for(const name of ['ring','crown','hourglass','chalice'])assert(ui.nodes.get('reels').innerHTML.includes('symbols/'+name+'.png'),'published idle grid must retain '+name);assert.equal(ui.state().credits,50000);assert.equal(ui.state().bet,35);assert.match(ui.nodes.get('bonusRulesText').textContent,/3 free spins/);
   await ui.click('spin');const s=ui.state();assert(s.last.round.jackpot.hit);assert.equal(s.credits,50000-35+s.last.round.winX*35);assert(!ui.nodes.get('status').textContent.includes('Error saat render'));
   await ui.click('reset');assert.equal(ui.state().credits,50000);
 });

@@ -10,8 +10,10 @@ function startSkygate() {
   const asset=path=>window.SKY_PREVIEW_ASSETS?.['assets/'+path] || (release?.overrides?.['asset:'+path]? (window.SkygatePreview?'/studio/api/media/':'/play/media/')+release.overrides['asset:'+path].file:'assets/'+path);
   if(published)window.SkygateApplyLayout(published,asset);
   const art = {ruby:'ruby', sapphire:'sapphire', emerald:'emerald', amethyst:'amethyst', topaz:'topaz', amber:'ring', pearl:'chalice', scatter:'crown', orb:'orb'};
+  Object.assign(art,{ring:'ring',crown:'crown',hourglass:'hourglass',chalice:'chalice'});
   if(published)Object.assign(art,{amber:'amber',pearl:'pearl',scatter:'scatter'});
   const label = {ruby:'Ruby', sapphire:'Sapphire', emerald:'Emerald', amethyst:'Amethyst', topaz:'Topaz', amber:'Ring', pearl:'Chalice', scatter:'Scatter Crown', orb:'Multiplier Orb'};
+  Object.assign(label,{ring:'Ring',crown:'Crown',hourglass:'Hourglass',chalice:'Chalice'});
   if(published)Object.assign(label,{amber:'Amber',pearl:'Pearl'});
   const initialSeed = published?.seed || 20261027;
   const startingCredit=published?.credit || 100000;
