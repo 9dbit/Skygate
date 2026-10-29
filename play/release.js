@@ -42,7 +42,9 @@ window.SkygateApplyLayout=(project,asset)=>{
   // all bindings first so later caption layers retain their live DOM nodes.
   const boundNodes=Object.fromEntries(Object.entries(bindings).map(([id,target])=>[id,document.getElementById(target)]));
   for(const l of project.layers){
-    if(retired.has(l.id))continue;
+    // The functional booster button already renders its own live label.
+    // Do not paint legacy "WIN TABLE" over the Booster in published games.
+    if(retired.has(l.id)||(l.id==='antetext'&&project.math.reference_rules))continue;
     const wrap=document.createElement('div');wrap.className='published-layer '+l.kind+'-layer';wrap.dataset.layer=l.id;
     Object.assign(wrap.style,{left:l.x/1080*100+'%',top:l.y/1920*100+'%',width:l.w/1080*100+'%',height:l.h/1920*100+'%',zIndex:l.z,opacity:l.opacity/100,transform:`rotate(${l.rotate}deg)`,display:l.visible?'':'none',fontSize:(l.font||40)/1080*100+'cqw',color:l.color||'#ffe5af'});
     const node=boundNodes[l.id];
