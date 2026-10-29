@@ -2,7 +2,7 @@
 
 Greek-mythology-inspired **virtual-credit** game development playground. Includes a layout studio, modular icon assets, original music and sound effects, math experimentation, free spins, and simulated jackpot controls. This is not connected to deposits, withdrawals, or real-money gambling.
 
-### Current release: v0.12.0 — fixed spinner frame and smooth reel stops
+### Current release: v0.12.1 — fast first paint, fixed spinner frame and smooth reel stops
 
 - Studio opens the current Live snapshot in the same gameplay renderer. Edit/Playtest also use that renderer with local draft data; selection handles are the only editor overlay.
 - Live and local Draft are labeled separately. Edit Live exports an existing draft ZIP before restoring the published project/assets; opening Studio never overwrites local work. Publish remains explicit.
@@ -17,7 +17,12 @@ Greek-mythology-inspired **virtual-credit** game development playground. Include
 - Winning symbols vibrate during the lightning charge. Lightning is anchored to the cell perimeter and stretched to its rectangular geometry; it does not scale or vibrate with the artwork.
 - Reduced motion skips the charge/vibration/burst sequence. Existing game math and settlement are preserved.
 
-Validation for v0.12.0: 73 automated tests pass, including offscreen reel-bank handoff, spark-pool cancellation, reduced motion, seeded outcomes and settlement. Chromium checks 320/390/430 px layouts, stationary spinner frame/rotating center, six transform-promoted strips, 180 sparks and 9 flares on a nine-cell win, and shared Studio renderer/draft preservation. Physical iPhone/GPU frame-rate and audio testing remains pending.
+Validation for v0.12.0 (prior release): 73 automated tests pass, including offscreen reel-bank handoff, spark-pool cancellation, reduced motion, seeded outcomes and settlement. Chromium checks 320/390/430 px layouts, stationary spinner frame/rotating center, six transform-promoted strips, 180 sparks and 9 flares on a nine-cell win, and shared Studio renderer/draft preservation. Physical iPhone/GPU frame-rate and audio testing remains pending.
+
+### v0.12.1 loading improvement
+
+- The boot splash gates Play on critical first-paint scene art only. Preloading extra symbol textures no longer delays the initial Play button. Hidden reel banks, cascade lightning, and dormant fireworks are loaded outside that critical path.
+- Preserve fail/retry on missing foreground artwork. Full Node and browser checks are required before deployment.
 
 ### v0.9.0 behavior — 29 October 2026 (Asia/Jakarta)
 
