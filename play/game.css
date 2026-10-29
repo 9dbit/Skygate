@@ -265,3 +265,9 @@ dialog .dialog-body .confirm-actions button{font:700 11px Georgia!important;padd
 #anteFeature>span{font-size:2.52cqw;letter-spacing:-.012em;line-height:1.12}
 #anteFeature #antePrice{font-size:3.05cqw;white-space:nowrap}
 #anteFeature small{font-size:1.55cqw;letter-spacing:0}
+
+/* Logo-only v0.13.1. Keep previous logo hidden until the approved asset is selected. */
+.splash-brand:not(.brand-complete){visibility:hidden}
+.splash-brand.brand-complete .brand-top{inset:0;overflow:visible}
+.splash-brand.brand-complete .brand-top>img{position:static;width:100%;height:100%;object-fit:contain}
+.splash-brand.brand-complete .brand-number{display:none!important}
