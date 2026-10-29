@@ -24,5 +24,12 @@
     burst += `<path d="M${rounded(x)} ${rounded(y)}l${rounded(Math.cos(angle)*length)} ${rounded(Math.sin(angle)*length)}" stroke="${i%3?'#ffcf55':'#fff3b2'}" stroke-width="${i%3?1.5:2}" stroke-linecap="round"/>`;
     burst += `<circle cx="${rounded(x)}" cy="${rounded(y)}" r="${i%4?1:2}" fill="#fff7c7"/>`;
   }
-  window.SkygateCascadeArt = {edge: svg(glowPath(edge, 2.6)), burst: svg(burst)};
+  // One predecoded vector sprite supplies many bright trails per winning cell.
+  let firework='<defs><radialGradient id="core"><stop stop-color="#fff"/><stop offset=".16" stop-color="#fff5c4"/><stop offset=".42" stop-color="#ffba35" stop-opacity=".55"/><stop offset="1" stop-color="#ff7300" stop-opacity="0"/></radialGradient></defs><circle cx="64" cy="64" r="32" fill="url(#core)"/>';
+  for(let i=0;i<32;i++){
+    const a=i*Math.PI/16,inner=11+i%4*3,outer=37+i%5*5;
+    const xy=r=>`${rounded(64+Math.cos(a)*r)} ${rounded(64+Math.sin(a)*r)}`;
+    firework+=`<path d="M${xy(inner)}L${xy(outer)}" stroke="${i%4?'#ffc34a':'#9cdeff'}" stroke-width="2.2" opacity=".8"/><path d="M${xy(outer-12)}L${xy(outer)}" stroke="#fff9df" stroke-width="1.2"/><circle cx="${rounded(64+Math.cos(a)*outer)}" cy="${rounded(64+Math.sin(a)*outer)}" r="${i%3?1.2:2}" fill="#fff"/>`;
+  }
+  window.SkygateCascadeArt = {edge: svg(glowPath(edge, 2.6)), burst: svg(burst),firework:svg(firework)};
 })();

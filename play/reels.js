@@ -39,13 +39,15 @@ window.SkygateReels = class {
     this.fireworks=document.createElement('div');this.fireworks.className='fireworks-layer';
     this.fireworks.setAttribute('aria-hidden','true');this.sparks=[];
     for(let i=0;i<240;i++){const spark=document.createElement('i');spark.className='firework-spark spark-'+i%4;this.fireworks.append(spark);this.sparks.push(spark);}
+    this.flares=[];
+    for(let i=0;i<30;i++){const flare=document.createElement('img');flare.className='firework-flare';flare.src=window.SkygateCascadeArt.firework;flare.alt='';this.fireworks.append(flare);this.flares.push(flare);}
     root.append(this.fireworks);
     // Decode each unique texture once before the first animated round.
     this.textures = [...new Set(Object.values(art))].map(sprite => {
       const img = document.createElement('img'); img.src = asset('symbols/' + sprite + '.png');
       return img;
     });
-    this.ready = Promise.allSettled(this.textures.map(img => img.decode?.()));
+    this.ready = Promise.allSettled([...this.textures,this.flares[0]].map(img => img.decode?.()));
   }
   update(cell, symbol, win = false) {
     const {tile, img, multiplier, scatter} = cell;
@@ -105,18 +107,24 @@ window.SkygateReels = class {
     this.root.classList.add('rolling');
     try {
       await Promise.all(this.columns.map(async ({track, cells}, col) => {
+        // Finish complete, identical banks before introducing the result offscreen.
+        // The next leg starts at the equivalent bank boundary, never at an arbitrary phase.
         const rolling = this.animate(track, [
           {transform: 'translate3d(0,-50%,0)'}, {transform: 'translate3d(0,0,0)'}
-        ], {duration: turbo ? 240 : quick ? 360 : 480, iterations: Infinity, easing: 'linear'});
-        await this.wait(turbo ? 320 + col * 35 : quick ? 700 + col * 65 : 1250 + col * 130);
-        rolling.cancel(); this.animations.delete(rolling);
+        ], {duration: turbo ? 250 : quick ? 400 : 600, iterations: turbo ? 1 : 2, delay:col*(turbo?35:quick?65:110), easing:'linear',fill:'backwards'});
+        await this.finish(rolling);
         if (generation !== this.generation) return;
-        cells.forEach((cell, row) => this.update(cell, grid[(row % 5) * 6 + col]));
-        await this.finish(this.animate(track, [
-          {transform: 'translate3d(0,-62%,0)', offset: 0},
-          {transform: 'translate3d(0,-49.3%,0)', offset: .78},
-          {transform: 'translate3d(0,-50%,0)', offset: 1}
-        ], {duration: turbo ? 200 : quick ? 320 : 480, easing: 'cubic-bezier(.16,.7,.28,1)'}));
+        cells.slice(0,5).forEach((cell,row)=>this.update(cell,grid[row*6+col]));
+        const settling=this.animate(track,[
+          {transform:'translate3d(0,-50%,0)'},
+          {transform:'translate3d(0,0,0)'}
+        ],{duration:turbo?320:quick?520:800,easing:'cubic-bezier(.28,.37,.48,1)',fill:'forwards'});
+        try{await settling.finished;}catch{/* background cancellation */}
+        finally{
+          // Replace the hidden bank before dropping the filled transform.
+          if(generation===this.generation)cells.slice(5).forEach((cell,row)=>this.update(cell,grid[row*6+col]));
+          settling.cancel();this.animations.delete(settling);
+        }
       }));
     } finally {
       this.root.classList.remove('rolling'); this.render(grid); this.target = null;
@@ -158,18 +166,24 @@ window.SkygateReels = class {
   }
   sparkAnimations(selected,duration,play){
     const cw=(this.root.clientWidth||600)/6,ch=(this.root.clientHeight||500)/5,unit=Math.min(cw,ch);
-    return selected.flatMap((cell,index)=>Array.from({length:8},(_,ray)=>{
-      const node=this.sparks[index*8+ray],angle=ray*Math.PI/4+index*.37,reach=unit*(.8+(ray%3)*.24);
+    const rays=Math.min(20,Math.floor(this.sparks.length/selected.length));
+    return selected.flatMap((cell,index)=>{
+      const left=(cell%6+.5)*cw,top=(Math.floor(cell/6)+.5)*ch,flare=this.flares[index];
+      Object.assign(flare.style,{left:left-unit*1.5+'px',top:top-unit*1.5+'px',width:unit*3+'px',height:unit*3+'px'});
+      const flash=play(flare,[{transform:'scale(.08) rotate(-12deg)',opacity:0},{transform:'scale(.35) rotate(-4deg)',opacity:1,offset:.18},{transform:'scale(.85) rotate(8deg)',opacity:1,offset:.45},{transform:'scale(1.35) rotate(16deg)',opacity:.6,offset:.75},{transform:'scale(1.6) rotate(22deg)',opacity:0}],duration,'linear');
+      return [flash,...Array.from({length:rays},(_,ray)=>{
+      const node=this.sparks[index*rays+ray],angle=ray*Math.PI*2/rays+index*.37,reach=unit*(1.25+(ray%3)*.35),rotation=angle*180/Math.PI;
       node.style.left=((cell%6+.5)/6*100)+'%';node.style.top=((Math.floor(cell/6)+.5)/5*100)+'%';
       const dx=Math.cos(angle)*reach,dy=Math.sin(angle)*reach;
+      const start=ray%2?.25:.12;
       return play(node,[
-        {transform:'translate3d(0,0,0) scale(.25)',opacity:0},
-        {transform:'translate3d(0,0,0) scale(.25)',opacity:0,offset:.22},
-        {transform:`translate3d(${dx*.35}px,${dy*.35}px,0) scale(1)`,opacity:1,offset:.42},
-        {transform:`translate3d(${dx}px,${dy+unit*.3}px,0) scale(.65)`,opacity:.8,offset:.75},
-        {transform:`translate3d(${dx*1.15}px,${dy+unit*.65}px,0) scale(.15)`,opacity:0}
+        {transform:`translate3d(0,0,0) rotate(${rotation}deg) scale(.3)`,opacity:0},
+        {transform:`translate3d(0,0,0) rotate(${rotation}deg) scale(.3)`,opacity:0,offset:start},
+        {transform:`translate3d(${dx*.35}px,${dy*.35}px,0) rotate(${rotation}deg) scale(1.25)`,opacity:1,offset:start+.18},
+        {transform:`translate3d(${dx}px,${dy+unit*.3}px,0) rotate(${rotation+15}deg) scale(.85)`,opacity:1,offset:.76},
+        {transform:`translate3d(${dx*1.2}px,${dy+unit*.75}px,0) rotate(${rotation+25}deg) scale(.15)`,opacity:0}
       ],duration,'linear');
-    }));
+    })];});
   }
   async cascade(before, after, {turbo = false, quick = false, reduced = false} = {}) {
     this.target = after;

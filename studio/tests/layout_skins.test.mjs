@@ -33,11 +33,13 @@ function dom(){
     prepend(n){this.append(n);this.children.unshift(this.children.pop());}
     before(n){this.parent.append(n);}
     querySelector(tag){return this.children.find(n=>n.tagName===tag);}
+    querySelectorAll(tag){return this.children.flatMap(n=>[...(n.tagName===tag?[n]:[]),...n.querySelectorAll(tag)]);}
   }
   const root=new Node(),game=new Node(),menu=new Node();root.append(game,menu);
   const nodes=new Map([...read('play/index.html').matchAll(/<([a-z]+)[^>]*\bid="([^"]+)"/g)].map(m=>[m[2],new Node(m[1])]));
   for(const n of nodes.values())root.append(n);
   nodes.get('spin').append(new Node('img'));
+  const rotor=new Node('span');rotor.append(new Node('img'));nodes.get('spin').append(rotor);
   for(const id of ['auto','turbo','menu','sound','help','minus','plus'])nodes.get(id).append(new Node('svg'));
   nodes.get('auto').append(nodes.get('autoStatus'));nodes.get('turbo').append(nodes.get('turboStatus'));
   // Match the browser: getElementById cannot find nodes in a detached scene.
@@ -51,6 +53,7 @@ function dom(){
 test('live layout keeps bet controls on canvas and moves Auto caption into its editable layer',()=>{
   const d=dom(),p=preset();d.window.SkygateApplyLayout(p,path=>'assets/'+path);
   assert.match(d.game.className,/olympus-gold/);
+  const spinImages=d.nodes.get('spin').querySelectorAll('img');assert.equal(spinImages.length,2);assert(spinImages.every(img=>img.src==='assets/'+p.layers.find(l=>l.id==='spinbutton').asset));assert.deepEqual(spinImages[0].style,spinImages[1].style);
   assert.equal(d.nodes.get('plus').parent.dataset.layer,'plusbtn');
   assert.equal(d.nodes.get('minus').parent.dataset.layer,'minusbtn');
   assert.equal(d.nodes.get('autoStatus').parent.parent.dataset.layer,'autolabel');

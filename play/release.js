@@ -49,7 +49,7 @@ window.SkygateApplyLayout=(project,asset)=>{
     if(node){
       if(l.id==='credits'||l.id==='betlabel'){const label=document.createElement('span');label.textContent=l.id==='credits'?'CREDIT ': 'BET ';wrap.append(label);}
       wrap.append(node);
-      if(l.id==='spinbutton'){node.querySelector('img').src=asset(l.asset);cropImage(node.querySelector('img'),l.crop);}
+      if(l.id==='spinbutton')for(const img of node.querySelectorAll('img')){img.src=asset(l.asset);cropImage(img,l.crop);}
       if(l.kind==='circle'&&l.asset){const bg=document.createElement('img');bg.src=asset(l.asset);bg.alt='';bg.className='control-skin';cropImage(bg,l.crop);node.prepend(bg);node.classList.add('skinned-control');if(l.id==='autobtn'&&project.presentation==='olympus-gold')node.querySelector('svg').innerHTML='<path d="m8 5 11 7-11 7Z" fill="currentColor" stroke="none"/>';}
       if(l.id==='reels'){wrap.classList.add('live-grid');wrap.append(document.getElementById('bonusRibbon'));}
     }else if(l.id==='antebtn'||l.id==='buybtn'){
