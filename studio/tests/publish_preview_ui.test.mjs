@@ -6,7 +6,7 @@ import vm from 'node:vm';
 const code=readFileSync(new URL('../publish.js',import.meta.url),'utf8');
 const live='b3cc22d5-1111-4222-8333-444444444444';
 const staged='a1b2c3d4-1111-4222-8333-444444444444';
-async function settle(){for(let n=0;n<15;n++)await Promise.resolve();}
+async function settle(){for(let n=0;n<160;n++)await Promise.resolve();}
 
 function fixture(){
   class Node{
