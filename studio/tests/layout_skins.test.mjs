@@ -62,9 +62,10 @@ test('live layout keeps bet controls on canvas and moves Auto caption into its e
   assert.match(d.nodes.get('auto').className,/skinned-control/);
   assert.match(d.nodes.get('auto').querySelector('svg').innerHTML,/currentColor/);
   const scene=d.game.children.at(-1),logo=scene.children.find(n=>n.dataset.layer==='logo');
-  assert.equal(logo.children[0].children[0].style.objectFit,'fill');
-  assert.equal(logo.children[1].textContent,'5000');
-  assert.equal(logo.children[1].className,'brand-number');
+  assert.equal(logo.children.length,1);
+  assert.equal(logo.children[0].src,'assets/custom/skygate-5000-approved.png');
+  assert.equal(logo.children[0].style.objectFit,'contain');
+  assert.match(logo.className,/brand-complete/);
   assert.equal(d.nodes.get('anteFeature').children[0].className,'feature-skin');
 });
 
@@ -100,13 +101,13 @@ test('game splash and dialog artwork fall back to shipped assets without a live 
   assert.ok(properties['--sg-action-image'].includes('assets/ui/confirmation-panel-v1.png'));
   const live=preset();
   window.SkygateSyncChrome(live,path=>'assets/'+path);
-  assert.equal(image.src,'assets/'+live.layers.find(l=>l.id==='logo').asset);
+  assert.equal(image.src,'assets/custom/skygate-5000-approved.png');
   assert.ok(properties['--sg-action-image'].includes('assets/custom/feature_panel.png'));
 });
 
-test('approved full Skygate logo uses one uncut image and no duplicate numeric label',()=>{
+test('approved logo overrides the original snapshot without changing saved art coordinates',()=>{
   const p=preset(),logo=p.layers.find(l=>l.id==='logo');
-  logo.asset='custom/skygate-5000-approved.png';
+  const originalAsset=logo.asset,position=[logo.x,logo.y,logo.w,logo.h];
   const d=dom();d.window.SkygateApplyLayout(p,path=>'assets/'+path);
   const scene=d.game.children.at(-1),rendered=scene.children.find(n=>n.dataset.layer==='logo');
   assert.equal(rendered.children.length,1);
@@ -115,6 +116,8 @@ test('approved full Skygate logo uses one uncut image and no duplicate numeric l
   assert.equal(rendered.children[0].style.objectFit,'contain');
   assert.equal(rendered.children[0].style.position,'static');
   assert.match(rendered.className,/brand-complete/);
+  assert.equal(logo.asset,originalAsset);
+  assert.deepEqual([logo.x,logo.y,logo.w,logo.h],position);
 });
 test('approved logo on splash does not render a second 5000',()=>{
   const brand={classList:{add(){}},nodes:{
@@ -123,7 +126,7 @@ test('approved logo on splash does not render a second 5000',()=>{
   const document={querySelectorAll:()=>[brand],documentElement:{style:{setProperty(){}}}};
   const window={SKY_PREVIEW_ASSETS:{}};
   vm.runInNewContext(read('play/release.js'),{window,document});
-  const project=preset();project.layers.find(l=>l.id==='logo').asset='custom/skygate-5000-approved.png';
+  const project=preset();
   window.SkygateSyncChrome(project,path=>'assets/'+path);
   assert.equal(brand.nodes['.brand-number'].hidden,true);
   assert.equal(brand.nodes.img.src,'assets/custom/skygate-5000-approved.png');
