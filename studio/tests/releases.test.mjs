@@ -5,7 +5,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { once } from 'node:events';
-import { createReleaseStore, validateProject } from '../../release-store.mjs';
+import { createReleaseStore, validateProject, defaultSpinMotion } from '../../release-store.mjs';
 
 const root=new URL('../../',import.meta.url);
 const source=JSON.parse(await readFile(new URL('studio/project.json',root),'utf8'));
@@ -96,4 +96,25 @@ test('production publishing fails closed without auth or persistent storage',asy
   const noDisk=await server(t,'');
   const session=await (await fetch(noDisk+'/studio/api/releases',{headers:{Authorization:auth}})).json();assert.equal(session.available,false);
   const response=await fetch(noDisk+'/studio/api/releases',{method:'POST',headers:{Authorization:auth,Origin:noDisk,'Content-Type':'application/json','X-Skygate-CSRF':session.csrf},body:JSON.stringify({project:copy()})});assert.equal(response.status,503);
+});
+
+test('Studio spin motion persists with snapshots, validates bounds and migrates old projects',async t=>{
+  const tuned=copy();
+  tuned.spinMotion={normalMs:2000,quickMs:1200,turboMs:550};
+  const validated=validateProject(tuned);
+  assert.deepEqual(validated.spinMotion,tuned.spinMotion);
+  const store=createReleaseStore(await temp(t));
+  // Staging is also the serialization contract consumed by Game and Studio previews.
+  const snapshot=await store.stage({project:tuned});
+  const saved=await store.revision(snapshot.id);
+  assert.deepEqual(saved.project.spinMotion,tuned.spinMotion);
+  const legacy=copy();delete legacy.spinMotion;
+  assert.deepEqual(validateProject(legacy).spinMotion,defaultSpinMotion);
+  for(const [key,value] of [['normalMs',200],['quickMs','1150'],['turboMs',1500]]){
+    const invalid=copy();invalid.spinMotion[key]=value;
+    assert.throws(()=>validateProject(invalid),/spin|Ms|timing/i);
+  }
+  const unordered=copy();unordered.spinMotion.quickMs=2200;
+  assert.throws(()=>validateProject(unordered),/order/);
+  assert.deepEqual(copy().math,tuned.math,'editing presentation must never mutate outcome math');
 });
