@@ -54,12 +54,16 @@ window.SkygateApplyLayout=(project,asset)=>{
       layer.y>=panel.y-1&&layer.y+layer.h<=panel.y+panel.h+1;
     // Mirror the right (+) inset onto the left (-) inset, regardless of the
     // historical saved minus x. The snapshot and Studio draft are not mutated.
-    const minusX=bet.x+(bet.x+bet.w-(plusArt.x+plusArt.w));
+    const mirroredX=bet.x+(bet.x+bet.w-(plusArt.x+plusArt.w));
+    // Correct legacy 92px left padding on existing Live snapshots, but
+    // respect custom Studio coordinates once the designer moves the button.
+    const minusX=Math.abs(minusArt.x-(bet.x+92))<=1?mirroredX:minusArt.x;
+    const chipLeft=bet.x+bet.w*.25;
     if(credit.x+credit.w<bet.x&&
        Math.abs(credit.w-bet.w)<12&&
        fits(credit,creditArt)&&fits(bet,betArt)&&
        fits(bet,minusArt)&&fits(bet,plusArt)&&
-       minusX>=bet.x&&minusX+minusArt.w<=betArt.x-32){
+       minusX>=bet.x&&minusX+minusArt.w<=chipLeft-6&&chipLeft+bet.w*.102<betArt.x){
       splitPanels={credit,bet,skin:buyArt,minusX,z:Math.max(1,Math.min(creditArt.z,betArt.z)-1)};
     }
   }
