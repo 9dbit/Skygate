@@ -52,11 +52,15 @@ window.SkygateApplyLayout=(project,asset)=>{
     const bet={x:boosterArt.x,y:boardArt.y,w:boosterArt.w,h:buyArt.h};
     const fits=(panel,layer)=>layer.x>=panel.x-1&&layer.x+layer.w<=panel.x+panel.w+1&&
       layer.y>=panel.y-1&&layer.y+layer.h<=panel.y+panel.h+1;
+    // Mirror the right (+) inset onto the left (-) inset, regardless of the
+    // historical saved minus x. The snapshot and Studio draft are not mutated.
+    const minusX=bet.x+(bet.x+bet.w-(plusArt.x+plusArt.w));
     if(credit.x+credit.w<bet.x&&
        Math.abs(credit.w-bet.w)<12&&
        fits(credit,creditArt)&&fits(bet,betArt)&&
-       fits(bet,minusArt)&&fits(bet,plusArt)){
-      splitPanels={credit,bet,skin:buyArt,z:Math.max(1,Math.min(creditArt.z,betArt.z)-1)};
+       fits(bet,minusArt)&&fits(bet,plusArt)&&
+       minusX>=bet.x&&minusX+minusArt.w<=betArt.x-32){
+      splitPanels={credit,bet,skin:buyArt,minusX,z:Math.max(1,Math.min(creditArt.z,betArt.z)-1)};
     }
   }
   const retired=new Set(['winlabel','virtual_note','buytext','freespins_sub','free_arrow','swirl_icon']);
@@ -70,9 +74,16 @@ window.SkygateApplyLayout=(project,asset)=>{
     const wrap=document.createElement('div');wrap.className='published-layer '+l.kind+'-layer';wrap.dataset.layer=l.id;
     Object.assign(wrap.style,{left:l.x/1080*100+'%',top:l.y/1920*100+'%',width:l.w/1080*100+'%',height:l.h/1920*100+'%',zIndex:l.z,opacity:l.opacity/100,transform:`rotate(${l.rotate}deg)`,display:l.visible?'':'none',fontSize:(l.font||40)/1080*100+'cqw',color:l.color||'#ffe5af'});
     if(l.id==='controlboard'&&splitPanels)wrap.style.visibility='hidden';
+    if(l.id==='minusbtn'&&splitPanels)wrap.style.left=splitPanels.minusX/1080*100+'%';
     const node=boundNodes[l.id];
     if(node){
-      if(l.id==='credits'||l.id==='betlabel'){const label=document.createElement('span');label.textContent=l.id==='credits'?'CREDIT ': 'BET ';wrap.append(label);}
+      if(l.id==='credits'||l.id==='betlabel'){
+        const label=document.createElement('span');
+        label.textContent=l.id==='credits'?'Kredit virtual: ':'Nilai taruhan: ';
+        if(splitPanels)label.className='sr-only wallet-a11y-label';
+        else label.textContent=l.id==='credits'?'CREDIT ': 'BET ';
+        wrap.append(label);
+      }
       wrap.append(node);
       if(l.id==='spinbutton')for(const img of node.querySelectorAll('img')){img.src=asset(l.asset);cropImage(img,l.crop);}
       if(l.kind==='circle'&&l.asset){const bg=document.createElement('img');bg.src=asset(l.asset);bg.alt='';bg.className='control-skin';cropImage(bg,l.crop);node.prepend(bg);node.classList.add('skinned-control');if(l.id==='autobtn'&&project.presentation==='olympus-gold')node.querySelector('svg').innerHTML='<path d="m8 5 11 7-11 7Z" fill="currentColor" stroke="none"/>';}
@@ -131,6 +142,54 @@ window.SkygateApplyLayout=(project,asset)=>{
   }
 
   if(splitPanels){
+    // Decorative inline SVGs avoid network-dependent asset loads. Currency
+    // amounts and bet steppers stay as the original live DOM controls.
+    const walletIcons={
+      credit:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
+        <defs>
+          <linearGradient id="sg-gold-stack-v137" x1="0" y1="0" x2="1" y2=".9">
+            <stop offset="0" stop-color="#fff1ad"/><stop offset=".28" stop-color="#ffc75e"/>
+            <stop offset=".56" stop-color="#a35f19"/><stop offset=".78" stop-color="#ffda73"/>
+            <stop offset="1" stop-color="#6f3d0c"/>
+          </linearGradient>
+          <linearGradient id="sg-gold-face-v137" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#fff8cb"/><stop offset=".44" stop-color="#ffc757"/>
+            <stop offset="1" stop-color="#ab691c"/>
+          </linearGradient>
+        </defs>
+        <g stroke="#4d2d09" stroke-width="2">
+          <path d="M10 49v10c0 7 13 12 30 12s30-5 30-12V49Z" fill="url(#sg-gold-stack-v137)"/>
+          <ellipse cx="40" cy="49" rx="30" ry="11" fill="url(#sg-gold-face-v137)"/>
+          <path d="M10 35v12c0 7 13 12 30 12s30-5 30-12V35Z" fill="url(#sg-gold-stack-v137)"/>
+          <ellipse cx="40" cy="35" rx="30" ry="11" fill="url(#sg-gold-face-v137)"/>
+          <path d="M10 22v11c0 7 13 12 30 12s30-5 30-12V22Z" fill="url(#sg-gold-stack-v137)"/>
+          <ellipse cx="40" cy="22" rx="30" ry="11" fill="url(#sg-gold-face-v137)"/>
+        </g>
+        <ellipse cx="40" cy="22" rx="24" ry="7" fill="none" stroke="#fff3af" stroke-width="2" opacity=".88"/>
+        <path d="M18 38q22 10 44 0 M18 51q22 10 44 0 M18 63q22 10 44 0" fill="none" stroke="#ffeb9a" stroke-width="2" opacity=".68"/>
+      </svg>`,
+      bet:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
+        <defs>
+          <linearGradient id="sg-poker-rim-v137" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#fff2ae"/><stop offset=".28" stop-color="#c28a34"/>
+            <stop offset=".6" stop-color="#77420f"/><stop offset=".83" stop-color="#f6d17b"/>
+            <stop offset="1" stop-color="#7b471a"/>
+          </linearGradient>
+          <radialGradient id="sg-poker-core-v137" cx=".37" cy=".24" r=".9">
+            <stop offset="0" stop-color="#244967"/><stop offset=".65" stop-color="#0a1b2b"/>
+            <stop offset="1" stop-color="#030911"/>
+          </radialGradient>
+        </defs>
+        <circle cx="40" cy="40" r="35" fill="url(#sg-poker-rim-v137)" stroke="#513009" stroke-width="2"/>
+        <circle cx="40" cy="40" r="30" fill="#102437" stroke="#ffe49d" stroke-width="2"/>
+        <circle cx="40" cy="40" r="28" fill="none" stroke="#f6cb70" stroke-width="8" stroke-dasharray="9 8"/>
+        <circle cx="40" cy="40" r="21" fill="url(#sg-poker-core-v137)" stroke="#9e7027" stroke-width="2.7"/>
+        <circle cx="40" cy="40" r="16.5" fill="none" stroke="#ffe59d" stroke-width="1.6"/>
+        <path d="M40 23 45.5 34.5 58 40 45.5 45.5 40 57 34.5 45.5 22 40 34.5 34.5Z"
+          fill="url(#sg-poker-rim-v137)" stroke="#ffecb0" stroke-width="1.4"/>
+        <circle cx="40" cy="40" r="4.2" fill="#fae8a7"/>
+      </svg>`
+    };
     for(const [name,bounds] of [['credit',splitPanels.credit],['bet',splitPanels.bet]]){
       const shell=document.createElement('div');
       shell.className='split-wallet-panel split-'+name+'-panel';
@@ -148,6 +207,11 @@ window.SkygateApplyLayout=(project,asset)=>{
       skin.alt='';skin.draggable=false;skin.src=asset(splitPanels.skin.asset);
       cropImage(skin,splitPanels.skin.crop);
       shell.append(skin);
+      const icon=document.createElement('span');
+      icon.className='wallet-coin-icon wallet-coin-'+name;
+      icon.setAttribute('aria-hidden','true');
+      icon.innerHTML=walletIcons[name];
+      shell.append(icon);
       scene.append(shell);
     }
   }
