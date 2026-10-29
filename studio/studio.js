@@ -71,6 +71,7 @@
     }
     // Fixed source-ratio font sizing, effective even with variable editor viewport.
     resizeText();
+    window.dispatchEvent(new Event('skygate-draft-change'));
   }
   function resizeText(){const stageW=$('#stage').getBoundingClientRect().width;$$('#stageLayers .text-layer').forEach(el=>{const l=lookupLayer(el.dataset.id);if(l)el.style.fontSize=(l.font||40)*stageW/1080+'px'});$$('#stageLayers .circle-layer').forEach(el=>{const l=lookupLayer(el.dataset.id);if(l)el.style.fontSize=Math.max(6,(l.font||36)*stageW/1080)+'px'});window.SkygateTextFit.request($('#stageLayers'));}
   function renderSidebar(){
@@ -132,7 +133,7 @@
       <div class="property-card" style="margin-top:14px"><strong>Expected jackpot add-on (uncapped)</strong><p style="font-size:24px;color:#ffe0a6;font-weight:900;margin:3px 0">${window.SkygateStudioMath.jackpotContributionPct(state.jackpot).toFixed(4)}%</p><p>Upper-bound component before overall max-win clipping. Not an observed RTP or the game’s total return.</p></div><div class="prop-row"><button class="prop-btn" id="testJackpotMini">Preview MINI FX</button><button class="prop-btn" id="testJackpotGrand">Preview GRAND FX</button></div><div class="inspector-note">FX Preview only, never awards credits. Real outcomes only use the published probability settings and engine seed.</div>`;
     }else{
       title.textContent='Preview & Test Lab';
-      root.innerHTML=`<div class="section-head">RUN REPRODUCIBLE SAMPLE</div><div class="field-grid">${field('seed','Seed','number',{min:1,max:4294967295,step:1})}${field('bet','Virtual Bet','number',{min:1,max:1000000,step:1})}</div><div class="field"><label class="field-label">Paid Spins (sample)</label><select id="simCount"><option value="1000">1,000</option><option selected value="10000">10,000</option><option value="100000">100,000</option></select></div><div class="prop-row"><button class="sim-button" id="runSimBtn">▷ Run Simulation</button><button class="prop-btn alt" id="cancelSimBtn">Stop</button></div><div class="progress" aria-label="Simulation progress"><div id="simProgress"></div></div><div class="section-head">SAMPLE RESULTS</div><div id="simStats">${testStats?metricHTML(testStats):'<div class="inspector-note">No sample has been run under the current editable configuration.</div>'}</div><div class="section-head">PLAYABLE DEMO</div><div class="prop-row"><button class="prop-btn" id="testSingleSpin">↻ Spin Once</button><button class="prop-btn alt" id="resetCredits">Reset Credits</button></div><div class="property-card" style="margin-top:13px"><strong>Demo Session</strong><p>Credits: <b id="creditsRead">${fmt(state.credit)}</b><br>Stake: <b>${fmt(state.bet)}</b></p></div><div class="section-head">REPLAY / EXPORT</div><div class="prop-row"><button class="prop-btn" id="replayLast">↶ Replay last result</button><button class="prop-btn alt" id="exportRound">↓ Round JSON</button></div><div class="warning-note">Stats describe only this synthetic simulation profile. Neither the initial target RTP nor the old v0.2 historical RTP is certified or guaranteed after changing settings.</div>`;
+      root.innerHTML=`<div class="section-head">RUN REPRODUCIBLE SAMPLE</div><div class="field-grid">${field('seed','Seed','number',{min:1,max:4294967295,step:1})}${field('bet','Virtual Bet','number',{min:1,max:1000000,step:1})}</div><div class="field"><label class="field-label">Paid Spins (sample)</label><select id="simCount"><option value="1000">1,000</option><option selected value="10000">10,000</option><option value="100000">100,000</option></select></div><div class="prop-row"><button class="sim-button" id="runSimBtn">▷ Run Simulation</button><button class="prop-btn alt" id="cancelSimBtn">Stop</button></div><div class="progress" aria-label="Simulation progress"><div id="simProgress"></div></div><div class="section-head">SAMPLE RESULTS</div><div id="simStats">${testStats?metricHTML(testStats):'<div class="inspector-note">No sample has been run under the current editable configuration.</div>'}</div><div class="section-head">PLAYABLE DEMO</div><div class="prop-row"><button class="prop-btn" id="testSingleSpin">↻ Spin Once</button><button class="prop-btn alt" id="resetCredits">Reset Credits</button></div><div class="property-card" style="margin-top:13px"><strong>Demo Session</strong><p>Credits: <b id="creditsRead">${fmt(window.SKYGATE_CANVAS?.session()?.credits??state.credit)}</b><br>Stake: <b>${fmt(window.SKYGATE_CANVAS?.session()?.bet??state.bet)}</b></p></div><div class="section-head">REPLAY / EXPORT</div><div class="prop-row"><button class="prop-btn" id="replayLast">↶ Replay last result</button><button class="prop-btn alt" id="exportRound">↓ Round JSON</button></div><div class="warning-note">Stats describe only this synthetic simulation profile. Neither the initial target RTP nor the old v0.2 historical RTP is certified or guaranteed after changing settings.</div>`;
     }
     if(activeTab==='layers'){
       const options=[...state.layers].sort((a,b)=>b.z-a.z).map(l=>`<option value="${esc(l.id)}" ${selected===l.id?'selected':''}>${esc(l.name)}${l.locked?' [locked]':''}</option>`).join('');
@@ -183,7 +184,7 @@
       pendingEdit=null;saveLocal();render();
     }
   }
-  function setMode(m){mode=m;$('#stage').classList.toggle('edit-mode',m==='edit');$('#editModeBtn').classList.toggle('selected',m==='edit');$('#previewModeBtn').classList.toggle('selected',m==='preview');$('#statusMode').textContent=m==='edit'?'Edit mode':'Playtest mode';drawCanvas();}
+  function setMode(m){window.SKYGATE_CANVAS?.draft(m);mode=m;$('#stage').classList.toggle('edit-mode',m==='edit');$('#editModeBtn').classList.toggle('selected',m==='edit');$('#previewModeBtn').classList.toggle('selected',m==='preview');$('#statusMode').textContent=m==='edit'?'Edit mode':'Playtest mode';drawCanvas();}
   function getEngine(){if(!engine)engine=window.SkygateStudioMath.createStudioEngine(state.math,state.jackpot,Number(state.seed));return engine;}
   function trace(msg){$('#traceStatus').textContent=msg;}
   const audioKit=new window.SkyAudioMixer({
@@ -200,6 +201,7 @@
   let previewTimeout=0;
   function flash(message,tier=''){clearTimeout(previewTimeout);$('#stageOverlay').innerHTML=`<div class="stage-jackpot-flash">${esc(message)}</div>`;previewTimeout=setTimeout(()=>$('#stageOverlay').replaceChildren(),1800);}
   function demoSpin(replay=false){
+    if(window.SKYGATE_CANVAS){window.SKYGATE_CANVAS.spin(replay);return;}
     if(busy)return;
     if(!replay&&state.credit<state.bet){toast('Not enough virtual credit. Reset to continue.');return;}
     busy=true;
@@ -233,7 +235,7 @@
     },550);
   }
   function previewJackpot(id){const t=state.jackpot.tiers.find(t=>t.id===id);if(!t)return;setMode('preview');flash(t.name+' JACKPOT · FX ONLY');playAudio('jackpot');trace('FX preview only. No spin, no credit adjustment.');}
-  function resetCredits(){remember();state.credit=100000;lastRound=null;previewVisualGrid=null;invalidateEngine();drawCanvas();renderInspector();saveLocal();toast('Virtual demo credits restored.');}
+  function resetCredits(){if(window.SKYGATE_CANVAS){window.SKYGATE_CANVAS.reset();return;}remember();state.credit=100000;lastRound=null;previewVisualGrid=null;invalidateEngine();drawCanvas();renderInspector();saveLocal();toast('Virtual demo credits restored.');}
   function readSimCount(){const el=$('#simCount');return Number(el?.value)||10000;}
   async function runSimulation(count=10000){
     if(busy){toast('Finish current demo spin first.');return;}
@@ -265,7 +267,7 @@
   }
   function download(name,blob){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);}
   function exportProject(){download('SKYGATE_Studio_Project_v0.4.json',new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));toast('Exported editable project settings (JSON).');}
-  function exportRound(){if(!lastRound){toast('Spin once to generate a trace.');return;}download('SKYGATE_Round_Trace.json',new Blob([JSON.stringify(lastRound,null,2)],{type:'application/json'}));toast('Round trace exported.');}
+  function exportRound(){if(window.SKYGATE_CANVAS){window.SKYGATE_CANVAS.exportRound();return;}if(!lastRound){toast('Spin once to generate a trace.');return;}download('SKYGATE_Round_Trace.json',new Blob([JSON.stringify(lastRound,null,2)],{type:'application/json'}));toast('Round trace exported.');}
   function crc32(arr){let c=0xffffffff;for(let i=0;i<arr.length;i++){c^=arr[i];for(let j=0;j<8;j++)c=c>>>1^((c&1)?0xedb88320:0);}return(c^0xffffffff)>>>0;}
   const textEnc=new TextEncoder();
   async function storedZip(entries){
@@ -391,9 +393,9 @@
       if(!dragging)return;const l=lookupLayer(dragging.id);if(!l)return;const bounds=$('#stage').getBoundingClientRect();
       const x=dragging.x+(e.clientX-dragging.startX)*1080/bounds.width;const y=dragging.y+(e.clientY-dragging.startY)*1920/bounds.height;
       l.x=Math.round(Math.max(-l.w*.9,Math.min(1080-l.w*.1,x)));l.y=Math.round(Math.max(-l.h*.9,Math.min(1920-l.h*.1,y)));
-      dragging.moved=true;const el=$('#stageLayers [data-id="'+l.id+'"]');if(el)positionLayer(el,l);
+      dragging.moved=true;const el=$('#stageLayers [data-id="'+l.id+'"]');if(el)positionLayer(el,l);window.SKYGATE_CANVAS?.move(l);
     });
-    $('#stageLayers').addEventListener('pointerup',()=>{if(!dragging)return;if(dragging.moved){const l=lookupLayer(dragging.id);const newX=l.x,newY=l.y;l.x=dragging.x;l.y=dragging.y;remember();l.x=newX;l.y=newY;saveLocal();renderInspector();}dragging=null;});
+    $('#stageLayers').addEventListener('pointerup',()=>{if(!dragging)return;if(dragging.moved){const l=lookupLayer(dragging.id);const newX=l.x,newY=l.y;l.x=dragging.x;l.y=dragging.y;remember();l.x=newX;l.y=newY;saveLocal();renderInspector();drawCanvas();}dragging=null;});
     $('#stageLayers').addEventListener('pointercancel',()=>{dragging=null;});
     $('#stage').addEventListener('click',e=>{if(mode==='preview'&&e.target.closest('[data-id="spinbutton"]'))demoSpin();});
     $('#editModeBtn').onclick=()=>setMode('edit');$('#previewModeBtn').onclick=()=>setMode('preview');
@@ -415,5 +417,5 @@
     saveLocal();render();toast('Snapshot loaded into this browser.');
   }
   restoreLocal();attach();render();const overridesReady=loadOverrides();
-  window.SKYGATE_STUDIO={version:'0.6.0',getPublishBundle:async()=>{await overridesReady;return {project:deep(state),overrides:[...overrideBlobs]};},restoreRelease,getState:()=>deep(state),getSelected:()=>selected,getOverrideKeys:()=>[...overrideBlobs.keys()],runSimulation,demoSpin,saveLocal,exportProject,exportChangesZip,importChangesZip,playAudio,stopAll,selectTab,audioReady:()=>audioKit.isReady(),audioPlaying:id=>audioKit.isPlaying(id),openMobilePanel:setMobilePanel};
+  window.SKYGATE_STUDIO={version:'0.11.0',ready:overridesReady,refreshSession:renderInspector,setMode,getPreviewData:()=>({project:deep(state),assets:Object.fromEntries([...new Set([...state.layers.filter(l=>l.asset).map(l=>l.asset),...symbolNames.map(n=>'symbols/'+n+'.png')])].map(p=>['assets/'+p,new URL(assetURL(p),location.href).href]).concat(state.tracks.map(t=>['assets/audio/'+t.id+'.mp3',new URL(audioURL(t.id),location.href).href])))}),hasLocalDraft:()=>!!localStorage.getItem(storageKey),getPublishBundle:async()=>{await overridesReady;return {project:deep(state),overrides:[...overrideBlobs]};},restoreRelease,getState:()=>deep(state),getSelected:()=>selected,getOverrideKeys:()=>[...overrideBlobs.keys()],runSimulation,demoSpin,saveLocal,exportProject,exportChangesZip,importChangesZip,playAudio,stopAll,selectTab,audioReady:()=>audioKit.isReady(),audioPlaying:id=>audioKit.isPlaying(id),openMobilePanel:setMobilePanel};
 })();

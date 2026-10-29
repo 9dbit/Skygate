@@ -71,16 +71,16 @@
     previewReady=true;message('Preview siap. Snapshot ini dapat dipublikasikan setelah Anda memeriksanya.');controls();
   });
   E('publishRelease').onclick=()=>void run(async()=>{
-    message('Menerbitkan snapshot…');await api('publish',{id:selected,expectedActive:inventory.active});await refresh();message('Snapshot sudah live. Buka atau muat ulang game untuk melihat versi baru.');
+    message('Menerbitkan snapshot…');await api('publish',{id:selected,expectedActive:inventory.active});await refresh();window.dispatchEvent(new Event('skygate-live-changed'));message('Snapshot sudah live. Buka atau muat ulang game untuk melihat versi baru.');
   });
   E('rollbackRelease').onclick=()=>void run(async()=>{
-    message('Mengembalikan versi sebelumnya…');await api('rollback',{expectedActive:inventory.active});await refresh();message('Versi sebelumnya sudah live. Snapshot lain tetap tersimpan.');
+    message('Mengembalikan versi sebelumnya…');await api('rollback',{expectedActive:inventory.active});await refresh();window.dispatchEvent(new Event('skygate-live-changed'));message('Versi sebelumnya sudah live. Snapshot lain tetap tersimpan.');
   });
   E('loadRelease').onclick=()=>void run(async()=>{
     message('Memuat proyek dan aset snapshot…');const doc=await api('releases/'+selected),overrides=[];
     for(const [key,item] of Object.entries(doc.overrides)){
       const response=await fetch('/studio/api/media/'+item.file,{credentials:'same-origin'});if(!response.ok)throw Error('Aset snapshot tidak dapat dimuat');overrides.push([key,await response.blob()]);
     }
-    await window.SKYGATE_STUDIO.restoreRelease(doc.project,overrides);message('Snapshot sudah dimuat ke editor. Perubahan berikutnya tersimpan lokal sampai Anda publish lagi.');
+    await window.SKYGATE_STUDIO.restoreRelease(doc.project,overrides);window.SKYGATE_STUDIO.setMode('edit');message('Snapshot sudah dimuat ke editor. Perubahan berikutnya tersimpan lokal sampai Anda publish lagi.');
   });
 })();

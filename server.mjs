@@ -48,7 +48,7 @@ createServer(async(req,res)=>{
   if(raw!=='/'&&raw!=='/studio'&&!raw.startsWith('/studio/')&&raw!=='/play'&&!raw.startsWith('/play/')){res.writeHead(404,base);res.end('Not Found');return;}
   if(raw.split('/').some(part=>part.startsWith('.'))){res.writeHead(404,base);res.end('Not Found');return;}
   const privateRoute=needsAuth(raw);
-  if(privateRoute&&!publicStudioTesting&&process.env.NODE_ENV==='production'&&(api||raw.startsWith('/studio/preview')||authPassword||process.env.SKYGATE_STUDIO_REQUIRE_AUTH==='true')){
+  if(privateRoute&&!publicStudioTesting&&process.env.NODE_ENV==='production'&&(api||(raw.startsWith('/studio/preview')||raw.startsWith('/studio/editor-preview'))||authPassword||process.env.SKYGATE_STUDIO_REQUIRE_AUTH==='true')){
     const privateHeaders={...base,'X-Robots-Tag':'noindex, nofollow, noarchive','Cache-Control':'no-store'};
     if(!authPassword){res.writeHead(503,privateHeaders);res.end('Studio access is not configured');return;}
     if(!isAuthed(req)){res.writeHead(401,{...privateHeaders,'WWW-Authenticate':'Basic realm="SKYGATE Studio", charset="UTF-8"'});res.end('Private studio: authentication required');return;}
@@ -75,7 +75,7 @@ createServer(async(req,res)=>{
     res.writeHead(200,{...base,'Content-Type':media.mime,'Content-Length':media.size,'Content-Security-Policy':"default-src 'none'; sandbox",'Cache-Control':privateRoute?'private, no-store':'public, max-age=31536000, immutable'});
     if(req.method==='HEAD'){res.end();return;}createReadStream(media.path).on('error',()=>res.destroy()).pipe(res);return;
   }
-  if(raw==='/studio/preview/'){
+  if(raw==='/studio/preview/'||raw==='/studio/editor-preview/'){
     const html=(await readFile(resolve(root,'play/index.html'),'utf8')).replace('<head>','<head><base href="/play/">');
     res.writeHead(200,{...base,'Content-Type':'text/html; charset=utf-8','Cache-Control':'private, no-store','X-Robots-Tag':'noindex, nofollow, noarchive'});res.end(req.method==='HEAD'?'':html);return;
   }

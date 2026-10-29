@@ -87,3 +87,13 @@
 .stage-layer .wallet-text{flex-direction:column;gap:.09em;line-height:1}
 .stage-layer .wallet-text>span{font:500 .428em system-ui;letter-spacing:.22em;color:#fff8db}
 .stage-layer[data-id=winamount] .text-content{letter-spacing:.015em}
+/* Shared game frame replaces the legacy painted editor canvas. */
+#gameCanvas{position:absolute;inset:0;width:100%;height:100%;border:0;background:#080c0f;z-index:0}
+#stageLayers{z-index:2}#stageLayers[hidden]{display:none!important}
+.stage.shared-renderer #stageLayers .stage-layer{background:none!important;box-shadow:none!important;border-color:transparent!important;color:transparent!important}
+.stage.shared-renderer #stageLayers .stage-layer>*{visibility:hidden!important}
+.stage.shared-renderer #stageLayers .stage-layer.selected{outline:2px dashed #ffe092;outline-offset:2px}
+.stage.shared-renderer:not(.edit-mode) #stageLayers{pointer-events:none}
+.stage.shared-renderer #stageOverlay:empty{pointer-events:none}
+.canvas-source{margin:0;padding:8px 16px;color:#dfc686;font:11px/1.5 system-ui;background:#171b20;border-bottom:1px solid #93733c44}
+.stage-controls{flex-wrap:wrap}aside[inert]{opacity:.55}

@@ -254,3 +254,9 @@ dialog .dialog-body .confirm-actions button{font:700 11px Georgia!important;padd
 .reels[data-fx-phase=charge] .fx-burst{opacity:0!important}
 @media(max-height:600px){.splash-title{width:min(65vw,230px);gap:6px}.splash-title>span{font-size:7px}.splash-play,.splash-retry{min-height:54px}}
 @media(max-height:420px) and (orientation:landscape){.splash-title{width:220px}.splash-footer{margin-top:-155px}}
+
+/* Sparks are pooled over the whole board, with no sprite-shaped lightning. */
+.reels{position:relative}.fireworks-layer{position:absolute;inset:0;z-index:30;pointer-events:none;overflow:hidden}
+.firework-spark{position:absolute;display:block;width:4px;height:4px;background:#fff5c2;border-radius:50%;opacity:0;box-shadow:0 0 6px #ffba43;pointer-events:none}
+.spark-1{width:2px;height:7px;background:#ffd55c}.spark-2{width:6px;height:2px;background:#ffac32}.spark-3{width:3px;height:3px;background:#fff;box-shadow:0 0 5px #fff0a5}
+@media(prefers-reduced-motion:reduce){.fireworks-layer{display:none}}
