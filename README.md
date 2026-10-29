@@ -1,5 +1,14 @@
 # SKYGATE — Portrait Game & Studio
 
+### v0.13.6 — approved UI preview: sapphire 1000x pill and matching metallic panels
+
+- WIN UP TO 1000x promo banner is centered (52% width), enlarged, with sapphire gems and double antique-gold edges. This changes promotional text only; the published game's actual 5000x round cap remains defined by Game Rules.
+- CREDIT and BET use the **exact same BUY SPIN frame artwork and image crop**, aligned at identical widths and symmetric x positions. Their live amounts, +/- buttons and original Studio geometry remain independent and functional.
+- The stationary gold spinner ring is reduced to 60% of its previous diameter, retains its center and its independent rotating inner symbol. Battery Saver and reduced-motion support remain intact.
+- Changes run through the shared Game/Studio Live and Draft renderer. No changes to published snapshots, uploaded assets, probability/math, purchase cost, credit settlement, or audio.
+- QA: new Node regression checks and Chromium 390px responsive banner centering. Physical iPhone Safari QA remains a separate checkpoint.
+
+
 ### v0.13.5 — luminous storm cloud, idle spinner, split control panels
 
 - Layered sapphire/indigo volumetric cloud mist and synchronized thunder glow behind Zeus, linked to the existing guardian geometry and never overlapping its silhouette.
