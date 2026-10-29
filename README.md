@@ -1,5 +1,13 @@
 # SKYGATE — Portrait Game & Studio
 
+### v0.13.5 — luminous storm cloud, idle spinner, split control panels
+
+- Layered sapphire/indigo volumetric cloud mist and synchronized thunder glow behind Zeus, linked to the existing guardian geometry and never overlapping its silhouette.
+- Only the inner spinner medallion rotates slowly (17 s idle, 1.8 s during spin). A simpler fixed rustic-gold frame replaces the heavy animated-ring appearance; reduced motion and Battery Saver stop all rotor motion.
+- CREDIT and BET use distinct static metallic panels aligned to their existing editable Game/Studio layers; original shared backdrop is concealed only when the layout can safely split. Saved artwork, math, credits and published snapshots are not modified.
+- Gameplay and Studio use the same renderer and responsive CSS. Regression tests cover geometry, z-index, touch controls, motion preferences, and seeded settlement; native iPhone QA remains separate.
+
+
 ### v0.13.4 — Zeus lightning behind character
 
 The common Game/Studio renderer now adds forked blue-white lightning and a subtle storm halo **behind Zeus**, following the existing guardian layer's geometry and z-index. It leaves the published snapshot, selected logo, 50% background opacity, spin controls, credit ledger, math, audio, and image assets untouched. Battery Saver and reduced-motion preferences suppress the FX. Regressions for z-order, alignment, artwork integrity and visibility are included. Native iPhone/GPU testing remains pending.
