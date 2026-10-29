@@ -179,3 +179,50 @@ test('Zeus electricity respects reduced motion and battery saver',()=>{
   assert.match(css,/prefers-reduced-motion:reduce[\s\S]*?zeus-lightning-fx\{display:none!important\}/);
   assert.match(css,/:has\(#spin\.battery-saver\) \.zeus-lightning-fx\{display:none\}/);
 });
+
+test('wallet CREDIT and BET get separate static shells without mutating the Studio layout',()=>{
+  const p=preset(),original=JSON.stringify(p),d=dom();
+  d.window.SkygateApplyLayout(p,path=>'assets/'+path);
+  const scene=d.game.children.at(-1);
+  const left=scene.children.find(n=>n.dataset.fx==='wallet-credit');
+  const right=scene.children.find(n=>n.dataset.fx==='wallet-bet');
+  const backing=scene.children.find(n=>n.dataset.layer==='controlboard');
+  assert(left&&right,'both panels appear in the Game and Studio shared renderer');
+  assert.equal(backing.style.visibility,'hidden');
+  assert(Number(left.style.left.slice(0,-1))<Number(right.style.left.slice(0,-1)));
+  assert(Number(left.style.zIndex)<Number(d.nodes.get('credits').parent.style.zIndex));
+  assert(Number(right.style.zIndex)<Number(d.nodes.get('minus').parent.style.zIndex));
+  assert.equal(d.nodes.get('minus').parent.dataset.layer,'minusbtn');
+  assert.equal(d.nodes.get('plus').parent.dataset.layer,'plusbtn');
+  assert.equal(JSON.stringify(p),original,'original immutable Live snapshot is untouched');
+});
+test('split panel artwork remains available when a Studio layer is hidden',()=>{
+  const p=preset();p.layers.find(l=>l.id==='plusbtn').visible=false;
+  const d=dom();d.window.SkygateApplyLayout(p,path=>'assets/'+path);
+  const scene=d.game.children.at(-1);
+  assert.equal(scene.children.filter(n=>n.dataset.fx?.startsWith('wallet-')).length,0);
+  assert.notEqual(scene.children.find(n=>n.dataset.layer==='controlboard').style.visibility,'hidden');
+});
+test('Zeus thunder cloud remains behind the edited guardian, with battery and motion fallbacks',()=>{
+  const d=dom();d.window.SkygateApplyLayout(preset(),path=>'assets/'+path);
+  const scene=d.game.children.at(-1);
+  const zeus=scene.children.find(n=>n.dataset.layer==='guardian');
+  const fx=scene.children.find(n=>n.dataset.fx==='guardian-lightning');
+  for(const item of ['zeus-cloud-back','zeus-cloud-front','zeus-cloud-flash'])
+    assert(fx.innerHTML.includes(item),item);
+  assert(Number(fx.style.zIndex)<Number(zeus.style.zIndex));
+  const css=read('play/game.css');
+  assert(css.includes('@keyframes zeus-cloud-drift'));
+  assert(css.includes('@keyframes zeus-cloud-flash'));
+  assert(css.includes('.game:has(#spin.battery-saver) .zeus-lightning-fx{display:none}'));
+  assert(css.includes('@media(prefers-reduced-motion:reduce){.zeus-lightning-fx{display:none!important}}'));
+});
+test('only the inner spinner rotates at idle; frame is static and battery saver disables motion',()=>{
+  const css=read('play/game.css');
+  assert(css.includes('.spin:not(.busy):not(.battery-saver) .spin-rotor{'));
+  assert(css.includes('animation:skygate-rotor-idle 17s linear infinite'));
+  assert(css.includes('.spin.busy:not(.battery-saver) .spin-rotor{'));
+  assert(css.includes('.spin.battery-saver .spin-rotor{'));
+  assert(css.includes('.published-layer[data-layer="spinbutton"] #spin .spin-frame{display:none}'));
+  assert(!css.includes('.spin:not(.busy) .spin-frame{animation:'),'the outer frame must not spin');
+});
