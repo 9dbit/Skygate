@@ -62,16 +62,6 @@
     try{await task();}catch(error){if([403,409].includes(error.status)){try{await refresh();}catch{}}message(error.message||'Belum berhasil. Coba lagi.');}
     finally{busy=false;controls();}
   }
-  async function png(blob,maxEdge=4096){
-    const url=URL.createObjectURL(blob);
-    try{
-      const image=new Image();image.src=url;await image.decode();
-      const scale=Math.min(1,maxEdge/Math.max(image.naturalWidth,image.naturalHeight));
-      const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.naturalWidth*scale));canvas.height=Math.max(1,Math.round(image.naturalHeight*scale));
-      canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
-      return await new Promise((yes,no)=>canvas.toBlob(file=>file?yes(file):no(Error('Gambar tidak dapat disiapkan')),'image/png'));
-    }finally{URL.revokeObjectURL(url);}
-  }
   const base64=blob=>new Promise((yes,no)=>{const reader=new FileReader();reader.onload=()=>yes(reader.result.split(',')[1]);reader.onerror=()=>no(Error('Upload tidak dapat dibaca'));reader.readAsDataURL(blob);});
   E('releaseBtn').onclick=()=>{
     E('releaseDialog').showModal();
@@ -92,17 +82,27 @@
     }}catch{message('Preview tidak dapat diakses. Pastikan Studio dan game menggunakan domain yang sama.');}
   });
   E('prepareRelease').onclick=()=>void run(async()=>{
-    message('Menyiapkan snapshot dan aset…');
-    const bundle=await window.SKYGATE_STUDIO.getPublishBundle();const overrides={};let total=0;
-    for(const [key,original] of bundle.overrides){
-      // Keep full-resolution uploads in the editable project; ship reel sprites
-      // at a bounded resolution well above their displayed mobile size.
-      const blob=key.startsWith('asset:')?await png(original,key.startsWith('asset:symbols/')?512:4096):original;
-      const max=key.startsWith('asset:')?6:12;if(blob.size>max*1024*1024)throw Error(`${key}: batas ${max} MB per aset`);
-      total+=blob.size;if(total>24*1024*1024)throw Error('Total aset tambahan maksimal 24 MB');
+    message('Memeriksa aset sebelum optimasi WebP…');
+    const bundle=await window.SKYGATE_STUDIO.getPublishBundle();
+    const overrides={};let total=0,originalTotal=0;
+    const limit=24*1024*1024,format=window.SkygateImageOptimizer.formatBytes;
+    for(let i=0;i<bundle.overrides.length;i++){
+      const [key,original]=bundle.overrides[i];
+      originalTotal+=original.size;
+      message('WebP '+(i+1)+'/'+bundle.overrides.length+' · '+key+' · '+format(total)+' / 24 MB');
+      let blob;
+      try{
+        blob=key.startsWith('asset:')?await window.SkygateImageOptimizer.encode(original,{key}):original;
+      }catch(error){throw Error(key+': '+error.message);}
+      const max=key.startsWith('asset:')?6:12;
+      if(blob.size>max*1024*1024)throw Error(key+': file masih melebihi '+max+' MB setelah kompresi');
+      total+=blob.size;
+      if(total>limit)throw Error('Aset setelah WebP '+format(total)+' melebihi 24 MB. Kurangi aset besar atau resolusinya.');
       overrides[key]={mime:blob.type,data:await base64(blob)};
     }
-    const result=await api('releases',{project:bundle.project,overrides});await refresh();preview(result.id);
+    message('Optimasi selesai: '+format(originalTotal)+' → '+format(total)+'. Menyimpan snapshot privat…');
+    const result=await api('releases',{project:bundle.project,overrides});
+    await refresh();preview(result.id);
   });
   window.addEventListener('message',event=>{
     if(event.origin!==location.origin||event.source!==E('releaseFrame').contentWindow||previewKind==='none'||!E('releaseDialog').open)return;
