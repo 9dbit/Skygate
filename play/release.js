@@ -64,8 +64,8 @@ window.SkygateApplyLayout=(project,asset)=>{
     }else if(l.kind==='image'){
       // The approved logo is a fixed art replacement, not a Studio layout edit.
       // Published snapshots keep all positions, sizes, z-indexes and math.
-      const useApprovedLogo=l.id==='logo'&&project.presentation==='olympus-gold';
-      const image=document.createElement('img');image.src=asset(useApprovedLogo?'custom/skygate-5000-approved.png':l.asset);image.alt=l.name;image.draggable=false;
+      const useApprovedLogo=l.id==='logo'&&l.asset==='custom/skygate-5000-approved.png';
+      const image=document.createElement('img');image.src=asset(l.asset);image.alt=l.name;image.draggable=false;
       if(!useApprovedLogo)cropImage(image,l.crop);
       wrap.classList.add('image-crop');
       if(l.id==='logo'){
@@ -107,8 +107,8 @@ window.SkygateSyncChrome=(project,asset)=>{
   // must not depend on a media hash stored only in the production volume.
   for(const host of document.querySelectorAll('[data-game-brand]')){
     const img=host.querySelector('img');
-    const approved=project?.presentation==='olympus-gold';
-    img.src=asset(approved?'custom/skygate-5000-approved.png':logo?.asset||'scene/logo.png');
+    const approved=logo?.asset==='custom/skygate-5000-approved.png';
+    img.src=asset(logo?.asset||'scene/logo.png');
     if(approved){
       host.classList?.add('brand-complete');
       const number=host.querySelector('.brand-number');
