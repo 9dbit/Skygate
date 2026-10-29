@@ -61,10 +61,24 @@ window.SkygateApplyLayout=(project,asset)=>{
     }else if(l.id==='antetext'){
       // The matching functional button supplies its own accessible label.
       wrap.textContent='WIN TABLE';wrap.classList.add('feature-label');
-    }else if(l.kind==='image'){const image=document.createElement('img');image.src=asset(l.asset);image.alt=l.name;image.draggable=false;cropImage(image,l.crop);wrap.classList.add('image-crop');
+    }else if(l.kind==='image'){
+      // The approved logo is a fixed art replacement, not a Studio layout edit.
+      // Published snapshots keep all positions, sizes, z-indexes and math.
+      const useApprovedLogo=l.id==='logo'&&l.asset==='custom/skygate-5000-approved.png';
+      const image=document.createElement('img');image.src=asset(l.asset);image.alt=l.name;image.draggable=false;
+      if(!useApprovedLogo)cropImage(image,l.crop);
+      wrap.classList.add('image-crop');
       if(l.id==='logo'){
-        wrap.classList.add('brand-logo');const mark=document.createElement('span');mark.className='brand-top';mark.append(image);
-        image.alt='Skygate';const number=document.createElement('strong');number.className='brand-number';number.textContent='5000';wrap.append(mark,number);
+        wrap.classList.add('brand-logo');
+        if(useApprovedLogo){
+          // This supplied lockup already contains SKYGATE and crystalline 5000.
+          // Never crop it, stretch it, or paint an extra 5000 over the artwork.
+          Object.assign(image.style,{position:'static',left:'auto',top:'auto',width:'100%',height:'100%',objectFit:'contain'});
+          image.alt='Skygate 5000';wrap.classList.add('brand-complete');wrap.append(image);
+        }else{
+          const mark=document.createElement('span');mark.className='brand-top';mark.append(image);
+          image.alt='Skygate';const number=document.createElement('strong');number.className='brand-number';number.textContent='5000';wrap.append(mark,number);
+        }
       }else wrap.append(image);}
     else if(l.kind==='text'||l.kind==='circle')wrap.textContent=l.text;
     if(l.kind==='text'){
@@ -93,9 +107,20 @@ window.SkygateSyncChrome=(project,asset)=>{
   // must not depend on a media hash stored only in the production volume.
   for(const host of document.querySelectorAll('[data-game-brand]')){
     const img=host.querySelector('img');
+    const approved=logo?.asset==='custom/skygate-5000-approved.png';
     img.src=asset(logo?.asset||'scene/logo.png');
-    const c=logo?.crop;
-    if(c)Object.assign(img.style,{position:'absolute',left:-c.x/c.w*100+'%',top:-c.y/c.h*100+'%',width:100/c.w+'%',height:100/c.h+'%',objectFit:'fill'});
+    if(approved){
+      host.classList?.add('brand-complete');
+      const number=host.querySelector('.brand-number');
+      if(number)number.hidden=true;
+      const top=host.querySelector('.brand-top');
+      if(top?.style)Object.assign(top.style,{inset:'0',overflow:'visible'});
+      Object.assign(img.style,{position:'static',left:'auto',top:'auto',width:'100%',height:'100%',objectFit:'contain'});
+      img.alt='Skygate 5000';
+    }else{
+      const c=logo?.crop;
+      if(c)Object.assign(img.style,{position:'absolute',left:-c.x/c.w*100+'%',top:-c.y/c.h*100+'%',width:100/c.w+'%',height:100/c.h+'%',objectFit:'fill'});
+    }
   }
   document.documentElement.style.setProperty('--sg-action-image','url('+JSON.stringify(asset(panel?.asset||'ui/confirmation-panel-v1.png'))+')');
 };
