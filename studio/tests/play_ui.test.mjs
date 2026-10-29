@@ -199,3 +199,16 @@ test('Bonus Booster label and accessible description agree with the unchanged +2
   assert(ui.nodes.get('buyFeature').disabled);
   assert.match(ui.nodes.get('anteRulesNote').textContent,/Bonus Booster/);
 });
+
+test('Skygate touch icon is the provided Zeus artwork and referenced by game, Studio and manifest',()=>{
+  const icon=readFileSync(resolve(root,'play/icons/skygate-touch.png'));
+  assert.deepEqual([...icon.subarray(0,8)],[137,80,78,71,13,10,26,10]);
+  const game=read('play/index.html'),studio=read('studio/index.html');
+  const manifest=JSON.parse(read('play/manifest.webmanifest'));
+  assert.match(game,/rel="apple-touch-icon" href="icons\/skygate-touch.png\?v=0\.13\.8"/);
+  assert.match(game,/rel="manifest" href="manifest.webmanifest\?v=0\.13\.8"/);
+  assert.match(studio,/rel="apple-touch-icon" href="\/play\/icons\/skygate-touch.png\?v=0\.13\.8"/);
+  assert.equal(manifest.name,'SKYGATE 5000');
+  assert.equal(manifest.start_url,'/play/');
+  assert.equal(manifest.icons[0].src,'icons/skygate-touch.png');
+});
