@@ -43,19 +43,20 @@ window.SkygateApplyLayout=(project,asset)=>{
   const shown=id=>project.layers.find(l=>l.id===id&&l.visible!==false&&l.opacity>0);
   const boardArt=shown('controlboard'),creditArt=shown('credits'),betArt=shown('betlabel');
   const minusArt=shown('minusbtn'),plusArt=shown('plusbtn');
-  const rect=(layers,padX,padY)=>{
-    const x=Math.max(0,Math.min(...layers.map(l=>l.x))-padX);
-    const y=Math.max(0,Math.min(...layers.map(l=>l.y))-padY);
-    const right=Math.min(1080,Math.max(...layers.map(l=>l.x+l.w))+padX);
-    const bottom=Math.min(1920,Math.max(...layers.map(l=>l.y+l.h))+padY);
-    return {x,y,w:right-x,h:bottom-y};
-  };
+  const buyArt=shown('buybtn'),boosterArt=shown('antebtn');
   let splitPanels=null;
-  if(project.presentation==='olympus-gold'&&boardArt&&creditArt&&betArt&&minusArt&&plusArt){
-    const credit=rect([creditArt],28,18),bet=rect([minusArt,betArt,plusArt],20,12);
-    if(credit.x+credit.w+20<bet.x &&
-       Math.max(credit.y,bet.y)<Math.min(credit.y+credit.h,bet.y+bet.h)){
-      splitPanels={credit,bet,z:Math.max(1,Math.min(creditArt.z,betArt.z)-1)};
+  if(project.presentation==='olympus-gold'&&boardArt&&creditArt&&betArt&&minusArt&&plusArt&&buyArt&&boosterArt){
+    // Mirror the actual BUY SPIN / Booster panel positions and widths.
+    // Use the existing controlboard Y to preserve aligned live value bindings.
+    const credit={x:buyArt.x,y:boardArt.y,w:buyArt.w,h:buyArt.h};
+    const bet={x:boosterArt.x,y:boardArt.y,w:boosterArt.w,h:buyArt.h};
+    const fits=(panel,layer)=>layer.x>=panel.x-1&&layer.x+layer.w<=panel.x+panel.w+1&&
+      layer.y>=panel.y-1&&layer.y+layer.h<=panel.y+panel.h+1;
+    if(credit.x+credit.w<bet.x&&
+       Math.abs(credit.w-bet.w)<12&&
+       fits(credit,creditArt)&&fits(bet,betArt)&&
+       fits(bet,minusArt)&&fits(bet,plusArt)){
+      splitPanels={credit,bet,skin:buyArt,z:Math.max(1,Math.min(creditArt.z,betArt.z)-1)};
     }
   }
   const retired=new Set(['winlabel','virtual_note','buytext','freespins_sub','free_arrow','swirl_icon']);
@@ -140,6 +141,13 @@ window.SkygateApplyLayout=(project,asset)=>{
         width:bounds.w/1080*100+'%',height:bounds.h/1920*100+'%',
         zIndex:splitPanels.z
       });
+      // Identical original frame image AND crop as BUY SPIN. No baked text:
+      // CREDIT, BET and +/- remain independent live functional layers.
+      const skin=document.createElement('img');
+      skin.className='feature-skin wallet-skin';
+      skin.alt='';skin.draggable=false;skin.src=asset(splitPanels.skin.asset);
+      cropImage(skin,splitPanels.skin.crop);
+      shell.append(skin);
       scene.append(shell);
     }
   }
