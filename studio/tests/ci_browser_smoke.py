@@ -28,7 +28,7 @@ try:
         try:
             with urllib.request.urlopen(base + "/health", timeout=2) as res:
                 health = json.load(res)
-                assert health["ok"] and health["version"] == "0.13.5", health
+                assert health["ok"] and health["version"] == "0.13.0", health
                 break
         except (OSError, ValueError):
             if server.poll() is not None:
@@ -139,7 +139,7 @@ try:
         assert not errors, errors
         studio.close()
         browser.close()
-    print("PASS: health v0.13.5, 320/390/430 splash, Play, single spin, no overflow, Studio live preview")
+    print("PASS: health v0.13.0, 320/390/430 splash, Play, single spin, no overflow, Studio live preview")
 finally:
     server.terminate()
     try:
