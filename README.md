@@ -1,5 +1,11 @@
 # SKYGATE — Portrait Game & Studio
 
+### v0.13.8 — Zeus 5000 touch icon
+
+- Added Zeus / Skygate 5000 artwork as the app icon, updated Play and Studio icon links and provided an installable PWA manifest with a consistent Home Screen identity. The latest GitHub embedded asset is a compact 48px derivative; keep the full-resolution 180/192/512px source outputs for a future asset-quality upgrade.
+- No changes to gameplay, user credits, studio release, or runtime math.
+
+
 ### v0.13.7 — gold credit stack, poker chip and balanced BET steppers
 
 - On the existing Olympus gold pill-shaped panels, the visible CREDIT label becomes a glossy stack of gold coins at the left edge. The visible BET label becomes an original illustrated gold/navy poker chip, positioned left of the live bet amount.
