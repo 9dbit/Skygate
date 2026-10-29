@@ -171,19 +171,26 @@
   async function storeOverride(key,blob){registerOverride(key,blob);try{const db=await openDB();if(db)await new Promise((yes,no)=>{const rq=db.transaction('overrides','readwrite').objectStore('overrides').put(blob,key);rq.onsuccess=yes;rq.onerror=()=>no(rq.error);});}catch(e){toast('File assigned for this session. Persistent storage unavailable.');}}
   async function clearOverride(key){const url=overrideURL.get(key);if(url)URL.revokeObjectURL(url);overrideURL.delete(key);overrideBlobs.delete(key);try{const db=await openDB();if(db)await new Promise((yes,no)=>{const rq=db.transaction('overrides','readwrite').objectStore('overrides').delete(key);rq.onsuccess=yes;rq.onerror=()=>no(rq.error);});}catch(e){}render();}
   function filePicker(accept,handler){const input=document.createElement('input');input.type='file';input.accept=accept;input.onchange=async()=>{const f=input.files[0];if(f)await handler(f);};input.click();}
+  async function saveImageUpload(key,file){
+    if(file.size>40*1024*1024)throw Error('File gambar melebihi 40 MB sebelum optimasi.');
+    const webp=await window.SkygateImageOptimizer.encode(file,{key});
+    await storeOverride(key,webp);
+    return window.SkygateImageOptimizer.formatBytes(file.size)+' → '+window.SkygateImageOptimizer.formatBytes(webp.size);
+  }
   function replaceAsset(asset){filePicker('image/png,image/jpeg,image/webp,image/svg+xml',async f=>{
-    if(f.size>12e6){toast('Image too large. Max 12MB.');return;}
-    const layer=currentLayer();
-    if(layer?.id==='logo'&&layer.asset===asset){
-      // Upload a full, original Skygate 5000 lockup through the existing layer.
-      // Keep all geometry/z-order unchanged and avoid adding a second logo layer.
-      if(f.type!=='image/png'){toast('Skygate logo must be a transparent PNG.');return;}
-      await storeOverride('asset:custom/skygate-5000-approved.png',f);
-      remember();layer.asset='custom/skygate-5000-approved.png';delete layer.crop;
-      saveLocal();render();toast('Logo updated in Draft. Preview & Publish to update the game.');
-      return;
-    }
-    await storeOverride('asset:'+asset,f);render();toast('Asset replaced: '+asset);
+    try{
+      const layer=currentLayer();
+      if(layer?.id==='logo'&&layer.asset===asset){
+        // Only swap the approved full logo texture; preserve x/y/w/h and z-order.
+        if(!['image/png','image/webp'].includes(f.type))throw Error('Logo transparan harus PNG atau WebP.');
+        const saving=await saveImageUpload('asset:custom/skygate-5000-approved.png',f);
+        remember();layer.asset='custom/skygate-5000-approved.png';delete layer.crop;
+        saveLocal();render();toast('Logo siap: WebP '+saving+' · lanjut Preview & Publish.');
+        return;
+      }
+      const saving=await saveImageUpload('asset:'+asset,f);
+      render();toast('Aset WebP: '+saving);
+    }catch(error){toast('Upload gagal: '+error.message);}
   });}
   function replaceAudio(id){filePicker('audio/*,.mp3,.wav,.ogg,.m4a',async f=>{if(f.size>25e6){toast('Audio file >25 MB. Please optimize.');return;}await storeOverride('audio:'+id,f);renderInspector();toast('Custom track assigned: '+id);});}
   function addAsset(path){remember();const id='art_'+Date.now();const layer={id,name:path.split('/').at(-1).split('.')[0],kind:'image',asset:path,x:315,y:760,w:400,h:220,z:55,opacity:100,visible:true,locked:false,rotate:0};state.layers.push(layer);saveLocal();selectLayer(id);}
@@ -400,7 +407,14 @@
       else if(t.closest('[data-audio-reset]'))clearOverride('audio:'+t.closest('[data-audio-reset]').dataset.audioReset);
       else if(t.id==='audioUnlockPanelBtn')audioKit.unlock();
       else if(t.id==='stopAllAudio')stopAll();
-      else if(t.id==='uploadAnyBtn')filePicker('image/*,.svg',async f=>{const safe=f.name.replace(/[^a-zA-Z0-9_.-]/g,'_');const name='custom/'+Date.now()+'_'+safe;await storeOverride('asset:'+name,f);addAsset(name);});
+      else if(t.id==='uploadAnyBtn')filePicker('image/*,.svg',async f=>{
+        try{
+          const safe=f.name.replace(/[^a-zA-Z0-9_.-]/g,'_');
+          const name='custom/'+Date.now()+'_'+safe;
+          const saving=await saveImageUpload('asset:'+name,f);
+          addAsset(name);toast('Aset baru otomatis WebP: '+saving);
+        }catch(error){toast('Upload gagal: '+error.message);}
+      });
       else if(t.id==='addAssetBtn')addAsset('symbols/ruby.png');
       else if(t.id==='openAssetContact')window.open(window.SKY_EMBEDDED_ASSETS?.['asset_contact_sheet.jpg']||'assets/asset_contact_sheet.jpg','_blank');
       else if(t.closest('[data-duplicate]')){const l=lookupLayer(t.closest('[data-duplicate]').dataset.duplicate);if(l){remember();const d=deep(l);d.id='copy_'+Date.now();d.name+=' Copy';d.x+=25;d.y+=25;d.z+=1;state.layers.push(d);saveLocal();selectLayer(d.id);}}
@@ -452,5 +466,5 @@
     saveLocal();render();toast('Snapshot loaded into this browser.');
   }
   restoreLocal();attach();render();const overridesReady=loadOverrides();
-  window.SKYGATE_STUDIO={version:'0.13.1',ready:overridesReady,refreshSession:renderInspector,setMode,getPreviewData:()=>({project:deep(state),assets:Object.fromEntries([...new Set([...state.layers.filter(l=>l.asset).map(l=>l.asset),...symbolNames.map(n=>'symbols/'+n+'.png')])].map(p=>['assets/'+p,new URL(assetURL(p),location.href).href]).concat(state.tracks.map(t=>['assets/audio/'+t.id+'.mp3',new URL(audioURL(t.id),location.href).href])))}),hasLocalDraft:()=>!!localStorage.getItem(storageKey),getPublishBundle:async()=>{await overridesReady;return {project:deep(state),overrides:[...overrideBlobs]};},restoreRelease,getState:()=>deep(state),getSelected:()=>selected,getOverrideKeys:()=>[...overrideBlobs.keys()],runSimulation,demoSpin,saveLocal,exportProject,exportChangesZip,importChangesZip,playAudio,stopAll,selectTab,audioReady:()=>audioKit.isReady(),audioPlaying:id=>audioKit.isPlaying(id),openMobilePanel:setMobilePanel};
+  window.SKYGATE_STUDIO={version:'0.13.3',ready:overridesReady,refreshSession:renderInspector,setMode,getPreviewData:()=>({project:deep(state),assets:Object.fromEntries([...new Set([...state.layers.filter(l=>l.asset).map(l=>l.asset),...symbolNames.map(n=>'symbols/'+n+'.png')])].map(p=>['assets/'+p,new URL(assetURL(p),location.href).href]).concat(state.tracks.map(t=>['assets/audio/'+t.id+'.mp3',new URL(audioURL(t.id),location.href).href])))}),hasLocalDraft:()=>!!localStorage.getItem(storageKey),getPublishBundle:async()=>{await overridesReady;return {project:deep(state),overrides:[...overrideBlobs]};},restoreRelease,getState:()=>deep(state),getSelected:()=>selected,getOverrideKeys:()=>[...overrideBlobs.keys()],runSimulation,demoSpin,saveLocal,exportProject,exportChangesZip,importChangesZip,playAudio,stopAll,selectTab,audioReady:()=>audioKit.isReady(),audioPlaying:id=>audioKit.isPlaying(id),openMobilePanel:setMobilePanel};
 })();

@@ -95,6 +95,26 @@ export function validateProject(input, overrideKeys=[]){
   return {schema:p.schema,projectName:str(p.projectName||'SKYGATE',80,'project name'),presentation:p.presentation==='olympus-gold'?'olympus-gold':'classic',virtualCreditsOnly:true,stage:{width:1080,height:1920},layers,grid:[...p.grid],math:config,jackpot,audio,tracks:audioTracks,winPresentation,spinMotion,seed:integer(p.seed,1,4294967295,'seed'),bet:num(p.bet,.2,300,'bet'),credit:num(p.credit,1,100000000,'starting credit')};
 }
 
+// Validate WebP RIFF signatures and dimensions before writing untrusted media.
+function webpDimensions(bytes){
+  if(bytes.length<25||bytes.toString('ascii',0,4)!=='RIFF'||bytes.toString('ascii',8,12)!=='WEBP'||bytes.readUInt32LE(4)!==bytes.length-8)fail('Invalid WebP container');
+  const kind=bytes.toString('ascii',12,16),chunkLength=bytes.readUInt32LE(16);
+  if(20+chunkLength+(chunkLength%2)>bytes.length)fail('Truncated WebP image');
+  let width,height;
+  if(kind==='VP8X'){
+    if(chunkLength<10||bytes.length<30)fail('Invalid WebP extended header');
+    if(bytes[20]&2)fail('Animated WebP is not supported');
+    width=1+bytes.readUIntLE(24,3);height=1+bytes.readUIntLE(27,3);
+  }else if(kind==='VP8L'){
+    if(chunkLength<5||bytes[20]!==0x2f)fail('Invalid lossless WebP header');
+    width=1+(bytes[21]|((bytes[22]&63)<<8));
+    height=1+((bytes[22]>>6)|(bytes[23]<<2)|((bytes[24]&15)<<10));
+  }else if(kind==='VP8 '){
+    if(chunkLength<10||bytes.length<30||bytes[23]!==0x9d||bytes[24]!==0x01||bytes[25]!==0x2a)fail('Invalid lossy WebP header');
+    width=bytes.readUInt16LE(26)&0x3fff;height=bytes.readUInt16LE(28)&0x3fff;
+  }else fail('Unsupported WebP image type');
+  num(width,1,4096,'image width');num(height,1,4096,'image height');
+}
 function decodeOverride(key,item){
   if(!item||typeof item.data!=='string'||item.data.length%4!==0||!/^([A-Za-z0-9+/]*={0,2})$/.test(item.data))fail('Invalid asset encoding');
   const bytes=Buffer.from(item.data,'base64');
@@ -104,7 +124,9 @@ function decodeOverride(key,item){
   if(!audio){
     if(item.mime==='image/png'&&bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))&&bytes.length>=24){
       num(bytes.readUInt32BE(16),1,4096,'image width');num(bytes.readUInt32BE(20),1,4096,'image height');ext='png';mime='image/png';
-    }else fail('Publish images as PNG; Studio converts uploads automatically');
+    }else if(item.mime==='image/webp'){
+      webpDimensions(bytes);ext='webp';mime='image/webp';
+    }else fail('Publish images as PNG or WebP; Studio converts uploads automatically');
   }else{
     if(item.mime==='audio/mpeg'&&(bytes.subarray(0,3).toString()==='ID3'||(bytes[0]===255&&(bytes[1]&224)===224))){ext='mp3';mime='audio/mpeg';}
     else if(item.mime==='audio/ogg'&&bytes.subarray(0,4).toString()==='OggS'){ext='ogg';mime='audio/ogg';}
@@ -152,7 +174,7 @@ export function createReleaseStore(directory){
   });}
   async function live(){const i=await index();return i.active?revision(i.active):null;}
   async function media(file,privateRoute){
-    if(!/^[a-f0-9]{64}\.(png|mp3|ogg|wav)$/.test(file))throw new ReleaseError('Media not found',404);
+    if(!/^[a-f0-9]{64}\.(png|webp|mp3|ogg|wav)$/.test(file))throw new ReleaseError('Media not found',404);
     const i=await index();let item;
     for(const r of i.revisions.filter(r=>privateRoute||r.published)){const doc=await revision(r.id);item=Object.values(doc.overrides).find(x=>x.file===file);if(item)break;}
     if(!item)throw new ReleaseError('Media not found',404);
