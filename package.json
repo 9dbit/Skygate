@@ -1,6 +1,6 @@
 {
   "name": "skygate-studio",
-  "version": "0.13.7",
+  "version": "0.13.8",
   "private": true,
   "description": "Skygate Studio editor and virtual-credit game preview",
   "scripts": {
