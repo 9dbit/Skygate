@@ -39,7 +39,7 @@ function fixture(){
     addEventListener:(type,cb)=>{callbacks[type]=cb;},dispatchEvent:()=>{events++;},
   };
   const context={document,window,fetch,location:{origin:'https://sky.example'},URL,Image:class{},FileReader:class{},console,
-    setTimeout:(fn)=>{const id=++nextTimer;timers.set(id,fn);return id;},clearTimeout:id=>timers.delete(id)};
+    Event:class{constructor(type){this.type=type;}},setTimeout:(fn)=>{const id=++nextTimer;timers.set(id,fn);return id;},clearTimeout:id=>timers.delete(id)};
   vm.runInNewContext(code,context);
   return {nodes,requests,posted,timers,events:()=>events,
     receive:(data,source=nodes.releaseFrame.contentWindow)=>callbacks.message({origin:'https://sky.example',source,data}),
