@@ -260,3 +260,8 @@ dialog .dialog-body .confirm-actions button{font:700 11px Georgia!important;padd
 .firework-spark{position:absolute;z-index:2;display:block;width:5px;height:5px;background:#fff9dc;border-radius:50%;opacity:0;box-shadow:0 0 7px #ffca4f;pointer-events:none}
 .spark-1{width:12px;height:2px;background:linear-gradient(90deg,#ff9b2200,#ffd55c,#fff)}.spark-2{width:9px;height:3px;background:linear-gradient(90deg,#ff7d0000,#ffac32,#fff8bd)}.spark-3{width:4px;height:4px;background:#fff;box-shadow:0 0 7px #98d6ff}.firework-flare{position:absolute;z-index:1;opacity:0;pointer-events:none;object-fit:contain;transform-origin:center}
 @media(prefers-reduced-motion:reduce){.fireworks-layer{display:none}}
+
+/* Bonus Booster stays readable on the narrow 9:16 published control panel. */
+#anteFeature>span{font-size:2.52cqw;letter-spacing:-.012em;line-height:1.12}
+#anteFeature #antePrice{font-size:3.05cqw;white-space:nowrap}
+#anteFeature small{font-size:1.55cqw;letter-spacing:0}
