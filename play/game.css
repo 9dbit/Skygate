@@ -219,7 +219,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #8ecbff;outline-offse
 @media(prefers-reduced-motion:reduce){.splash-lightning,.splash-logo,.boot-progress span{animation:none}.splash-lightning{opacity:.2}.boot-progress span{width:100%}}
 
 /* v0.10.2: sculpted gold chrome shared by splash and every popup. */
-:root{--sg-action-image:url('media/c0c6d2233240166607f17a82b1c1a255a4530ed0c514c35a61544f4d3e4b421f.png')}
+:root{--sg-action-image:url('assets/ui/confirmation-panel-v1.png')}
 .splash-title{width:min(82vw,340px);display:flex;flex-direction:column;align-items:center;gap:10px}
 .shared-brand{position:relative;aspect-ratio:572/337;width:100%;container-type:inline-size}
 .shared-brand .brand-top{inset:0 0 18%}.shared-brand .brand-number{bottom:0;font-size:10cqw}
