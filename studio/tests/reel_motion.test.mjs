@@ -17,7 +17,7 @@ test('six persistent strips stagger their stops, animate compositor properties a
   await t.renderer.ready;const count=t.created.length;
   const playing=t.renderer.spin(after);await Promise.resolve();
   assert.equal(t.root.classList.contains('rolling'),true);
-  assert.deepEqual([...t.timers.values()].map(t=>t.ms),[360,415,470,525,580,635]);
+  assert.deepEqual([...t.timers.values()].map(t=>t.ms),[660,740,820,900,980,1060]);
   assert.equal(t.animations.length,6);
   for(const timer of [...t.timers.values()])timer.fn();
   await playing;
@@ -47,7 +47,7 @@ test('cascades move surviving symbols from their previous row and retain orb lab
 });
 test('turbo shortens presentation without changing the grid; reduced motion creates no animations',async()=>{
   const t=setup();await t.renderer.ready;const playing=t.renderer.spin(t.before,{turbo:true});await Promise.resolve();
-  assert.deepEqual([...t.timers.values()].map(t=>t.ms),[100,116,132,148,164,180]);
+  assert.deepEqual([...t.timers.values()].map(t=>t.ms),[180,204,228,252,276,300]);
   for(const timer of [...t.timers.values()])timer.fn();await playing;
   const count=t.animations.length;await t.renderer.spin(t.before,{reduced:true});await t.renderer.cascade(t.before,t.before,{reduced:true});
   assert.equal(t.animations.length,count);assert.equal(t.renderer.grid,t.before);
@@ -60,13 +60,15 @@ test('only winning cells charge before bursting and all effect nodes are reused'
   assert.equal(t.animations.length,selected.length*2);
   assert(t.animations.every(a=>selected.some(i=>t.renderer.cells[i].fx.edge===a.node||t.renderer.cells[i].motion===a.node)));
   assert.equal(t.renderer.grid,t.before,'symbols remain until the charge completes');
+  assert(t.animations.every(a=>a.options.duration===750),'normal charge stays visible before burst');
+  assert(t.renderer.cells.every(c=>!c.fx.spiral),'no lightning texture around the artwork');
   const edges=t.animations.filter(a=>selected.some(i=>t.renderer.cells[i].fx.edge===a.node));
   assert(edges.every(a=>a.frames.every(f=>!('transform' in f))),'lightning stays fixed on cell borders');
   const vibrations=t.animations.filter(a=>selected.some(i=>t.renderer.cells[i].motion===a.node));
   assert.equal(vibrations.length,selected.length);
   assert(vibrations.every(a=>a.frames.some(f=>f.transform.includes('-1.5px'))));
   await playing;
-  assert.equal(t.animations.length,selected.length*6);
+  assert.equal(t.animations.length,selected.length*5);
   assert.equal(t.created.length,created);
   assert.equal(t.root.dataset.fxPhase,'idle');
   assert.equal(t.renderer.animations.size,0);
@@ -86,12 +88,12 @@ test('cancel during lightning prevents the burst; reduced motion skips both phas
 });
 test('one full-board win has a bounded effect pool and turbo retains both phases',async()=>{
   const t=setup(),all=Array.from({length:30},(_,i)=>i),created=t.created.length;
-  assert.equal(t.root.querySelectorAll('.cascade-fx').length,90);
+  assert.equal(t.root.querySelectorAll('.cascade-fx').length,60);
   await t.renderer.shatter(all,{turbo:true});
-  assert.equal(t.animations.length,180);
+  assert.equal(t.animations.length,150);
   assert.equal(t.created.length,created);
-  assert(t.animations.slice(0,60).every(a=>a.options.duration===95));
-  assert(t.animations.slice(60).every(a=>a.options.duration===170));
+  assert(t.animations.slice(0,60).every(a=>a.options.duration===220));
+  assert(t.animations.slice(60).every(a=>a.options.duration===280));
 });
 
 test('text fitting keeps long amounts and caption stacks inside the same bounds at phone widths',()=>{

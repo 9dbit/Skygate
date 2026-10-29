@@ -5,8 +5,8 @@
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" preserveAspectRatio="none">${body}</svg>`);
   const rounded = n => n.toFixed(2);
   const glowPath = (d, width = 1.3) =>
-    `<path d="${d}" fill="none" stroke="#ec740b" stroke-width="8" opacity=".18" stroke-linejoin="round"/>` +
-    `<path d="${d}" fill="none" stroke="#ffbd32" stroke-width="3.3" opacity=".9" stroke-linejoin="round"/>` +
+    `<path d="${d}" fill="none" stroke="#ec740b" stroke-width="9" opacity=".28" stroke-linejoin="round"/>` +
+    `<path d="${d}" fill="none" stroke="#ffbd32" stroke-width="4.5" opacity="1" stroke-linejoin="round"/>` +
     `<path d="${d}" fill="none" stroke="#fff6be" stroke-width="${width}" stroke-linejoin="round"/>`;
   let edge = '';
   for (let side = 0; side < 4; side++) for (let step = 0; step < 24; step++) {
@@ -24,11 +24,5 @@
     burst += `<path d="M${rounded(x)} ${rounded(y)}l${rounded(Math.cos(angle)*length)} ${rounded(Math.sin(angle)*length)}" stroke="${i%3?'#ffcf55':'#fff3b2'}" stroke-width="${i%3?1.5:2}" stroke-linecap="round"/>`;
     burst += `<circle cx="${rounded(x)}" cy="${rounded(y)}" r="${i%4?1:2}" fill="#fff7c7"/>`;
   }
-  let spiral = '';
-  for (let i = 0; i < 94; i++) {
-    const t = i / 93, angle = t * Math.PI * 4.4, radius = 3 + t * 44;
-    const jitter = Math.sin(i * 3.7) * 1.4;
-    spiral += `${i?'L':'M'}${rounded(64+Math.cos(angle)*(radius+jitter))} ${rounded(64+Math.sin(angle)*(radius+jitter))} `;
-  }
-  window.SkygateCascadeArt = {edge: svg(glowPath(edge)), burst: svg(burst), spiral: svg(glowPath(spiral, 1.1))};
+  window.SkygateCascadeArt = {edge: svg(glowPath(edge, 2.6)), burst: svg(burst)};
 })();
