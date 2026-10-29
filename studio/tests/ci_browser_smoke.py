@@ -28,7 +28,7 @@ try:
         try:
             with urllib.request.urlopen(base + "/health", timeout=2) as res:
                 health = json.load(res)
-                assert health["ok"] and health["version"] == "0.13.0", health
+                assert health["ok"] and health["version"] == "0.13.5", health
                 break
         except (OSError, ValueError):
             if server.poll() is not None:
@@ -91,6 +91,23 @@ try:
             assert not errors, (width, errors)
             context.close()
 
+        # Animate only the central medallion. Battery Saver freezes it.
+        motion = browser.new_context(
+            viewport={"width": 390, "height": 844},
+            is_mobile=True, has_touch=True, reduced_motion="no-preference"
+        )
+        motion_page = motion.new_page()
+        motion_page.goto(base + "/play/", wait_until="domcontentloaded", timeout=30000)
+        motion_page.wait_for_function("document.documentElement.dataset.boot === 'ready'", timeout=30000)
+        motion_page.locator("#bootPlay").click()
+        rotor = motion_page.locator("#spin .spin-rotor")
+        frame = motion_page.locator("#spin .spin-frame")
+        assert "skygate-rotor-idle" in rotor.evaluate("(el) => getComputedStyle(el).animationName")
+        assert frame.evaluate("(el) => getComputedStyle(el).animationName") == "none"
+        motion_page.evaluate("document.getElementById('spin').classList.add('battery-saver')")
+        assert rotor.evaluate("(el) => getComputedStyle(el).animationName") == "none"
+        motion.close()
+
         studio = browser.new_context(viewport={"width": 390, "height": 844})
         page = studio.new_page()
         errors = []
@@ -122,7 +139,7 @@ try:
         assert not errors, errors
         studio.close()
         browser.close()
-    print("PASS: health v0.13.0, 320/390/430 splash, Play, single spin, no overflow, Studio live preview")
+    print("PASS: health v0.13.5, 320/390/430 splash, Play, single spin, no overflow, Studio live preview")
 finally:
     server.terminate()
     try:
