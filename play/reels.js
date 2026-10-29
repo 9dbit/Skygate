@@ -1,8 +1,27 @@
 /* Persistent reel strips. Only transforms/opacity animate; outcomes stay in the
  * math engine. Six compositor tracks roll, then stable cells handle cascades. */
+// Studio stores approximate whole-board spin duration; each component scales
+// together so reel banks remain aligned and the easing/stop sequence is preserved.
+window.SkygateSpinTiming = (mode, motion = null) => {
+  const presets = {
+    normal: {base:2550, roll:600, iterations:2, stagger:110, settle:800, target:1800},
+    quick: {base:1645, roll:400, iterations:2, stagger:65, settle:520, target:1150},
+    turbo: {base:745, roll:250, iterations:1, stagger:35, settle:320, target:650}
+  };
+  const preset = presets[mode] || presets.normal;
+  const custom = motion?.[mode+'Ms'];
+  const requested = Number.isInteger(custom) && custom >= 400 && custom <= 4000 ? custom : preset.target;
+  const ratio = requested / preset.base;
+  return {
+    rollMs: Math.round(preset.roll * ratio),
+    iterations: preset.iterations,
+    staggerMs: Math.round(preset.stagger * ratio),
+    settleMs: Math.round(preset.settle * ratio)
+  };
+};
 window.SkygateReels = class {
-  constructor(root, {asset, art, label, legacyOrb = false}) {
-    Object.assign(this, {root, asset, art, label, legacyOrb});
+  constructor(root, {asset, art, label, legacyOrb = false, motion = null}) {
+    Object.assign(this, {root, asset, art, label, legacyOrb, motion});
     this.animations = new Set();
     this.waiters = new Map();
     this.generation = 0;
@@ -105,20 +124,21 @@ window.SkygateReels = class {
     if (generation !== this.generation) return;
     this.render(this.grid);
     this.root.classList.add('rolling');
+    const timing = window.SkygateSpinTiming(turbo ? 'turbo' : quick ? 'quick' : 'normal', this.motion);
     try {
       await Promise.all(this.columns.map(async ({track, cells}, col) => {
         // Finish complete, identical banks before introducing the result offscreen.
         // The next leg starts at the equivalent bank boundary, never at an arbitrary phase.
         const rolling = this.animate(track, [
           {transform: 'translate3d(0,-50%,0)'}, {transform: 'translate3d(0,0,0)'}
-        ], {duration: turbo ? 250 : quick ? 400 : 600, iterations: turbo ? 1 : 2, delay:col*(turbo?35:quick?65:110), easing:'linear',fill:'backwards'});
+        ], {duration:timing.rollMs, iterations:timing.iterations, delay:col*timing.staggerMs, easing:'linear',fill:'backwards'});
         await this.finish(rolling);
         if (generation !== this.generation) return;
         cells.slice(0,5).forEach((cell,row)=>this.update(cell,grid[row*6+col]));
         const settling=this.animate(track,[
           {transform:'translate3d(0,-50%,0)'},
           {transform:'translate3d(0,0,0)'}
-        ],{duration:turbo?320:quick?520:800,easing:'cubic-bezier(.28,.37,.48,1)',fill:'forwards'});
+        ],{duration:timing.settleMs,easing:'cubic-bezier(.28,.37,.48,1)',fill:'forwards'});
         try{await settling.finished;}catch{/* background cancellation */}
         finally{
           // Replace the hidden bank before dropping the filled transform.
