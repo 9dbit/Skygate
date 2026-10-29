@@ -270,7 +270,7 @@ test('approved 1000x pill copy, centering, ring scale and static frame are share
   assert(css.includes('.promo-badge::after'));
   assert(!css.includes('spin-frame{animation:'));
   assert.match(read('play/game.js'),/WIN UP TO 1000×/);
-  assert.match(read('studio/index.html'),/v0\.13\.8/);
+  assert.match(read('studio/index.html'),/v0\.13\.9/);
 });
 
 test('Olympus credit and bet show SVG currency icons instead of visible text labels',()=>{
