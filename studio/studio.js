@@ -171,7 +171,20 @@
   async function storeOverride(key,blob){registerOverride(key,blob);try{const db=await openDB();if(db)await new Promise((yes,no)=>{const rq=db.transaction('overrides','readwrite').objectStore('overrides').put(blob,key);rq.onsuccess=yes;rq.onerror=()=>no(rq.error);});}catch(e){toast('File assigned for this session. Persistent storage unavailable.');}}
   async function clearOverride(key){const url=overrideURL.get(key);if(url)URL.revokeObjectURL(url);overrideURL.delete(key);overrideBlobs.delete(key);try{const db=await openDB();if(db)await new Promise((yes,no)=>{const rq=db.transaction('overrides','readwrite').objectStore('overrides').delete(key);rq.onsuccess=yes;rq.onerror=()=>no(rq.error);});}catch(e){}render();}
   function filePicker(accept,handler){const input=document.createElement('input');input.type='file';input.accept=accept;input.onchange=async()=>{const f=input.files[0];if(f)await handler(f);};input.click();}
-  function replaceAsset(asset){filePicker('image/png,image/jpeg,image/webp,image/svg+xml',async f=>{if(f.size>12e6){toast('Image too large. Max 12MB.');return;}await storeOverride('asset:'+asset,f);render();toast('Asset replaced: '+asset);});}
+  function replaceAsset(asset){filePicker('image/png,image/jpeg,image/webp,image/svg+xml',async f=>{
+    if(f.size>12e6){toast('Image too large. Max 12MB.');return;}
+    const layer=currentLayer();
+    if(layer?.id==='logo'&&layer.asset===asset){
+      // Upload a full, original Skygate 5000 lockup through the existing layer.
+      // Keep all geometry/z-order unchanged and avoid adding a second logo layer.
+      if(f.type!=='image/png'){toast('Skygate logo must be a transparent PNG.');return;}
+      await storeOverride('asset:custom/skygate-5000-approved.png',f);
+      remember();layer.asset='custom/skygate-5000-approved.png';delete layer.crop;
+      saveLocal();render();toast('Logo updated in Draft. Preview & Publish to update the game.');
+      return;
+    }
+    await storeOverride('asset:'+asset,f);render();toast('Asset replaced: '+asset);
+  });}
   function replaceAudio(id){filePicker('audio/*,.mp3,.wav,.ogg,.m4a',async f=>{if(f.size>25e6){toast('Audio file >25 MB. Please optimize.');return;}await storeOverride('audio:'+id,f);renderInspector();toast('Custom track assigned: '+id);});}
   function addAsset(path){remember();const id='art_'+Date.now();const layer={id,name:path.split('/').at(-1).split('.')[0],kind:'image',asset:path,x:315,y:760,w:400,h:220,z:55,opacity:100,visible:true,locked:false,rotate:0};state.layers.push(layer);saveLocal();selectLayer(id);}
   function updateInput(el,commit){
