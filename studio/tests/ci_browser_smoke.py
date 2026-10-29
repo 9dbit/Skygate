@@ -28,7 +28,7 @@ try:
         try:
             with urllib.request.urlopen(base + "/health", timeout=2) as res:
                 health = json.load(res)
-                assert health["ok"] and health["version"] == "0.12.1", health
+                assert health["ok"] and health["version"] == "0.13.0", health
                 break
         except (OSError, ValueError):
             if server.poll() is not None:
@@ -77,6 +77,7 @@ try:
             page.locator("#bootPlay").click()
             page.wait_for_function("document.documentElement.dataset.boot === 'entered'", timeout=12000)
             assert page.locator("#spin").is_visible()
+            assert "Bonus Booster" in page.locator("#anteFeature").inner_text()
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), f"{width}: overflow"
             if width == 390:
                 page.screenshot(path=str(OUT / "play-390.png"))
@@ -102,10 +103,26 @@ try:
         )
         assert page.locator("#gameCanvas").count() == 1
         page.screenshot(path=str(OUT / "studio-390.png"))
+        page.locator('[data-mobile-tab="test"]').click()
+        slider = page.locator('input[data-path="spinMotion.normalMs"]')
+        assert slider.count() == 1 and slider.input_value() == '1800'
+        page.screenshot(path=str(OUT / "studio-spin-speed-390.png"))
+        page.evaluate("""() => {
+            document.getElementById('editModeBtn').click();
+            const field = document.querySelector('input[data-path="spinMotion.normalMs"]');
+            field.value = '1600';
+            field.dispatchEvent(new Event('input', {bubbles:true}));
+            field.dispatchEvent(new Event('change', {bubbles:true}));
+        }""")
+        assert page.evaluate("window.SKYGATE_STUDIO.getState().spinMotion.normalMs") == 1600
+        page.wait_for_function(
+            "document.getElementById('gameCanvas')?.contentWindow?.SkygateActiveRelease?.project?.spinMotion?.normalMs === 1600",
+            timeout=30000
+        )
         assert not errors, errors
         studio.close()
         browser.close()
-    print("PASS: health v0.12.1, 320/390/430 splash, Play, single spin, no overflow, Studio live preview")
+    print("PASS: health v0.13.0, 320/390/430 splash, Play, single spin, no overflow, Studio live preview")
 finally:
     server.terminate()
     try:
