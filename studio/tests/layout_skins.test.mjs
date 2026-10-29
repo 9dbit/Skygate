@@ -226,3 +226,49 @@ test('only the inner spinner rotates at idle; frame is static and battery saver 
   assert(css.includes('.published-layer[data-layer="spinbutton"] #spin .spin-frame{display:none}'));
   assert(!css.includes('.spin:not(.busy) .spin-frame{animation:'),'the outer frame must not spin');
 });
+
+test('approved reference panel skins match BUY SPIN width, x positions and source crop',()=>{
+  const p=preset(),before=JSON.stringify(p),d=dom();
+  d.window.SkygateApplyLayout(p,path=>'assets/'+path);
+  const scene=d.game.children.at(-1);
+  const credit=scene.children.find(n=>n.dataset.fx==='wallet-credit');
+  const bet=scene.children.find(n=>n.dataset.fx==='wallet-bet');
+  const buy=p.layers.find(l=>l.id==='buybtn'),booster=p.layers.find(l=>l.id==='antebtn');
+  const board=p.layers.find(l=>l.id==='controlboard');
+  assert(credit&&bet);
+  assert.equal(credit.style.left,buy.x/1080*100+'%');
+  assert.equal(bet.style.left,booster.x/1080*100+'%');
+  assert.equal(credit.style.top,board.y/1920*100+'%');
+  assert.equal(bet.style.top,credit.style.top);
+  assert.equal(credit.style.width,buy.w/1080*100+'%');
+  assert.equal(bet.style.width,booster.w/1080*100+'%');
+  assert.equal(credit.style.width,bet.style.width,'equal panel widths');
+  for(const panel of [credit,bet]){
+    assert.equal(panel.children.length,1);
+    assert.equal(panel.children[0].className,'feature-skin wallet-skin');
+    assert.equal(panel.children[0].src,'assets/'+buy.asset);
+    assert.equal(panel.children[0].style.objectFit,'fill');
+    assert.equal(panel.children[0].style.width,100/buy.crop.w+'%');
+    assert.equal(panel.children[0].style.height,100/buy.crop.h+'%');
+  }
+  assert.equal(JSON.stringify(p),before,'do not edit old published project');
+});
+test('symmetry falls back safely when feature panel geometry cannot fit controls',()=>{
+  const p=preset();p.layers.find(l=>l.id==='antebtn').w=230;
+  const d=dom();d.window.SkygateApplyLayout(p,path=>'assets/'+path);
+  const scene=d.game.children.at(-1);
+  assert.equal(scene.children.filter(n=>n.dataset.fx?.startsWith('wallet-')).length,0);
+  assert.notEqual(scene.children.find(n=>n.dataset.layer==='controlboard').style.visibility,'hidden');
+});
+test('approved 1000x pill copy, centering, ring scale and static frame are shared by game and studio',()=>{
+  const html=read('play/index.html'),css=read('play/game.css');
+  assert.match(html,/id="promoBadge"[^>]*>\s*<span class="promo-caption">WIN UP TO<\/span><strong class="promo-value">1000x<\/strong>/);
+  assert.match(css,/\.olympus-gold \.promo-badge\{[\s\S]*?left:24%;width:52%;height:3\.2%/);
+  assert.match(css,/\.olympus-gold \.published-layer\[data-layer="spinbutton"\] #spin\{\s*width:60%;height:60%/);
+  assert(css.includes('conic-gradient(from -35deg'));
+  assert(css.includes('.promo-badge::before'));
+  assert(css.includes('.promo-badge::after'));
+  assert(!css.includes('spin-frame{animation:'));
+  assert.match(read('play/game.js'),/WIN UP TO 1000×/);
+  assert.match(read('studio/index.html'),/v0\.13\.6/);
+});
