@@ -192,6 +192,7 @@ function startSkygate() {
       if(!replay){const award=Settings.money(round.winX*bet);state.credits=Settings.money(state.credits+award);state.paid=Settings.money(state.paid+award);if(award>0)state.hits++;
         state.history.unshift({round:state.rounds,baseBet:bet,cost,award,bonus:round.bonus.triggered,buy:buyBonus,ante:state.ante,time:new Date().toLocaleTimeString('id-ID')});state.history.length=Math.min(100,state.history.length);}
       reels.cancel();state.busy=false;refresh();
+      if(window.SkygatePreview)window.parent.postMessage({type:'skygate-preview-round'},location.origin);
     }
   }
   function resetGame(seed=state.seed) {
@@ -359,11 +360,11 @@ function startSkygate() {
     const images=[...scene.querySelectorAll('img'), ...document.querySelectorAll('#bootSplash img')];
     const symbols=Object.values(art).map(name=>asset('symbols/'+name+'.png'));
     void window.SkygateBoot.ready(images,symbols).then(()=>{
-      if(window.SkygatePreview)window.parent.postMessage({type:'skygate-preview-ready',id:release.id},location.origin);
+      if(window.SkygatePreview)window.parent.postMessage({type:'skygate-preview-ready',id:release?.id||'bundled'},location.origin);
     }).catch(error=>window.SkygateBoot.fail(error));
   }else if(window.SkygatePreview){
     Promise.all(Array.from(document.images).map(img=>img.decode())).then(()=>{
-      window.parent.postMessage({type:'skygate-preview-ready',id:release.id},location.origin);
+      window.parent.postMessage({type:'skygate-preview-ready',id:release?.id||'bundled'},location.origin);
     }).catch(()=>status('Ada gambar yang gagal dimuat. Perbaiki aset di Studio lalu siapkan preview baru.'));
   }
   window.SlotGameTest={getState:()=>({...state,last:state.last?{...state.last}:null}),getGrid:()=>displayGrid,engineProfile:cfg.profile_id};

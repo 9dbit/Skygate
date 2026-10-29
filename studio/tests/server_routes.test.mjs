@@ -55,7 +55,7 @@ function get(port, path, { method = 'GET', auth } = {}) {
 test('protected Studio uses the resolved path for authentication', async t => {
   const port = await start(t);
   const routes = [
-    '/', '/studio', '/studio/', '/studio/project.json',
+    '/', '/studio', '/studio/', '/studio/project.json', '/studio/editor-preview/',
     '/studio/assets/audio/manifest.json',
     '/play/..%2fstudio/project.json',
     '/play/%2e%2e%2fstudio/project.json',
@@ -76,7 +76,7 @@ test('protected Studio uses the resolved path for authentication', async t => {
     }
   });
   await t.test('authorized editor, assets and encoded paths load without cache', async () => {
-    for (const path of ['/studio/', '/studio/studio.js', '/studio/assets/audio/manifest.json',
+    for (const path of ['/studio/', '/studio/studio.js', '/studio/editor-preview/', '/studio/assets/audio/manifest.json',
       '/play/..%2fstudio/project.json']) {
       const res = await get(port, path, { auth: authorization });
       assert.equal(res.status, 200);
@@ -140,7 +140,7 @@ test('unconfigured local development still loads Studio', async t => {
 
 test('explicit public Studio testing opens editor and drafts while retaining request protections', async t => {
   const port = await start(t, { SKYGATE_STUDIO_PUBLIC_TESTING: 'true' });
-  for (const path of ['/studio/', '/studio/project.json', '/studio/preview/', '/studio/api/releases']) {
+  for (const path of ['/studio/', '/studio/project.json', '/studio/preview/', '/studio/editor-preview/', '/studio/api/releases']) {
     assert.equal((await get(port, path)).status, 200, path);
   }
   assert.equal((await get(port, '/studio/api/publish', { method: 'POST' })).status, 403);

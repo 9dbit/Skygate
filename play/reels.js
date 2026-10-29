@@ -35,6 +35,11 @@ window.SkygateReels = class {
       }
       viewport.append(track); root.append(viewport); this.columns.push({track, cells});
     }
+    // One bounded overlay lets sparks cross cell borders without following sprite contours.
+    this.fireworks=document.createElement('div');this.fireworks.className='fireworks-layer';
+    this.fireworks.setAttribute('aria-hidden','true');this.sparks=[];
+    for(let i=0;i<240;i++){const spark=document.createElement('i');spark.className='firework-spark spark-'+i%4;this.fireworks.append(spark);this.sparks.push(spark);}
+    root.append(this.fireworks);
     // Decode each unique texture once before the first animated round.
     this.textures = [...new Set(Object.values(art))].map(sprite => {
       const img = document.createElement('img'); img.src = asset('symbols/' + sprite + '.png');
@@ -102,8 +107,8 @@ window.SkygateReels = class {
       await Promise.all(this.columns.map(async ({track, cells}, col) => {
         const rolling = this.animate(track, [
           {transform: 'translate3d(0,-50%,0)'}, {transform: 'translate3d(0,0,0)'}
-        ], {duration: turbo ? 190 : quick ? 260 : 340, iterations: Infinity, easing: 'linear'});
-        await this.wait(turbo ? 180 + col * 24 : quick ? 360 + col * 42 : 660 + col * 80);
+        ], {duration: turbo ? 240 : quick ? 360 : 480, iterations: Infinity, easing: 'linear'});
+        await this.wait(turbo ? 320 + col * 35 : quick ? 700 + col * 65 : 1250 + col * 130);
         rolling.cancel(); this.animations.delete(rolling);
         if (generation !== this.generation) return;
         cells.forEach((cell, row) => this.update(cell, grid[(row % 5) * 6 + col]));
@@ -111,7 +116,7 @@ window.SkygateReels = class {
           {transform: 'translate3d(0,-62%,0)', offset: 0},
           {transform: 'translate3d(0,-49.3%,0)', offset: .78},
           {transform: 'translate3d(0,-50%,0)', offset: 1}
-        ], {duration: turbo ? 150 : quick ? 220 : 320, easing: 'cubic-bezier(.16,.7,.28,1)'}));
+        ], {duration: turbo ? 200 : quick ? 320 : 480, easing: 'cubic-bezier(.16,.7,.28,1)'}));
       }));
     } finally {
       this.root.classList.remove('rolling'); this.render(grid); this.target = null;
@@ -128,7 +133,7 @@ window.SkygateReels = class {
     const clear = () => {for (const a of active) {a.cancel(); this.animations.delete(a);} active.length = 0;};
     try {
       this.root.dataset.fxPhase = 'charge';
-      const chargeDuration=turbo ? 220 : quick ? 450 : 750;
+      const chargeDuration=turbo ? 400 : quick ? 800 : 1250;
       await Promise.all(selected.flatMap(i => {
         const {motion,fx}=this.cells[i];
         return [
@@ -139,16 +144,32 @@ window.SkygateReels = class {
       if (generation !== this.generation) return;
       clear();
       this.root.dataset.fxPhase = 'burst';
-      const duration = turbo ? 280 : quick ? 450 : 680;
-      await Promise.all(selected.flatMap(i => {
+      const duration = turbo ? 500 : quick ? 850 : 1300;
+      const fireworks=this.sparkAnimations(selected,duration,play);
+      await Promise.all([...fireworks,...selected.flatMap(i => {
         const {motion, fx} = this.cells[i];
         return [
           play(motion,[{transform:'scale(1)',opacity:1},{transform:'scale(1.06)',opacity:1,offset:.25},{transform:'scale(.7)',opacity:.75,offset:.55},{transform:'scale(.12)',opacity:0,offset:.8},{transform:'scale(.12)',opacity:0}],duration),
           play(fx.edge,[{opacity:1},{opacity:.5,offset:.4},{opacity:0}],duration),
           play(fx.burst,[{transform:'scale(.12) rotate(-8deg)',opacity:0},{transform:'scale(.55) rotate(0deg)',opacity:1,offset:.18},{transform:'scale(1.12) rotate(12deg)',opacity:.75,offset:.55},{transform:'scale(1.45) rotate(20deg)',opacity:0}],duration),
         ];
-      }));
+      })]);
     } finally {clear();this.root.dataset.fxPhase = 'idle';}
+  }
+  sparkAnimations(selected,duration,play){
+    const cw=(this.root.clientWidth||600)/6,ch=(this.root.clientHeight||500)/5,unit=Math.min(cw,ch);
+    return selected.flatMap((cell,index)=>Array.from({length:8},(_,ray)=>{
+      const node=this.sparks[index*8+ray],angle=ray*Math.PI/4+index*.37,reach=unit*(.8+(ray%3)*.24);
+      node.style.left=((cell%6+.5)/6*100)+'%';node.style.top=((Math.floor(cell/6)+.5)/5*100)+'%';
+      const dx=Math.cos(angle)*reach,dy=Math.sin(angle)*reach;
+      return play(node,[
+        {transform:'translate3d(0,0,0) scale(.25)',opacity:0},
+        {transform:'translate3d(0,0,0) scale(.25)',opacity:0,offset:.22},
+        {transform:`translate3d(${dx*.35}px,${dy*.35}px,0) scale(1)`,opacity:1,offset:.42},
+        {transform:`translate3d(${dx}px,${dy+unit*.3}px,0) scale(.65)`,opacity:.8,offset:.75},
+        {transform:`translate3d(${dx*1.15}px,${dy+unit*.65}px,0) scale(.15)`,opacity:0}
+      ],duration,'linear');
+    }));
   }
   async cascade(before, after, {turbo = false, quick = false, reduced = false} = {}) {
     this.target = after;
@@ -163,7 +184,7 @@ window.SkygateReels = class {
         return this.finish(this.animate(this.cells[i].motion, [
           {transform: `translate3d(0,${rows * 100}%,0)`, opacity: old === undefined ? .2 : 1},
           {transform: 'translate3d(0,0,0)', opacity: 1}
-        ], {duration: turbo ? 150 : quick ? 280 : 440, delay: turbo ? 0 : (i % 6) * (quick ? 7 : 12),
+        ], {duration: turbo ? 220 : quick ? 420 : 650, delay: turbo ? 0 : (i % 6) * (quick ? 7 : 12),
           easing: 'cubic-bezier(.2,.7,.25,1)', fill: 'backwards'}));
       }));
     } finally {this.target = null;}

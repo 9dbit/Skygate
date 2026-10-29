@@ -1,13 +1,31 @@
 /* One immutable release per page load; existing rounds never hot-swap math. */
 (() => {
   'use strict';
+  if(typeof location!=='undefined'&&location.pathname==='/studio/editor-preview/'){
+    window.SkygatePreview=true;window.SkygateEditorPreview=true;
+    window.SkygateReleaseReady=new Promise(resolve=>{
+      const receive=event=>{
+        if(event.source!==window.parent||event.origin!==location.origin||event.data?.type!=='skygate-editor-state')return;
+        const {project,assets}=event.data;
+        if(!project||!Array.isArray(project.layers)||!project.math)return;
+        window.removeEventListener('message',receive);
+        window.SKY_PREVIEW_ASSETS=assets||{};
+        window.SkygateActiveRelease={id:'editor-draft',createdAt:new Date().toISOString(),project,overrides:{}};
+        resolve();
+      };
+      window.addEventListener('message',receive);
+      window.parent.postMessage({type:'skygate-editor-request'},location.origin);
+    });
+    return;
+  }
   if(window.SKY_PREVIEW_ASSETS)return;
   const preview=location.pathname==='/studio/preview/';
   const id=new URLSearchParams(location.search).get('revision');
+  const previewLive=preview&&new URLSearchParams(location.search).get('live')==='1';
   window.SkygatePreview=preview;
   window.SkygateReleaseReady=(async()=>{
-    if(preview&&!/^[a-f0-9-]{36}$/.test(id||''))throw Error('Pilih snapshot preview dari Studio.');
-    const response=await fetch(preview?'/studio/api/releases/'+id:'/play/release.json',{cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(12000)});
+    if(preview&&!previewLive&&!/^[a-f0-9-]{36}$/.test(id||''))throw Error('Pilih snapshot preview dari Studio.');
+    const response=await fetch(preview&&!previewLive?'/studio/api/releases/'+id:'/play/release.json',{cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(12000)});
     if(!response.ok)throw Error('Versi game belum dapat dimuat. Muat ulang halaman.');
     window.SkygateActiveRelease=await response.json();
   })();

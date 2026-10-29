@@ -2,14 +2,19 @@
 
 Greek-mythology-inspired **virtual-credit** game development playground. Includes a layout studio, modular icon assets, original music and sound effects, math experimentation, free spins, and simulated jackpot controls. This is not connected to deposits, withdrawals, or real-money gambling.
 
-### Current release: v0.10.2 — gold chrome and readable motion
+### Current release: v0.11.0 — shared Studio renderer and fireworks
 
+- Studio opens the current Live snapshot in the same gameplay renderer. Edit/Playtest also use that renderer with local draft data; selection handles are the only editor overlay.
+- Live and local Draft are labeled separately. Edit Live exports an existing draft ZIP before restoring the published project/assets; opening Studio never overwrites local work. Publish remains explicit.
+- Normal reels settle in about 2.38 s; winning cells charge for 1.25 s, burst for 1.30 s, and tumble for 650 ms. Gold/white/orange fireworks spread across cell borders from winning cells, using a reusable 240-spark pool.
 - Shared obsidian/gold panels with sapphire actions across rules, settings, bet, autoplay, purchase, history and bonus screens.
 - Main-screen Menu / Bet / Volume / Rules controls have labeled 44×46 px touch targets.
 - A bottom fade overlays the background with black at up to 30% opacity, beneath functional controls.
 - The existing gold wordmark is paired with a live sapphire-blue 5000 submark.
 - Winning symbols vibrate during the lightning charge. Lightning is anchored to the cell perimeter and stretched to its rectangular geometry; it does not scale or vibrate with the artwork.
 - Reduced motion skips the charge/vibration/burst sequence. Existing game math and settlement are preserved.
+
+Validation for v0.11.0: 72 automated tests pass, including preview-parent origin validation, private preview routing, spark-pool cancellation, reduced motion, seeded outcomes and settlement. Chromium compares the Studio Live and public game geometry at equal viewport size, edits and playtests a restored Live draft, and verifies draft preservation after reload. Physical iPhone/audio testing remains pending.
 
 ### v0.9.0 behavior — 29 October 2026 (Asia/Jakarta)
 
@@ -47,7 +52,7 @@ Go to `http://localhost:3000` after starting the server. `npm start` requires No
 
 All logic is readable/editable in `studio/*.js`, `studio/math/`, `studio/index.html` and `studio/studio.css`. Individual PNG, SVG, JPEG, OGG and MP3 files load from `studio/assets/`. PNG/JPEG/OGG masters are collected in a **lossless tar archive** and iPhone-compatible MP3 backups in `audio_mp3.tar.gz` for the initial repository handoff; extracting it restores individual files. SVG assets and JSON manifests remain directly browsable on GitHub.
 
-The editor saves customizations in local browser storage; the demo does not synchronize project changes between browsers. Export JSON or ZIP to move your project changes. Studio settings are for **synthetic, auditable game math**, not per-player outcome manipulation. Real-money uses require legal review, licensing, independent game-math/RNG certification and server-side financial accounting.
+The editor saves customizations in local browser storage. Live loads the published snapshot across browsers; unpublished drafts remain local and are clearly labeled. Export JSON or ZIP to move your project changes. Studio settings are for **synthetic, auditable game math**, not per-player outcome manipulation. Real-money uses require legal review, licensing, independent game-math/RNG certification and server-side financial accounting.
 
 Documentation: `studio/README_STUDIO.md`, `studio/ASSET_CATALOG.md`, `studio/MATH_AND_JACKPOT.md`, `studio/CONTINUITY_CHECKPOINT_v0.3.md`.
 
