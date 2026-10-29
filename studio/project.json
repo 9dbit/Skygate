@@ -212,9 +212,9 @@
       "visible": true,
       "locked": false,
       "id": "antetext",
-      "name": "Ante Button Label",
+      "name": "Bonus Booster Label",
       "kind": "text",
-      "text": "ANTE BET  OFF",
+      "text": "Bonus Booster",
       "x": 590,
       "y": 1372,
       "w": 361,
@@ -635,7 +635,7 @@
     ]
   },
   "winPresentation": {
-    "smallX": 1.0,
+    "smallX": 1,
     "bigX": 10,
     "megaX": 25,
     "superX": 100
@@ -648,5 +648,10 @@
     "theme": "gold-purple",
     "showReference": false,
     "showGridGuides": false
+  },
+  "spinMotion": {
+    "normalMs": 1800,
+    "quickMs": 1150,
+    "turboMs": 650
   }
 }
