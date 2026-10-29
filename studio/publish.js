@@ -1,13 +1,13 @@
 (() => {
   'use strict';
   const E=id=>document.getElementById(id);
-  let inventory=null,selected=null,previewReady=false,busy=false;
+  let inventory=null,selected=null,previewReady=false,busy=false,previewKind='none',previewTimeout=null,previewSerial=0;
   const message=text=>E('releaseStatus').textContent=text;
   function controls(){
     E('prepareRelease').disabled=busy||!inventory?.available;
-    E('publishRelease').disabled=busy||!previewReady||!selected||selected===inventory?.active;
+    E('publishRelease').disabled=busy||previewKind!=='snapshot'||!previewReady||!selected||selected===inventory?.active;
     E('rollbackRelease').disabled=busy||!inventory?.available||(!inventory.active&&!inventory.previous);
-    E('loadRelease').disabled=busy||!previewReady||!selected;
+    E('loadRelease').disabled=busy||previewKind!=='snapshot'||!previewReady||!selected;
     E('closeRelease').disabled=busy;
   }
   async function api(path,body){
@@ -26,10 +26,36 @@
     if(!inventory.available)message('Penyimpanan rilis belum tersedia. Proyek lokal dan ekspor tetap dapat dipakai.');
     controls();
   }
-  function preview(id){
-    selected=id;previewReady=false;controls();E('previewLabel').textContent='Snapshot '+id.slice(0,8)+' · private preview';
-    E('releaseFrame').hidden=false;E('releaseFrame').src='/studio/preview/?revision='+id;
-    message('Memuat game preview. Periksa layout dan coba spin sebelum Publish.');
+  // Render a playable draft immediately. Staging remains an explicit action,
+  // so opening the dialog cannot exhaust the version archive.
+  function showPreview(kind,id=null){
+    clearTimeout(previewTimeout);
+    const serial=++previewSerial;
+    previewKind=kind;selected=kind==='snapshot'?id:null;previewReady=false;
+    const frame=E('releaseFrame');
+    frame.hidden=false;
+    if(kind==='draft'){
+      E('previewLabel').textContent='Draft saat ini · belum dipublish';
+      frame.src='/studio/editor-preview/?publish-draft='+serial;
+      message('Memuat preview Draft. Untuk publish, siapkan snapshot terlebih dahulu.');
+    }else{
+      E('previewLabel').textContent='Snapshot '+id.slice(0,8)+' · preview privat';
+      frame.src='/studio/preview/?revision='+id;
+      message('Memuat snapshot '+id.slice(0,8)+'…');
+    }
+    controls();
+    previewTimeout=setTimeout(()=>{
+      if(serial!==previewSerial||previewReady||!E('releaseDialog').open)return;
+      message('Preview belum siap. Periksa koneksi atau aset gambar. Tutup dan buka panel untuk mencoba ulang.');
+    },20000);
+  }
+  const preview=id=>showPreview('snapshot',id);
+  const draftPreview=()=>showPreview('draft');
+  function clearPreview(){
+    ++previewSerial;clearTimeout(previewTimeout);
+    selected=null;previewKind='none';previewReady=false;
+    E('releaseFrame').hidden=true;E('releaseFrame').src='about:blank';
+    controls();
   }
   async function run(task){
     if(busy)return;busy=true;controls();
@@ -49,10 +75,22 @@
   const base64=blob=>new Promise((yes,no)=>{const reader=new FileReader();reader.onload=()=>yes(reader.result.split(',')[1]);reader.onerror=()=>no(Error('Upload tidak dapat dibaca'));reader.readAsDataURL(blob);});
   E('releaseBtn').onclick=()=>{
     E('releaseDialog').showModal();
-    void run(async()=>{await refresh();if(inventory.available)message('Siapkan preview dari proyek lokal atau pilih versi tersimpan.');});
+    draftPreview();
+    void run(async()=>{await refresh();});
   };
-  E('closeRelease').onclick=()=>{E('releaseDialog').close();E('releaseFrame').src='about:blank';previewReady=false;controls();};
-  E('releaseDialog').addEventListener('cancel',event=>{if(busy)event.preventDefault();else{E('releaseFrame').src='about:blank';previewReady=false;}});
+  E('closeRelease').onclick=()=>{E('releaseDialog').close();clearPreview();};
+  E('releaseDialog').addEventListener('cancel',event=>{if(busy)event.preventDefault();else clearPreview();});
+  E('releaseFrame').addEventListener('error',()=>{
+    if(previewKind!=='none'&&E('releaseDialog').open)message('Preview gagal dimuat. Periksa koneksi lalu buka ulang panel.');
+  });
+  E('releaseFrame').addEventListener('load',()=>{
+    const frame=E('releaseFrame');
+    if(previewKind==='none'||!E('releaseDialog').open||frame.hidden)return;
+    // A 401/404 page may fire "load" but contains no game. Surface it here.
+    try{if(frame.contentDocument&&!frame.contentDocument.querySelector('.game')){
+      clearTimeout(previewTimeout);message('Halaman preview tidak tersedia. Periksa akses Studio dan muat ulang.');
+    }}catch{message('Preview tidak dapat diakses. Pastikan Studio dan game menggunakan domain yang sama.');}
+  });
   E('prepareRelease').onclick=()=>void run(async()=>{
     message('Menyiapkan snapshot dan aset…');
     const bundle=await window.SKYGATE_STUDIO.getPublishBundle();const overrides={};let total=0;
@@ -67,8 +105,26 @@
     const result=await api('releases',{project:bundle.project,overrides});await refresh();preview(result.id);
   });
   window.addEventListener('message',event=>{
-    if(event.origin!==location.origin||event.source!==E('releaseFrame').contentWindow||event.data?.type!=='skygate-preview-ready'||event.data.id!==selected)return;
-    previewReady=true;message('Preview siap. Snapshot ini dapat dipublikasikan setelah Anda memeriksanya.');controls();
+    if(event.origin!==location.origin||event.source!==E('releaseFrame').contentWindow||previewKind==='none'||!E('releaseDialog').open)return;
+    if(event.data?.type==='skygate-editor-request'&&previewKind==='draft'){
+      const serial=previewSerial;
+      void Promise.resolve(window.SKYGATE_STUDIO.ready).then(()=>{
+        if(previewKind!=='draft'||serial!==previewSerial||event.source!==E('releaseFrame').contentWindow)return;
+        event.source.postMessage({type:'skygate-editor-state',...window.SKYGATE_STUDIO.getPreviewData()},location.origin);
+      }).catch(error=>message('Draft tidak dapat ditampilkan: '+error.message));
+      return;
+    }
+    if(event.data?.type==='skygate-preview-error'){
+      clearTimeout(previewTimeout);previewReady=false;
+      message('Preview gagal: '+String(event.data.message||'Aset game belum dapat dimuat')+'. Coba lagi.');
+      controls();return;
+    }
+    if(event.data?.type!=='skygate-preview-ready'||event.data.id!==(previewKind==='draft'?'editor-draft':selected))return;
+    clearTimeout(previewTimeout);previewReady=true;
+    message(previewKind==='draft'
+      ?'Preview Draft siap. Untuk publish perubahan, klik Siapkan preview proyek ini.'
+      :'Snapshot siap. Periksa game, lalu klik Publish snapshot ke game.');
+    controls();
   });
   E('publishRelease').onclick=()=>void run(async()=>{
     message('Menerbitkan snapshot…');await api('publish',{id:selected,expectedActive:inventory.active});await refresh();window.dispatchEvent(new Event('skygate-live-changed'));message('Snapshot sudah live. Buka atau muat ulang game untuk melihat versi baru.');
