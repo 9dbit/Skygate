@@ -37,6 +37,27 @@ window.SkygateApplyLayout=(project,asset)=>{
   if(project.presentation==='olympus-gold')game.classList.add('olympus-gold');
   const cropImage=(img,c)=>{if(c)Object.assign(img.style,{position:'absolute',left:-c.x/c.w*100+'%',top:-c.y/c.h*100+'%',width:100/c.w+'%',height:100/c.h+'%',objectFit:'fill'});};
   const bindings={winamount:'win',credits:'credits',betlabel:'betText',reels:'reels',spinbutton:'spin',autobtn:'auto',turbobtn:'turbo',menubtn:'menu',soundbtn:'sound',infobtn:'help',minusbtn:'minus',plusbtn:'plus',autolabel:'autoStatus',turbolabel:'turboStatus'};
+
+  // Presentation-only metal shells: derive geometry from the editable control
+  // layers. Neither the saved Live release nor local Studio draft is rewritten.
+  const shown=id=>project.layers.find(l=>l.id===id&&l.visible!==false&&l.opacity>0);
+  const boardArt=shown('controlboard'),creditArt=shown('credits'),betArt=shown('betlabel');
+  const minusArt=shown('minusbtn'),plusArt=shown('plusbtn');
+  const rect=(layers,padX,padY)=>{
+    const x=Math.max(0,Math.min(...layers.map(l=>l.x))-padX);
+    const y=Math.max(0,Math.min(...layers.map(l=>l.y))-padY);
+    const right=Math.min(1080,Math.max(...layers.map(l=>l.x+l.w))+padX);
+    const bottom=Math.min(1920,Math.max(...layers.map(l=>l.y+l.h))+padY);
+    return {x,y,w:right-x,h:bottom-y};
+  };
+  let splitPanels=null;
+  if(project.presentation==='olympus-gold'&&boardArt&&creditArt&&betArt&&minusArt&&plusArt){
+    const credit=rect([creditArt],28,18),bet=rect([minusArt,betArt,plusArt],20,12);
+    if(credit.x+credit.w+20<bet.x &&
+       Math.max(credit.y,bet.y)<Math.min(credit.y+credit.h,bet.y+bet.h)){
+      splitPanels={credit,bet,z:Math.max(1,Math.min(creditArt.z,betArt.z)-1)};
+    }
+  }
   const retired=new Set(['winlabel','virtual_note','buytext','freespins_sub','free_arrow','swirl_icon']);
   // Moving a button detaches its captions until the scene is appended. Capture
   // all bindings first so later caption layers retain their live DOM nodes.
@@ -47,6 +68,7 @@ window.SkygateApplyLayout=(project,asset)=>{
     if(retired.has(l.id)||(l.id==='antetext'&&project.math.reference_rules))continue;
     const wrap=document.createElement('div');wrap.className='published-layer '+l.kind+'-layer';wrap.dataset.layer=l.id;
     Object.assign(wrap.style,{left:l.x/1080*100+'%',top:l.y/1920*100+'%',width:l.w/1080*100+'%',height:l.h/1920*100+'%',zIndex:l.z,opacity:l.opacity/100,transform:`rotate(${l.rotate}deg)`,display:l.visible?'':'none',fontSize:(l.font||40)/1080*100+'cqw',color:l.color||'#ffe5af'});
+    if(l.id==='controlboard'&&splitPanels)wrap.style.visibility='hidden';
     const node=boundNodes[l.id];
     if(node){
       if(l.id==='credits'||l.id==='betlabel'){const label=document.createElement('span');label.textContent=l.id==='credits'?'CREDIT ': 'BET ';wrap.append(label);}
@@ -100,9 +122,26 @@ window.SkygateApplyLayout=(project,asset)=>{
         zIndex:Math.max(1,l.z-1),transform:'rotate('+(l.rotate||0)+'deg)'
       });
       fx.innerHTML="<svg viewBox=\"0 0 1000 680\" preserveAspectRatio=\"none\" xmlns=\"http://www.w3.org/2000/svg\" aria-hidden=\"true\"><g class=\"zeus-bolt zeus-bolt-one\"><path class=\"zeus-bolt-glow\" d=\"M888 -14 732 121 805 149 641 270 710 299 487 496 536 443 377 679\"/><path class=\"zeus-bolt-core\" d=\"M888 -14 732 121 805 149 641 270 710 299 487 496 536 443 377 679\"/><path class=\"zeus-bolt-branch\" d=\"M641 270 496 209 539 285 430 336 M487 496 345 529 400 563 258 618\"/></g><g class=\"zeus-bolt zeus-bolt-two\"><path class=\"zeus-bolt-glow\" d=\"M48 18 226 149 172 181 359 290 317 323 526 496 439 467 661 673\"/><path class=\"zeus-bolt-core\" d=\"M48 18 226 149 172 181 359 290 317 323 526 496 439 467 661 673\"/><path class=\"zeus-bolt-branch\" d=\"M359 290 452 222 422 302 537 342 M526 496 640 469 591 523 748 610\"/></g><g class=\"zeus-bolt zeus-bolt-three\"><path class=\"zeus-bolt-glow\" d=\"M552 -20 590 120 528 162 635 264 571 305 676 454\"/><path class=\"zeus-bolt-core\" d=\"M552 -20 590 120 528 162 635 264 571 305 676 454\"/></g></svg>";
+      // Layered cloud volumes share the guardian footprint, below Zeus.
+      fx.innerHTML='<span class="zeus-cloud-back"></span><span class="zeus-cloud-front"></span><span class="zeus-cloud-flash"></span>'+fx.innerHTML;
       scene.append(fx);
     }
     scene.append(wrap);
+  }
+
+  if(splitPanels){
+    for(const [name,bounds] of [['credit',splitPanels.credit],['bet',splitPanels.bet]]){
+      const shell=document.createElement('div');
+      shell.className='split-wallet-panel split-'+name+'-panel';
+      shell.dataset.fx='wallet-'+name;
+      shell.setAttribute('aria-hidden','true');
+      Object.assign(shell.style,{
+        left:bounds.x/1080*100+'%',top:bounds.y/1920*100+'%',
+        width:bounds.w/1080*100+'%',height:bounds.h/1920*100+'%',
+        zIndex:splitPanels.z
+      });
+      scene.append(shell);
+    }
   }
   const missingBet=['minusbtn','plusbtn'].filter(id=>!project.layers.some(l=>l.id===id));
   if(missingBet.length){const betControls=document.createElement('div');betControls.className='published-bet-controls';for(const id of missingBet)betControls.append(document.getElementById(bindings[id]));document.querySelector('.menu-actions').before(betControls);}
