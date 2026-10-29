@@ -405,3 +405,93 @@ dialog .dialog-body .confirm-actions button{font:700 11px Georgia!important;padd
 @media(prefers-reduced-motion:reduce){
   .spin .spin-rotor{animation:none!important;transform:none!important;will-change:auto}
 }
+
+/* SKYGATE v0.13.6 approved iPhone preview: reusable feature art, centered
+   sapphire-gold 1000x pill, and compact stationary-metal spin button.
+   Both public Game and Studio Live/Draft preview load this stylesheet. */
+
+/* Text remains live and accessible; the illustrated feature frame stays a
+   separate non-interactive layer beneath CREDIT, BET and both bet steppers. */
+.olympus-gold .split-wallet-panel,
+.olympus-gold .split-bet-panel{
+  border:0;border-radius:0;background:none;box-shadow:none;
+  overflow:hidden;isolation:isolate
+}
+.olympus-gold .split-wallet-panel::after{display:none}
+.olympus-gold .split-wallet-panel .wallet-skin{
+  position:absolute;display:block;inset:0;width:100%;height:100%;
+  pointer-events:none;object-fit:contain
+}
+
+/* The promo chip is centered at x=540 in the 1080px design coordinate system.
+   It clears the WIN banner and Zeus without covering any reel or control. */
+.olympus-gold .promo-badge{
+  top:20.8%;left:24%;width:52%;height:3.2%;min-height:0;
+  padding:.25cqw 2.6cqw;
+  display:flex;align-items:center;justify-content:center;gap:1.05cqw;
+  border:.26cqw solid #d6a754;border-radius:999px;
+  background:
+    linear-gradient(180deg,#304c67c9 0%,#051727ec 24%,#06121ff5 73%,#274056bf 100%);
+  box-shadow:0 .65cqw 1.25cqw #000c,
+    inset 0 0 0 .35cqw #07111b,
+    inset 0 0 0 .52cqw #c59c57,
+    inset 0 .4cqw .6cqw #bcecff1d;
+  white-space:nowrap;
+  color:#ffe3a1;
+  font:700 2.5cqw/1.1 Georgia,'Times New Roman',serif;
+  letter-spacing:.04em;text-shadow:0 .17cqw .28cqw #000;
+}
+.olympus-gold .promo-badge .promo-value{
+  font-size:3.45cqw;line-height:1;font-weight:900;
+  color:#f8e0a1;letter-spacing:.005em;
+  text-shadow:0 .18cqw .2cqw #000,0 0 .7cqw #dba84f55
+}
+.olympus-gold .promo-badge::before,.olympus-gold .promo-badge::after{
+  content:"";position:absolute;top:50%;
+  width:1.18cqw;height:1.18cqw;
+  border:.21cqw solid #e4c16e;
+  border-radius:.18cqw;
+  background:radial-gradient(circle at 25% 25%,#9cf1ff 0%,#239cff 40%,#043d91 81%);
+  box-shadow:0 0 .65cqw #3b9cffb3,0 0 0 .18cqw #081a2b;
+  transform:translateY(-50%) rotate(45deg);
+  pointer-events:none
+}
+.olympus-gold .promo-badge::before{left:2.1cqw}
+.olympus-gold .promo-badge::after{right:2.1cqw}
+.olympus-gold .promo-badge:focus-visible{outline:2px solid #e5d39d;outline-offset:3px}
+
+/* A 60%-diameter button retains its original center in the editable spinner
+   layer. The full parent geometry is unchanged, so old published snapshots
+   continue to work. The outer ring never rotates. */
+.olympus-gold .published-layer[data-layer="spinbutton"] #spin{
+  width:60%;height:60%;flex:0 0 auto;min-width:0;min-height:0;
+  border:.8cqw solid transparent;border-radius:50%;
+  background:
+    radial-gradient(circle at 49% 46%,#132637 0%,#06101e 50%,#10141d 72%,#070b10 100%) padding-box,
+    conic-gradient(from -35deg,#704015,#ffe5a0 9%,#b8792c 19%,#f4c970 33%,#55310e 45%,#e5b25a 58%,#fff0b9 72%,#996021 83%,#efc277 94%,#704015) border-box;
+  box-shadow:
+    inset 0 0 0 .45cqw #090d11,
+    inset 0 0 0 .78cqw #b58134,
+    inset 0 0 0 1.08cqw #2b170c,
+    inset 0 .8cqw 1.3cqw #e5b87115,
+    0 .2cqw 0 #f2d9908c,0 1.1cqw 2.2cqw #000c;
+  overflow:hidden;filter:drop-shadow(0 0 .9cqw #d1a1513b)
+}
+.olympus-gold .published-layer[data-layer="spinbutton"] #spin::before{
+  content:"";position:absolute;inset:5.7%;z-index:0;
+  border-radius:50%;border:.38cqw solid #c89544;
+  box-shadow:inset 0 0 0 .34cqw #0c1219,0 0 .65cqw #f2c56953;
+  pointer-events:none
+}
+.olympus-gold .published-layer[data-layer="spinbutton"] #spin::after{
+  content:"";position:absolute;left:26%;right:26%;top:7%;height:2%;
+  border-radius:50%;
+  background:linear-gradient(90deg,transparent,#f8dea0,transparent);
+  box-shadow:0 0 .6cqw #ffde9d66;
+  pointer-events:none
+}
+.olympus-gold .published-layer[data-layer="spinbutton"] #spin .spin-frame{display:none}
+.olympus-gold .published-layer[data-layer="spinbutton"] #spin .spin-rotor{z-index:1}
+@media(prefers-reduced-motion:reduce){
+  .olympus-gold .published-layer[data-layer="spinbutton"] #spin .spin-rotor{animation:none!important;will-change:auto}
+}
