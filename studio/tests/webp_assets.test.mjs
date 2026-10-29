@@ -68,7 +68,7 @@ test('browser optimizer maintains transparent canvas and adapts WebP output to s
     };
     return canvas;
   }};
-  class Image{constructor(){this.naturalWidth=2048;this.naturalHeight=1024;}async decode(){}}
+  class Image{constructor(){this.naturalWidth=Image.width||2048;this.naturalHeight=Image.height||1024;}async decode(){}}
   vm.runInNewContext(script,{window,document,URL:url,Blob,Image});
   const input=new Blob([new Uint8Array(23000)],{type:'image/png'});
   const output=await window.SkygateImageOptimizer.encode(input,{key:'asset:custom/zeus_guardian.png',targetBytes:6000});
@@ -79,6 +79,7 @@ test('browser optimizer maintains transparent canvas and adapts WebP output to s
   assert(observed.qualities.length>1,'quality adapts');
   assert(observed.sizes.some(([w])=>w<2048),'resolution adapts only if necessary');
   assert.equal(observed.revoked,1,'blob URL revoked');
+  Image.width=512;Image.height=512;
   const saved=new Blob([new Uint8Array(1200)],{type:'image/webp'});
   assert.equal(await window.SkygateImageOptimizer.encode(saved,{key:'asset:symbols/ruby.png'}),saved,'already optimized WebP not re-encoded');
 });
