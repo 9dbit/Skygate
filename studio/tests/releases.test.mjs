@@ -118,3 +118,28 @@ test('Studio spin motion persists with snapshots, validates bounds and migrates 
   assert.throws(()=>validateProject(unordered),/order/);
   assert.deepEqual(copy().math,tuned.math,'editing presentation must never mutate outcome math');
 });
+
+test('HTTP WebP upload publishes versioned media with correct MIME and preserves private draft',async t=>{
+  const dir=await temp(t),base=await server(t,dir);
+  const authHeaders={Authorization:auth};
+  const info=await (await fetch(base+'/studio/api/releases',{headers:authHeaders})).json();
+  const raw=Buffer.from('UklGRnYAAABXRUJQVlA4WAoAAAAQAAAAAQAAAQAAQUxQSAUAAAAA/wD/gABWUDggSgAAANABAJ0BKgIAAgAAwBAloAJ0AQ74p/YAAP71Y/+1h6r/mv8D/Wn//jF7w5JqHsuzbF8QqFqwRwJK1Zun/3sF//uwX/+7Bf62AAAA','base64');
+  const record={project:copy(),overrides:{'asset:symbols/ruby.png':{mime:'image/webp',data:raw.toString('base64')}}};
+  const post=async(path,body)=>fetch(base+'/studio/api/'+path,{method:'POST',headers:{...authHeaders,Origin:base,'Content-Type':'application/json','X-Skygate-CSRF':info.csrf},body:JSON.stringify(body)});
+  const uploaded=await post('releases',record);assert.equal(uploaded.status,201);
+  const {id}=await uploaded.json();
+  const doc=await(await fetch(base+'/studio/api/releases/'+id,{headers:authHeaders})).json();
+  const file=doc.overrides['asset:symbols/ruby.png'].file;
+  assert.match(file,/\.webp$/);
+  assert.equal((await fetch(base+'/play/media/'+file)).status,404,'draft image must stay private');
+  const privateFile=await fetch(base+'/studio/api/media/'+file,{headers:authHeaders});
+  assert.equal(privateFile.headers.get('Content-Type'),'image/webp');
+  assert.deepEqual(Buffer.from(await privateFile.arrayBuffer()),raw);
+  assert.equal((await post('publish',{id,expectedActive:null})).status,200);
+  const publicFile=await fetch(base+'/play/media/'+file);
+  assert.equal(publicFile.status,200);
+  assert.equal(publicFile.headers.get('Content-Type'),'image/webp');
+  assert.equal(publicFile.headers.get('X-Content-Type-Options'),'nosniff');
+  assert.deepEqual(Buffer.from(await publicFile.arrayBuffer()),raw);
+  assert.equal((await post('rollback',{expectedActive:id})).status,200);
+});
