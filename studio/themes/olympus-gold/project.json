@@ -771,6 +771,7 @@
     "megaX": 25,
     "superX": 100
   },
+  "spinMotion": {"normalMs": 1800, "quickMs": 1150, "turboMs": 650},
   "targetRTP": 96.5,
   "seed": 20261027,
   "bet": 2,
