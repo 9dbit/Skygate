@@ -357,9 +357,10 @@ function startSkygate() {
   if(!window.SkygateBoot && preferences.intro && !window.SkygatePreview){let seen=false;try{seen=window.sessionStorage?.getItem('skygate-intro-seen');window.sessionStorage?.setItem('skygate-intro-seen','1');}catch{}if(!seen)void showHome();}
   if(window.SkygateBoot){
     const scene=document.querySelector('.published-scene') || document.querySelector('.game');
-    const images=[...scene.querySelectorAll('img'), ...document.querySelectorAll('#bootSplash img')];
-    const symbols=Object.values(art).map(name=>asset('symbols/'+name+'.png'));
-    void window.SkygateBoot.ready(images,symbols).then(()=>{
+    // The reel renderer pre-decodes each unique symbol texture separately.
+    // Waiting for all 60 tiles, FX and dormant fireworks delays first paint.
+    const images=window.SkygateBoot.critical([...scene.querySelectorAll('img'), ...document.querySelectorAll('#bootSplash img')]);
+    void window.SkygateBoot.ready(images).then(()=>{
       if(window.SkygatePreview)window.parent.postMessage({type:'skygate-preview-ready',id:release?.id||'bundled'},location.origin);
     }).catch(error=>window.SkygateBoot.fail(error));
   }else if(window.SkygatePreview){
