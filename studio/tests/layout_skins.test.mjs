@@ -97,9 +97,9 @@ test('game splash and dialog artwork fall back to shipped assets without a live 
   vm.runInNewContext(read('play/release.js'),{window,document});
   window.SkygateSyncChrome(null,path=>'assets/'+path);
   assert.equal(image.src,'assets/scene/logo.png');
-  assert.match(properties['--sg-action-image'],/assets\\/ui\\/confirmation-panel-v1\\.png/);
+  assert.ok(properties['--sg-action-image'].includes('assets/ui/confirmation-panel-v1.png'));
   const live=preset();
   window.SkygateSyncChrome(live,path=>'assets/'+path);
   assert.equal(image.src,'assets/'+live.layers.find(l=>l.id==='logo').asset);
-  assert.match(properties['--sg-action-image'],/assets\\/custom\\/feature_panel\\.png/);
+  assert.ok(properties['--sg-action-image'].includes('assets/custom/feature_panel.png'));
 });
