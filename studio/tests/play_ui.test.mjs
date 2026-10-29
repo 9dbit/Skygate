@@ -186,3 +186,16 @@ test('returning from background restores Home without starting audio or a round'
   assert.equal(plays,0,lifecycle);assert.equal(ui.state().credits,100000,lifecycle);
  }
 });
+
+test('Bonus Booster label and accessible description agree with the unchanged +25% stake',async()=>{
+  assert.match(read('play/index.html'),/Bonus Booster <b id="antePrice">/);
+  assert.match(read('play/index.html'),/BONUS BOOSTER & BUY SPIN/);
+  const ui=boot();
+  await ui.click('anteFeature');
+  assert.equal(ui.state().ante,true);
+  assert.equal(ui.state().bet,2);
+  assert.equal(ui.nodes.get('antePrice').textContent,'2.50');
+  assert.match(ui.nodes.get('anteFeature').attributes['aria-label'],/Bonus Booster aktif/);
+  assert(ui.nodes.get('buyFeature').disabled);
+  assert.match(ui.nodes.get('anteRulesNote').textContent,/Bonus Booster/);
+});

@@ -20,7 +20,7 @@ function startSkygate() {
   const label = {ruby:'Ruby', sapphire:'Sapphire', emerald:'Emerald', amethyst:'Amethyst', topaz:'Topaz', amber:'Ring', pearl:'Chalice', scatter:'Scatter Crown', orb:'Multiplier Orb'};
   Object.assign(label,{ring:'Ring',crown:'Crown',hourglass:'Hourglass',chalice:'Chalice'});
   if(published)Object.assign(label,{amber:'Amber',pearl:'Pearl'});
-  const reels=new window.SkygateReels(E('reels'),{asset,art,label,legacyOrb:!published});
+  const reels=new window.SkygateReels(E('reels'),{asset,art,label,legacyOrb:!published,motion:published?.spinMotion});
   const initialSeed = published?.seed || 20261027;
   const startingCredit=published?.credit || 100000;
   const thresholds=published?.winPresentation || {bigX:10,megaX:25,superX:100};
@@ -164,7 +164,7 @@ function startSkygate() {
   async function runRound(replay=false,buyBonus=false) {
     if (state.busy) return;
     const cost=buyBonus?Settings.money(state.bet*100):totalBet();
-    if(buyBonus && state.ante){status('Matikan Ante Bet untuk membeli Free Spins.');return;}
+    if(buyBonus && state.ante){status('Matikan Bonus Booster untuk membeli Free Spins.');return;}
     if (!replay && state.credits<cost) {status('Kredit tidak cukup. Reset kredit melalui menu.');return;}
     if (replay && !state.last) {status('Belum ada ronde untuk replay.');return;}
     state.busy=true;suspended=document.hidden;
@@ -243,10 +243,10 @@ function startSkygate() {
     for(const id of ['totalBet','settingsTotal'])E(id).textContent=credit(totalBet());
     E('buyBaseBet').textContent=credit(base);E('buyPrice').textContent=credit(base*100);E('confirmBuyPrice').textContent=credit(base*100);
     E('buyBundleInfo').textContent=cfg.bonus_start_spins+' FREE SPINS · 100× BASE BET · KREDIT VIRTUAL';E('antePrice').textContent=credit(Settings.total(state.level,state.coin,true));E('anteState').textContent=state.ante?'ON':'OFF';
-    E('anteFeature').setAttribute('aria-label','Ante Bet '+(state.ante?'aktif':'nonaktif')+'. Biaya spin +25% menjadi '+credit(Settings.total(state.level,state.coin,true))+'. BUY SPIN tidak tersedia saat aktif.');E('anteFeature').setAttribute('aria-pressed',String(state.ante));E('anteFeature').classList.toggle('selected',state.ante);
+    E('anteFeature').setAttribute('aria-label','Bonus Booster '+(state.ante?'aktif':'nonaktif')+'. Biaya spin +25% menjadi '+credit(Settings.total(state.level,state.coin,true))+'. BUY SPIN tidak tersedia saat aktif.');E('anteFeature').setAttribute('aria-pressed',String(state.ante));E('anteFeature').classList.toggle('selected',state.ante);
     E('buyFeature').disabled=locked()||state.ante;E('anteFeature').disabled=locked();E('betMenu').disabled=locked();
     E('confirmBuy').disabled=locked()||state.ante||state.credits<base*100;
-    E('buyMessage').textContent=state.ante?'BUY SPIN tidak tersedia ketika Ante ON.':state.credits<base*100?'Kredit tidak cukup untuk pembelian ini.':'';
+    E('buyMessage').textContent=state.ante?'BUY SPIN tidak tersedia ketika Bonus Booster aktif.':state.credits<base*100?'Kredit tidak cukup untuk pembelian ini.':'';
     for(const id of ['levelMinus','levelPlus','coinMinus','coinPlus','totalMinus','totalPlus','settingsMinus','settingsPlus','buyMinus','buyPlus','betMax'])E(id).disabled=locked();
     E('levelMinus').disabled=locked()||state.level<=1;
     E('levelPlus').disabled=locked()||state.level>=10||Settings.total(state.level+1,state.coin,state.ante)>300;
@@ -290,7 +290,7 @@ function startSkygate() {
     E('lockSetting').addEventListener('change',()=>{preferences.spinLocked=E('lockSetting').checked;savePreferences();refresh();});
     E('promoSetting').addEventListener('change',()=>{preferences.promotions=E('promoSetting').checked;savePreferences();refresh();});
     E('home').addEventListener('click',()=>void showHome());E('promoBadge').addEventListener('click',()=>{if(!locked())void showHome();});
-    E('history').addEventListener('click',()=>{E('menuDialog').close();E('historyRows').innerHTML=state.history.length?state.history.map(h=>`<article class="history-entry"><b>ROUND ${h.round} · ${h.buy?'BUY SPIN':h.ante?'ANTE BET':'BASE SPIN'}</b><small>${h.time}${h.bonus?' · FREE SPINS':''}</small><span>BET ${credit(h.cost)} · WIN ${credit(h.award)}</span></article>`).join(''):'Belum ada putaran.';E('historyDialog').showModal();});
+    E('history').addEventListener('click',()=>{E('menuDialog').close();E('historyRows').innerHTML=state.history.length?state.history.map(h=>`<article class="history-entry"><b>ROUND ${h.round} · ${h.buy?'BUY SPIN':h.ante?'BONUS BOOSTER':'BASE SPIN'}</b><small>${h.time}${h.bonus?' · FREE SPINS':''}</small><span>BET ${credit(h.cost)} · WIN ${credit(h.award)}</span></article>`).join(''):'Belum ada putaran.';E('historyDialog').showModal();});
     for(const id of ['credits','betText']){const node=E(id);node.setAttribute('role','button');node.setAttribute('tabindex','0');node.setAttribute('aria-label','Ganti tampilan kredit atau koin');const toggle=()=>{preferences.coinsView=!preferences.coinsView;savePreferences();refresh();};node.addEventListener('click',toggle);node.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle();}});}
     let drag=null;
     E('spin').addEventListener('pointerdown',e=>{
@@ -347,7 +347,7 @@ function startSkygate() {
   E('paytable').innerHTML=Object.entries(cfg.paytable).map(([kind,values])=>`<tr><td><img src="${asset('symbols/'+art[kind]+'.png')}" alt="">${label[kind]}</td>${values.map(n=>`<td>${n}×</td>`).join('')}</tr>`).join('');
   E('bonusRulesText').textContent=`Hadiah ${cfg.bonus_start_spins} free spins diperoleh dari hasil spin dengan ${cfg.bonus_trigger_scatters}+ SCATTER dan berjalan otomatis. Di dalam bonus, ${cfg.bonus_retrigger_scatters}+ SCATTER memberi tambahan ${cfg.bonus_retrigger_add_spins} putaran. Orb mengalikan kemenangan simbol; pengalinya terkumpul selama bonus hanya pada putaran menang dengan orb baru. Pengali tersimpan diterapkan lagi jika putaran menang juga memunculkan orb baru. Bonus memakai bobot simbol terpisah.`;
   E('orbRules').textContent='Nilai orb: '+cfg.multiplier_values.map(n=>n+'×').join(', ')+'.';
-  E('anteRulesNote').textContent=(cfg.ante_scatter_weight_multiplier>1?'Ante memakai bobot SCATTER lebih tinggi untuk putaran dasar. ':'Profil SCATTER Ante mengikuti pengaturan Studio. ')+'Biaya naik 25%; ini tidak menjamin bonus atau kemenangan. Contoh: base bet 2,00 menjadi 2,50 per spin. Matikan Ante untuk menggunakan BUY SPIN.';
+  E('anteRulesNote').textContent=(cfg.ante_scatter_weight_multiplier>1?'Bonus Booster memakai bobot SCATTER lebih tinggi untuk putaran dasar. ':'Profil SCATTER Bonus Booster mengikuti pengaturan Studio. ')+'Biaya naik 25%; ini tidak menjamin bonus atau kemenangan. Contoh: base bet 2,00 menjadi 2,50 per spin. Matikan Bonus Booster untuk menggunakan BUY SPIN.';
   if(cfg.scatter_paytable)E('paytable').innerHTML+=`<tr><td>SCATTER</td><td colspan="3">4 = 3× · 5 = 5× · 6+ = 100×</td></tr>`;
   E('capText').textContent=`Maksimum ${cfg.round_max_win_x.toLocaleString('id-ID')}× base bet per ronde. Saat batas tercapai, ronde langsung berakhir dan sisa fitur dibatalkan. Total bet 0,20–300,00 kredit virtual. Gangguan perhitungan membatalkan ronde; gangguan animasi tetap membayar hasil yang telah dihitung. Kecepatan dan autoplay tidak mengubah peluang. Tidak ada deposit atau penarikan.`;
   E('releaseInfo').textContent=release?`Versi ${release.id.slice(0,8)} · ${new Date(release.createdAt).toLocaleDateString('id-ID')}`:'SKYGATE · Original celestial artwork';

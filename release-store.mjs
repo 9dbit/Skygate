@@ -5,6 +5,7 @@ import math from './studio/math/engine.js';
 import studioMath from './studio/math/studio_math.js';
 
 export const symbols = ['ruby','sapphire','emerald','amethyst','topaz','amber','pearl','ring','crown','hourglass','chalice','orb','scatter'];
+export const defaultSpinMotion = Object.freeze({normalMs:1800,quickMs:1150,turboMs:650});
 export const tracks = ['bgm_celestial_loop','spin_start','reel_stop','tumble','symbol_win','multiplier','bonus_intro','free_spin_start','big_win','mega_win','jackpot','ui_click','ambient_thunder'];
 export const shippedAssets = [
   ...symbols.map(x=>`symbols/${x}.png`),
@@ -85,7 +86,13 @@ export function validateProject(input, overrideKeys=[]){
   const audioTracks=p.tracks.map(t=>{if(!tracks.includes(t.id))fail('Unknown track');return {id:t.id,name:str(t.name,80,'track name'),loop:!!t.loop,volume:num(t.volume,0,100,'track volume'),fade:num(t.fade,0,5000,'audio fade')};});
   const winPresentation=Object.fromEntries(['smallX','bigX','megaX','superX'].map(k=>[k,num(p.winPresentation?.[k],0,100000,k)]));
   if(!(winPresentation.smallX<=winPresentation.bigX&&winPresentation.bigX<=winPresentation.megaX&&winPresentation.megaX<=winPresentation.superX))fail('Win thresholds must increase');
-  return {schema:p.schema,projectName:str(p.projectName||'SKYGATE',80,'project name'),presentation:p.presentation==='olympus-gold'?'olympus-gold':'classic',virtualCreditsOnly:true,stage:{width:1080,height:1920},layers,grid:[...p.grid],math:config,jackpot,audio,tracks:audioTracks,winPresentation,seed:integer(p.seed,1,4294967295,'seed'),bet:num(p.bet,.2,300,'bet'),credit:num(p.credit,1,100000000,'starting credit')};
+  // Independent visual-only reel durations; no outcome weights are affected.
+  const requested=p.spinMotion??defaultSpinMotion;
+  if(!requested||typeof requested!=='object'||Array.isArray(requested))fail('Invalid spin timing');
+  const spinMotion=Object.fromEntries(Object.entries({normalMs:[1200,3500],quickMs:[750,2300],turboMs:[420,1300]}).map(([key,[min,max]])=>
+    [key,integer(requested[key]??defaultSpinMotion[key],min,max,key)]));
+  if(!(spinMotion.normalMs>spinMotion.quickMs&&spinMotion.quickMs>spinMotion.turboMs))fail('Spin timing order must be NORMAL > QUICK > TURBO');
+  return {schema:p.schema,projectName:str(p.projectName||'SKYGATE',80,'project name'),presentation:p.presentation==='olympus-gold'?'olympus-gold':'classic',virtualCreditsOnly:true,stage:{width:1080,height:1920},layers,grid:[...p.grid],math:config,jackpot,audio,tracks:audioTracks,winPresentation,spinMotion,seed:integer(p.seed,1,4294967295,'seed'),bet:num(p.bet,.2,300,'bet'),credit:num(p.credit,1,100000000,'starting credit')};
 }
 
 function decodeOverride(key,item){

@@ -97,3 +97,11 @@
 .stage.shared-renderer #stageOverlay:empty{pointer-events:none}
 .canvas-source{margin:0;padding:8px 16px;color:#dfc686;font:11px/1.5 system-ui;background:#171b20;border-bottom:1px solid #93733c44}
 .stage-controls{flex-wrap:wrap}aside[inert]{opacity:.55}
+
+/* Live Studio reel timing editor uses the same compact, gold slider language. */
+.motion-sliders{display:grid;gap:14px;margin:16px 0 8px}
+.spin-speed-field{min-width:0}
+.spin-speed-field .field-label{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.spin-speed-field [data-motion-readout]{font-variant-numeric:tabular-nums;font-weight:800;color:var(--gold2);font-size:15px;white-space:nowrap}
+.spin-speed-field input[type=range]{width:100%;margin:6px 0 0;accent-color:var(--gold);cursor:pointer;touch-action:pan-x}
+@media(max-width:600px){.motion-sliders{gap:10px}.spin-speed-field [data-motion-readout]{font-size:14px}}

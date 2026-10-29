@@ -2,7 +2,15 @@
 
 Greek-mythology-inspired **virtual-credit** game development playground. Includes a layout studio, modular icon assets, original music and sound effects, math experimentation, free spins, and simulated jackpot controls. This is not connected to deposits, withdrawals, or real-money gambling.
 
-### Current release: v0.12.1 — fast first paint, fixed spinner frame and smooth reel stops
+### Current release: v0.13.0 — Bonus Booster and Studio-editable spin timing
+
+- Gameplay's Ante Bet feature is now branded **Bonus Booster** across the controls, help, history and accessible labels. The underlying +25% spin cost, bonus math, and Buy Spin restriction have not changed.
+- Default reel animation targets are faster: NORMAL **1,800 ms** (was ~2,550 ms), QUICK **1,150 ms** (was ~1,645 ms), TURBO **650 ms** (was ~745 ms). These are reel-only timings, not tumble or win effects.
+- In **Studio → Preview & Tests → Spin Speed**, edit NORMAL / QUICK / TURBO sliders. A draft's test renderer uses the edited timings. The server validates timings and includes them in a published snapshot; older snapshots get safe defaults.
+- Reel transforms and stepwise deceleration remain unchanged. Timing has no influence on predetermined math outcomes or virtual-credit settlement.
+- Full regression test and responsive Chromium QA are required for this release.
+
+### Previous release: v0.12.1 — fast first paint, fixed spinner frame and smooth reel stops
 
 - Studio opens the current Live snapshot in the same gameplay renderer. Edit/Playtest also use that renderer with local draft data; selection handles are the only editor overlay.
 - Live and local Draft are labeled separately. Edit Live exports an existing draft ZIP before restoring the published project/assets; opening Studio never overwrites local work. Publish remains explicit.
