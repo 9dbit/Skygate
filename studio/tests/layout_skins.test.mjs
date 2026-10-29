@@ -62,10 +62,9 @@ test('live layout keeps bet controls on canvas and moves Auto caption into its e
   assert.match(d.nodes.get('auto').className,/skinned-control/);
   assert.match(d.nodes.get('auto').querySelector('svg').innerHTML,/currentColor/);
   const scene=d.game.children.at(-1),logo=scene.children.find(n=>n.dataset.layer==='logo');
-  assert.equal(logo.children.length,1);
-  assert.equal(logo.children[0].src,'assets/custom/skygate-5000-approved.png');
-  assert.equal(logo.children[0].style.objectFit,'contain');
-  assert.match(logo.className,/brand-complete/);
+  assert.equal(logo.children[0].children[0].style.objectFit,'fill');
+  assert.equal(logo.children[1].textContent,'5000');
+  assert.equal(logo.children[1].className,'brand-number');
   assert.equal(d.nodes.get('anteFeature').children[0].className,'feature-skin');
 });
 
@@ -101,12 +100,14 @@ test('game splash and dialog artwork fall back to shipped assets without a live 
   assert.ok(properties['--sg-action-image'].includes('assets/ui/confirmation-panel-v1.png'));
   const live=preset();
   window.SkygateSyncChrome(live,path=>'assets/'+path);
-  assert.equal(image.src,'assets/custom/skygate-5000-approved.png');
+  assert.equal(image.src,'assets/'+live.layers.find(l=>l.id==='logo').asset);
   assert.ok(properties['--sg-action-image'].includes('assets/custom/feature_panel.png'));
 });
 
 test('approved logo overrides the original snapshot without changing saved art coordinates',()=>{
   const p=preset(),logo=p.layers.find(l=>l.id==='logo');
+  logo.asset='custom/skygate-5000-approved.png';
+  delete logo.crop;
   const originalAsset=logo.asset,position=[logo.x,logo.y,logo.w,logo.h];
   const d=dom();d.window.SkygateApplyLayout(p,path=>'assets/'+path);
   const scene=d.game.children.at(-1),rendered=scene.children.find(n=>n.dataset.layer==='logo');
@@ -127,9 +128,18 @@ test('approved logo on splash does not render a second 5000',()=>{
   const window={SKY_PREVIEW_ASSETS:{}};
   vm.runInNewContext(read('play/release.js'),{window,document});
   const project=preset();
+  project.layers.find(l=>l.id==='logo').asset='custom/skygate-5000-approved.png';
   window.SkygateSyncChrome(project,path=>'assets/'+path);
   assert.equal(brand.nodes['.brand-number'].hidden,true);
   assert.equal(brand.nodes.img.src,'assets/custom/skygate-5000-approved.png');
   assert.equal(brand.nodes.img.style.objectFit,'contain');
   assert.equal(brand.nodes['.brand-top'].style.inset,'0');
+});
+
+test('Studio replaces logo through its existing PNG picker without creating a second logo layer',()=>{
+  const script=read('studio/studio.js');
+  assert.match(script,/layer\?\.id==='logo'&&layer\.asset===asset/);
+  assert.match(script,/storeOverride\('asset:custom\/skygate-5000-approved\.png',f\)/);
+  assert.match(script,/delete layer\.crop/);
+  assert.match(script,/saveLocal\(\);render\(\)/);
 });
