@@ -13,6 +13,7 @@ function startSkygate() {
   const E = id => document.getElementById(id);
   const asset=path=>window.SKY_PREVIEW_ASSETS?.['assets/'+path] || (release?.overrides?.['asset:'+path]? (window.SkygatePreview?'/studio/api/media/':'/play/media/')+release.overrides['asset:'+path].file:'assets/'+path);
   if(published)window.SkygateApplyLayout(published,asset);
+  window.SkygateSyncChrome?.(published,asset);
   const art = {ruby:'ruby', sapphire:'sapphire', emerald:'emerald', amethyst:'amethyst', topaz:'topaz', amber:'ring', pearl:'chalice', scatter:'crown', orb:'orb'};
   Object.assign(art,{ring:'ring',crown:'crown',hourglass:'hourglass',chalice:'chalice'});
   if(published)Object.assign(art,{amber:'amber',pearl:'pearl',scatter:'scatter'});

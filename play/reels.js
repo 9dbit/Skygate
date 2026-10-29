@@ -26,7 +26,7 @@ window.SkygateReels = class {
         if (row >= 5) {
           this.cells[(row - 5) * 6 + column] = cell;
           cell.fx = {};
-          for (const name of ['edge','burst','spiral']) {
+          for (const name of ['edge','burst']) {
             const effect = document.createElement('img'); effect.className = 'cascade-fx fx-' + name;
             effect.src = window.SkygateCascadeArt[name]; effect.alt = ''; effect.draggable = false;
             effect.setAttribute('aria-hidden','true'); tile.append(effect); cell.fx[name] = effect;
@@ -102,8 +102,8 @@ window.SkygateReels = class {
       await Promise.all(this.columns.map(async ({track, cells}, col) => {
         const rolling = this.animate(track, [
           {transform: 'translate3d(0,-50%,0)'}, {transform: 'translate3d(0,0,0)'}
-        ], {duration: turbo ? 140 : quick ? 180 : 240, iterations: Infinity, easing: 'linear'});
-        await this.wait(turbo ? 100 + col * 16 : quick ? 210 + col * 30 : 360 + col * 55);
+        ], {duration: turbo ? 190 : quick ? 260 : 340, iterations: Infinity, easing: 'linear'});
+        await this.wait(turbo ? 180 + col * 24 : quick ? 360 + col * 42 : 660 + col * 80);
         rolling.cancel(); this.animations.delete(rolling);
         if (generation !== this.generation) return;
         cells.forEach((cell, row) => this.update(cell, grid[(row % 5) * 6 + col]));
@@ -111,7 +111,7 @@ window.SkygateReels = class {
           {transform: 'translate3d(0,-62%,0)', offset: 0},
           {transform: 'translate3d(0,-49.3%,0)', offset: .78},
           {transform: 'translate3d(0,-50%,0)', offset: 1}
-        ], {duration: turbo ? 100 : quick ? 150 : 230, easing: 'cubic-bezier(.16,.7,.28,1)'}));
+        ], {duration: turbo ? 150 : quick ? 220 : 320, easing: 'cubic-bezier(.16,.7,.28,1)'}));
       }));
     } finally {
       this.root.classList.remove('rolling'); this.render(grid); this.target = null;
@@ -128,7 +128,7 @@ window.SkygateReels = class {
     const clear = () => {for (const a of active) {a.cancel(); this.animations.delete(a);} active.length = 0;};
     try {
       this.root.dataset.fxPhase = 'charge';
-      const chargeDuration=turbo ? 95 : quick ? 190 : 320;
+      const chargeDuration=turbo ? 220 : quick ? 450 : 750;
       await Promise.all(selected.flatMap(i => {
         const {motion,fx}=this.cells[i];
         return [
@@ -139,14 +139,13 @@ window.SkygateReels = class {
       if (generation !== this.generation) return;
       clear();
       this.root.dataset.fxPhase = 'burst';
-      const duration = turbo ? 170 : quick ? 270 : 440;
+      const duration = turbo ? 280 : quick ? 450 : 680;
       await Promise.all(selected.flatMap(i => {
         const {motion, fx} = this.cells[i];
         return [
-          play(motion,[{transform:'scale(1)',opacity:1},{transform:'scale(1.12)',opacity:1,offset:.12},{transform:'scale(.12)',opacity:0,offset:.38},{transform:'scale(.12)',opacity:0}],duration),
+          play(motion,[{transform:'scale(1)',opacity:1},{transform:'scale(1.06)',opacity:1,offset:.25},{transform:'scale(.7)',opacity:.75,offset:.55},{transform:'scale(.12)',opacity:0,offset:.8},{transform:'scale(.12)',opacity:0}],duration),
           play(fx.edge,[{opacity:1},{opacity:.5,offset:.4},{opacity:0}],duration),
           play(fx.burst,[{transform:'scale(.12) rotate(-8deg)',opacity:0},{transform:'scale(.55) rotate(0deg)',opacity:1,offset:.18},{transform:'scale(1.12) rotate(12deg)',opacity:.75,offset:.55},{transform:'scale(1.45) rotate(20deg)',opacity:0}],duration),
-          play(fx.spiral,[{transform:'scale(.65) rotate(-40deg)',opacity:0},{transform:'scale(.9) rotate(0deg)',opacity:1,offset:.35},{transform:'scale(1.06) rotate(55deg)',opacity:.7,offset:.65},{transform:'scale(1.2) rotate(95deg)',opacity:0}],duration)
         ];
       }));
     } finally {clear();this.root.dataset.fxPhase = 'idle';}
@@ -164,7 +163,7 @@ window.SkygateReels = class {
         return this.finish(this.animate(this.cells[i].motion, [
           {transform: `translate3d(0,${rows * 100}%,0)`, opacity: old === undefined ? .2 : 1},
           {transform: 'translate3d(0,0,0)', opacity: 1}
-        ], {duration: turbo ? 95 : quick ? 180 : 290, delay: turbo ? 0 : (i % 6) * (quick ? 7 : 12),
+        ], {duration: turbo ? 150 : quick ? 280 : 440, delay: turbo ? 0 : (i % 6) * (quick ? 7 : 12),
           easing: 'cubic-bezier(.2,.7,.25,1)', fill: 'backwards'}));
       }));
     } finally {this.target = null;}

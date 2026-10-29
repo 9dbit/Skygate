@@ -2,7 +2,7 @@
 
 Greek-mythology-inspired **virtual-credit** game development playground. Includes a layout studio, modular icon assets, original music and sound effects, math experimentation, free spins, and simulated jackpot controls. This is not connected to deposits, withdrawals, or real-money gambling.
 
-### Current release: v0.10.0 — Skygate 5000
+### Current release: v0.10.2 — gold chrome and readable motion
 
 - Shared obsidian/gold panels with sapphire actions across rules, settings, bet, autoplay, purchase, history and bonus screens.
 - Main-screen Menu / Bet / Volume / Rules controls have labeled 44×46 px touch targets.
@@ -127,3 +127,12 @@ The Olympus preset is in `studio/themes/olympus-gold/project.json`. Its portable
 The supplied storm guardian and Soft Tech artwork form the loading screen, with soft logo zoom and gold lightning (disabled for reduced motion). The game stays hidden and inert from the initial HTML until the current release is applied and scene/symbol images have decoded. Play then reveals the latest scene directly, without a second intro. Snapshot, image, stylesheet, or startup failures retain the splash with Retry; late completion cannot unlock a timed-out load. Studio previews enter automatically after readiness. Home and bonus Continue dialogs are retained.
 
 Validation: 68 tests pass. Chromium checks cover 320×568, 390×844, 430×932 and 844×390, delayed snapshots/assets, fetch/image failures, successful retry, reduced motion and automatic Studio preview entry. Physical iOS testing is still pending.
+
+
+### v0.10.2 — gameplay artwork throughout the UI
+
+Splash uses the same published Skygate logo/crop as gameplay. Splash Play and popup primary actions reuse the published Buy Free Spins panel artwork; all dialogs, toggles and celebration cards use dark/gold surfaces. Initial splash references the immutable media already retained by the active release, and syncs to the current published logo/button assets during startup. Soft Tech remains below with gentle zoom.
+
+Normal spin now ends around 1.38 s, followed by a 750 ms winning-cell lightning charge and a 680 ms particle burst. The symbol remains visible for the first quarter of the burst and fades over its following 55%. Quick/Turbo remain faster but readable. Cascading symbols fall over 440 ms in Normal. Lightning is stationary at the rectangular cell boundary. Removed the spiral lightning texture and winning-symbol highlight contours. No math, credits or payout changes.
+
+Validation: 68 unit tests; browser checks for splash readiness, delayed/failing requests, retry, reduced motion and Studio preview; popup checks at 320/390/430 px and landscape splash. Physical iOS/audio testing remains outstanding.

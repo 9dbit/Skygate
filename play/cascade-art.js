@@ -24,11 +24,5 @@
     burst += `<path d="M${rounded(x)} ${rounded(y)}l${rounded(Math.cos(angle)*length)} ${rounded(Math.sin(angle)*length)}" stroke="${i%3?'#ffcf55':'#fff3b2'}" stroke-width="${i%3?1.5:2}" stroke-linecap="round"/>`;
     burst += `<circle cx="${rounded(x)}" cy="${rounded(y)}" r="${i%4?1:2}" fill="#fff7c7"/>`;
   }
-  let spiral = '';
-  for (let i = 0; i < 94; i++) {
-    const t = i / 93, angle = t * Math.PI * 4.4, radius = 3 + t * 44;
-    const jitter = Math.sin(i * 3.7) * 1.4;
-    spiral += `${i?'L':'M'}${rounded(64+Math.cos(angle)*(radius+jitter))} ${rounded(64+Math.sin(angle)*(radius+jitter))} `;
-  }
-  window.SkygateCascadeArt = {edge: svg(glowPath(edge)), burst: svg(burst), spiral: svg(glowPath(spiral, 1.1))};
+  window.SkygateCascadeArt = {edge: svg(glowPath(edge)), burst: svg(burst)};
 })();
