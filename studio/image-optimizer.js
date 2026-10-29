@@ -18,6 +18,8 @@
       try{await image.decode();}catch{throw Error('Gambar tidak dapat dibuka. Pilih PNG/JPG/WebP yang valid.');}
       const width=image.naturalWidth,height=image.naturalHeight;
       if(!width||!height)throw Error('Dimensi gambar tidak valid.');
+      // Reusing an already-optimized WebP avoids generational image loss.
+      if(blob.type==='image/webp'&&blob.size<=policy.targetBytes&&Math.max(width,height)<=policy.maxEdge)return blob;
       const scale=Math.min(1,policy.maxEdge/Math.max(width,height));
       const canvas=document.createElement('canvas');
       const context=canvas.getContext('2d',{alpha:true});
