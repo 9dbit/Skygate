@@ -37,6 +37,39 @@ try:
     else:
         raise RuntimeError("Skygate local test server never became healthy")
 
+    # A Home Screen install must fetch actual PNG files, not the historic 48px
+    # fallback. Validate server routing, MIME, dimensions and nonempty bytes.
+    import struct
+    icons = [
+        ("/play/icons/skygate-touch-48-v0139.png", 48),
+        ("/play/icons/skygate-touch-180-v0139.png", 180),
+        ("/play/icons/skygate-touch-192-v0139.png", 192),
+        ("/play/icons/skygate-touch-512-v0139.png", 512),
+        ("/play/icons/skygate-touch-maskable-512-v0139.png", 512),
+        ("/apple-touch-icon.png", 180),
+        ("/play/apple-touch-icon.png", 180),
+        ("/studio/apple-touch-icon.png", 180),
+    ]
+    for icon_path, expected_dimension in icons:
+        with urllib.request.urlopen(base + icon_path, timeout=10) as response:
+            assert response.status == 200, (icon_path, response.status)
+            assert response.headers.get_content_type() == "image/png", icon_path
+            payload = response.read()
+            assert payload[:8] == bytes.fromhex("89504e470d0a1a0a"), icon_path
+            assert struct.unpack(">II", payload[16:24]) == (expected_dimension, expected_dimension), icon_path
+            assert len(payload) > 5000, (icon_path, len(payload))
+    for path, start_url in [
+        ("/play/manifest.webmanifest", "/play/"),
+        ("/studio/manifest.webmanifest", "/studio/"),
+    ]:
+        with urllib.request.urlopen(base + path, timeout=10) as response:
+            assert response.status == 200
+            assert response.headers.get_content_type() == "application/manifest+json"
+            manifest = json.load(response)
+            assert manifest["start_url"] == start_url
+            assert any(icon["sizes"] == "192x192" for icon in manifest["icons"])
+            assert any(icon["sizes"] == "512x512" for icon in manifest["icons"])
+
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True, args=["--no-sandbox"])
         for width, height in [(320, 720), (390, 844), (430, 932)]:
