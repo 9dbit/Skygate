@@ -200,15 +200,36 @@ test('Bonus Booster label and accessible description agree with the unchanged +2
   assert.match(ui.nodes.get('anteRulesNote').textContent,/Bonus Booster/);
 });
 
-test('Skygate touch icon is the provided Zeus artwork and referenced by game, Studio and manifest',()=>{
-  const icon=readFileSync(resolve(root,'play/icons/skygate-touch.png'));
-  assert.deepEqual([...icon.subarray(0,8)],[137,80,78,71,13,10,26,10]);
+test('real high-resolution Zeus touch icon PNGs are installed for Safari, Android and PWA',()=>{
+  const variants=[['48',48],['180',180],['192',192],['512',512],['maskable-512',512]];
+  for(const [name,size] of variants){
+    const filename=`skygate-touch-${name}-v0139.png`;
+    const bytes=readFileSync(resolve(root,'play/icons',filename));
+    assert.deepEqual([...bytes.subarray(0,8)],[137,80,78,71,13,10,26,10],filename);
+    assert.equal(bytes.readUInt32BE(16),size,filename+' width');
+    assert.equal(bytes.readUInt32BE(20),size,filename+' height');
+    assert(bytes.length>5000,'Unexpected placeholder image '+filename);
+  }
+  for(const path of ['apple-touch-icon.png','play/apple-touch-icon.png','studio/apple-touch-icon.png']){
+    const bytes=readFileSync(resolve(root,path));
+    assert.equal(bytes.readUInt32BE(16),180,path);
+    assert.equal(bytes.readUInt32BE(20),180,path);
+  }
   const game=read('play/index.html'),studio=read('studio/index.html');
-  const manifest=JSON.parse(read('play/manifest.webmanifest'));
-  assert.match(game,/rel="apple-touch-icon" href="icons\/skygate-touch.png\?v=0\.13\.8"/);
-  assert.match(game,/rel="manifest" href="manifest.webmanifest\?v=0\.13\.8"/);
-  assert.match(studio,/rel="apple-touch-icon" href="\/play\/icons\/skygate-touch.png\?v=0\.13\.8"/);
-  assert.equal(manifest.name,'SKYGATE 5000');
-  assert.equal(manifest.start_url,'/play/');
-  assert.equal(manifest.icons[0].src,'icons/skygate-touch.png');
+  assert.match(game,/rel="apple-touch-icon" sizes="180x180" href="icons\/skygate-touch-180-v0139.png"/);
+  assert.match(game,/rel="manifest" href="manifest.webmanifest\?v=0\.13\.9"/);
+  assert.match(studio,/rel="apple-touch-icon" sizes="180x180" href="\/play\/icons\/skygate-touch-180-v0139.png"/);
+  assert.match(studio,/rel="manifest" href="\/studio\/manifest.webmanifest\?v=0\.13\.9"/);
+  const gameManifest=JSON.parse(read('play/manifest.webmanifest'));
+  assert.equal(gameManifest.id,'/play/');
+  assert.equal(gameManifest.start_url,'/play/');
+  assert(gameManifest.icons.some(icon=>icon.sizes==='192x192'&&icon.src.includes('192-v0139')));
+  assert(gameManifest.icons.some(icon=>icon.sizes==='512x512'&&icon.purpose==='any'));
+  assert(gameManifest.icons.some(icon=>icon.sizes==='512x512'&&icon.purpose==='maskable'));
+  const studioManifest=JSON.parse(read('studio/manifest.webmanifest'));
+  assert.equal(studioManifest.id,'/studio/');
+  assert.equal(studioManifest.start_url,'/studio/');
+  assert(studioManifest.icons.some(icon=>icon.sizes==='192x192'));
+  assert(studioManifest.icons.some(icon=>icon.sizes==='512x512'));
 });
+
