@@ -64,7 +64,7 @@ button svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.6
 .spin{position:relative;width:21cqw;height:21cqw;flex-shrink:0;border:0;background:none;padding:0;filter:drop-shadow(0 4px 10px #9061be33)}
 .spin img{width:100%;height:100%;display:block}
 .spin-caption{position:absolute;bottom:16%;left:0;right:0;text-align:center;color:#f9e8c6;font-size:2.1cqw;font-weight:650;letter-spacing:.2em;line-height:1}
-.spin.busy img{animation:rotate 1.3s linear infinite}.spin.busy .spin-caption{opacity:0}.spin:disabled{opacity:.8}
+.spin-frame{mask-image:radial-gradient(circle closest-side,transparent 48%,#000 49%);-webkit-mask-image:radial-gradient(circle closest-side,transparent 48%,#000 49%)}.spin-rotor{position:absolute;inset:0;clip-path:circle(24.5% at 50% 50%);pointer-events:none}.spin.busy .spin-rotor{animation:rotate 1.8s linear infinite;will-change:transform}.spin.battery-saver.busy .spin-rotor{animation:none;will-change:auto}.spin.busy .spin-caption{opacity:0}.spin:disabled{opacity:.8}
 .mode-control{border-radius:2.8cqw;width:13.5cqw;height:13.5cqw;background:#211d2e;gap:1cqw}
 .mode-control svg{width:5.1cqw;height:5.1cqw;stroke-width:1.6}.mode-control .play-mark{fill:currentColor;stroke:none}
 .mode-control small{font-size:2.1cqw;font-weight:600;letter-spacing:.12em;color:#ac9fbc}
@@ -120,7 +120,7 @@ dialog{border-color:#8f765344;border-radius:24px;background:linear-gradient(150d
 /* Clip reel motion at the board, keeping six short-lived compositing tracks. */
 .reel-column{position:relative;min-width:0;height:100%;overflow:hidden;contain:strict}
 .reel-track{height:200%;display:grid;grid-template-rows:repeat(10,minmax(0,1fr));transform:translate3d(0,-50%,0)}
-.reels.rolling .reel-track{will-change:transform}
+.reels.rolling .reel-track{will-change:transform;backface-visibility:hidden}.reels.rolling .symbol{filter:none}
 .symbol-motion{position:relative;width:100%;height:100%;min-width:0;min-height:0;display:grid;place-items:center}
 .published-layer.text-layer{overflow:hidden;gap:0;line-height:1.05}
 .text-content{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:max-content;max-width:none;white-space:pre;line-height:inherit;gap:.5cqw;transform-origin:center}
@@ -257,6 +257,6 @@ dialog .dialog-body .confirm-actions button{font:700 11px Georgia!important;padd
 
 /* Sparks are pooled over the whole board, with no sprite-shaped lightning. */
 .reels{position:relative}.fireworks-layer{position:absolute;inset:0;z-index:30;pointer-events:none;overflow:hidden}
-.firework-spark{position:absolute;display:block;width:4px;height:4px;background:#fff5c2;border-radius:50%;opacity:0;box-shadow:0 0 6px #ffba43;pointer-events:none}
-.spark-1{width:2px;height:7px;background:#ffd55c}.spark-2{width:6px;height:2px;background:#ffac32}.spark-3{width:3px;height:3px;background:#fff;box-shadow:0 0 5px #fff0a5}
+.firework-spark{position:absolute;z-index:2;display:block;width:5px;height:5px;background:#fff9dc;border-radius:50%;opacity:0;box-shadow:0 0 7px #ffca4f;pointer-events:none}
+.spark-1{width:12px;height:2px;background:linear-gradient(90deg,#ff9b2200,#ffd55c,#fff)}.spark-2{width:9px;height:3px;background:linear-gradient(90deg,#ff7d0000,#ffac32,#fff8bd)}.spark-3{width:4px;height:4px;background:#fff;box-shadow:0 0 7px #98d6ff}.firework-flare{position:absolute;z-index:1;opacity:0;pointer-events:none;object-fit:contain;transform-origin:center}
 @media(prefers-reduced-motion:reduce){.fireworks-layer{display:none}}

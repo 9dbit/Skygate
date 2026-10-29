@@ -2,11 +2,14 @@
 
 Greek-mythology-inspired **virtual-credit** game development playground. Includes a layout studio, modular icon assets, original music and sound effects, math experimentation, free spins, and simulated jackpot controls. This is not connected to deposits, withdrawals, or real-money gambling.
 
-### Current release: v0.11.0 — shared Studio renderer and fireworks
+### Current release: v0.12.0 — fixed spinner frame and smooth reel stops
 
 - Studio opens the current Live snapshot in the same gameplay renderer. Edit/Playtest also use that renderer with local draft data; selection handles are the only editor overlay.
 - Live and local Draft are labeled separately. Edit Live exports an existing draft ZIP before restoring the published project/assets; opening Studio never overwrites local work. Publish remains explicit.
-- Normal reels settle in about 2.38 s; winning cells charge for 1.25 s, burst for 1.30 s, and tumble for 650 ms. Gold/white/orange fireworks spread across cell borders from winning cells, using a reusable 240-spark pool.
+- The spinner artwork is split into a stationary frame and a clipped rotating center. Studio crop/asset changes apply to both; battery saver and reduced motion stop the rotor.
+- Normal reels settle in about 2.55 s. Each of six persistent strips completes identical banks, inserts the result offscreen and decelerates into view without an arbitrary transform reset. Web Animations use only transforms; temporary will-change, paint containment, predecoded textures and removing symbol filters during scrolling reduce rendering work.
+- Winning cells charge for 1.25 s, burst for 1.30 s, and tumble for 650 ms. Fireworks use two waves of up to 20 sparks per winning cell and large radial trail sprites. Total pools remain bounded at 240 sparks and 30 flares, with no per-round DOM allocation.
+- Purchase controls, popup and history now say BUY SPIN. The popup explains the Free Spins package and price. Ante shows BET +25%, a dynamic accessible cost label, and a rules explanation; costs, probability settings and purchase restrictions are unchanged.
 - Shared obsidian/gold panels with sapphire actions across rules, settings, bet, autoplay, purchase, history and bonus screens.
 - Main-screen Menu / Bet / Volume / Rules controls have labeled 44×46 px touch targets.
 - A bottom fade overlays the background with black at up to 30% opacity, beneath functional controls.
@@ -14,7 +17,7 @@ Greek-mythology-inspired **virtual-credit** game development playground. Include
 - Winning symbols vibrate during the lightning charge. Lightning is anchored to the cell perimeter and stretched to its rectangular geometry; it does not scale or vibrate with the artwork.
 - Reduced motion skips the charge/vibration/burst sequence. Existing game math and settlement are preserved.
 
-Validation for v0.11.0: 72 automated tests pass, including preview-parent origin validation, private preview routing, spark-pool cancellation, reduced motion, seeded outcomes and settlement. Chromium compares the Studio Live and public game geometry at equal viewport size, edits and playtests a restored Live draft, and verifies draft preservation after reload. Physical iPhone/audio testing remains pending.
+Validation for v0.12.0: 73 automated tests pass, including offscreen reel-bank handoff, spark-pool cancellation, reduced motion, seeded outcomes and settlement. Chromium checks 320/390/430 px layouts, stationary spinner frame/rotating center, six transform-promoted strips, 180 sparks and 9 flares on a nine-cell win, and shared Studio renderer/draft preservation. Physical iPhone/GPU frame-rate and audio testing remains pending.
 
 ### v0.9.0 behavior — 29 October 2026 (Asia/Jakarta)
 

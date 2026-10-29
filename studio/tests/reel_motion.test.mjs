@@ -17,7 +17,7 @@ test('six persistent strips stagger their stops, animate compositor properties a
   await t.renderer.ready;const count=t.created.length;
   const playing=t.renderer.spin(after);await Promise.resolve();
   assert.equal(t.root.classList.contains('rolling'),true);
-  assert.deepEqual([...t.timers.values()].map(t=>t.ms),[1250,1380,1510,1640,1770,1900]);
+  assert.deepEqual(t.animations.map(a=>a.options.delay),[0,110,220,330,440,550]);assert(t.animations.every(a=>a.options.duration===600&&a.options.iterations===2));
   assert.equal(t.animations.length,6);
   for(const timer of [...t.timers.values()])timer.fn();
   await playing;
@@ -47,7 +47,7 @@ test('cascades move surviving symbols from their previous row and retain orb lab
 });
 test('turbo shortens presentation without changing the grid; reduced motion creates no animations',async()=>{
   const t=setup();await t.renderer.ready;const playing=t.renderer.spin(t.before,{turbo:true});await Promise.resolve();
-  assert.deepEqual([...t.timers.values()].map(t=>t.ms),[320,355,390,425,460,495]);
+  assert.deepEqual(t.animations.map(a=>a.options.delay),[0,35,70,105,140,175]);assert(t.animations.every(a=>a.options.duration===250&&a.options.iterations===1));
   for(const timer of [...t.timers.values()])timer.fn();await playing;
   const count=t.animations.length;await t.renderer.spin(t.before,{reduced:true});await t.renderer.cascade(t.before,t.before,{reduced:true});
   assert.equal(t.animations.length,count);assert.equal(t.renderer.grid,t.before);
@@ -68,13 +68,13 @@ test('only winning cells charge before bursting and all effect nodes are reused'
   assert.equal(vibrations.length,selected.length);
   assert(vibrations.every(a=>a.frames.some(f=>f.transform.includes('-1.5px'))));
   await playing;
-  assert.equal(t.animations.length,selected.length*13);
+  assert.equal(t.animations.length,selected.length*26);
   assert.equal(t.created.length,created);
   assert.equal(t.root.dataset.fxPhase,'idle');
   assert.equal(t.renderer.animations.size,0);
   assert(t.animations.every(a=>a.cancelled));
   for(const a of t.animations){
-    assert(selected.some(i=>Object.values(t.renderer.cells[i].fx).includes(a.node)||t.renderer.cells[i].motion===a.node)||t.renderer.sparks.includes(a.node));
+    assert(selected.some(i=>Object.values(t.renderer.cells[i].fx).includes(a.node)||t.renderer.cells[i].motion===a.node)||t.renderer.sparks.includes(a.node)||t.renderer.flares.includes(a.node));
     for(const frame of a.frames)assert(Object.keys(frame).every(k=>['transform','opacity','offset'].includes(k)));
   }
 });
@@ -90,7 +90,7 @@ test('one full-board win has a bounded effect pool and turbo retains both phases
   const t=setup(),all=Array.from({length:30},(_,i)=>i),created=t.created.length;
   assert.equal(t.root.querySelectorAll('.cascade-fx').length,60);
   await t.renderer.shatter(all,{turbo:true});
-  assert.equal(t.animations.length,390);
+  assert.equal(t.animations.length,420);
   assert.equal(t.created.length,created);
   assert(t.animations.slice(0,60).every(a=>a.options.duration===400));
   assert(t.animations.slice(60).every(a=>a.options.duration===500));
@@ -113,7 +113,19 @@ test('fireworks pool emits only selected-cell sparks and releases them on cancel
  const active=t.renderer.shatter([0,29]);
  for(let i=0;i<12&&t.root.dataset.fxPhase!=='burst';i++)await Promise.resolve();
  assert.equal(t.root.dataset.fxPhase,'burst');
- const sparks=t.animations.filter(a=>t.renderer.sparks.includes(a.node));assert.equal(sparks.length,16);
+ const sparks=t.animations.filter(a=>t.renderer.sparks.includes(a.node)||t.renderer.flares.includes(a.node));assert.equal(sparks.length,42);
  assert(sparks.every(a=>a.frames.at(-1).opacity===0));assert(Math.abs(parseFloat(t.renderer.sparks[0].style.left)-100/12)<1e-9);
  t.renderer.cancel();await active;assert.equal(t.renderer.animations.size,0);assert(sparks.every(a=>a.cancelled));
+});
+
+test('reel stop introduces results offscreen and preserves the visible bank at each handoff',async()=>{
+ const t=setup();await t.renderer.ready;const pending=[],original=t.Node.prototype.animate;
+ t.Node.prototype.animate=function(frames,options){const a=original.call(this,frames,options);let resolve;a.finished=new Promise(r=>resolve=r);const cancel=a.cancel.bind(a);a.cancel=()=>{cancel();resolve();};pending.push({a,resolve});return a;};
+ const after=t.before.map(s=>({...s,kind:'orb',multiplier:7})),playing=t.renderer.spin(after);await Promise.resolve();
+ const first=t.renderer.columns[0];assert(first.cells.every(c=>c.kind==='ruby'));
+ pending[0].resolve();for(let i=0;i<12&&pending.length===6;i++)await Promise.resolve();
+ assert.equal(pending.length,7);assert(first.cells.slice(0,5).every(c=>c.kind==='orb'));assert(first.cells.slice(5).every(c=>c.kind==='ruby'),'visible bank stays intact while the result enters');
+ assert.equal(pending[6].a.frames[0].transform,pending[0].a.frames[0].transform);assert.equal(pending[6].a.frames.at(-1).transform,'translate3d(0,0,0)');
+ pending[6].resolve();for(let i=0;i<5;i++)await Promise.resolve();assert(first.cells.every(c=>c.kind==='orb'),'both banks match before filled transform is released');assert(pending[6].a.cancelled);
+ t.renderer.cancel();await playing;assert.equal(t.renderer.animations.size,0);
 });
