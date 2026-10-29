@@ -86,6 +86,22 @@ window.SkygateApplyLayout=(project,asset)=>{
       while(wrap.firstChild)content.append(wrap.firstChild);
       wrap.append(content);
     }
+
+    // FX is a presentation-only scene sibling, positioned from the saved guardian.
+    // Append BEFORE Zeus at a lower z-index to keep the face and silhouette clear.
+    if(l.id==='guardian'&&l.kind==='image'&&l.visible!==false&&l.opacity>0){
+      const fx=document.createElement('div');
+      fx.className='zeus-lightning-fx';
+      fx.dataset.fx='guardian-lightning';
+      fx.setAttribute('aria-hidden','true');
+      Object.assign(fx.style,{
+        left:l.x/1080*100+'%',top:l.y/1920*100+'%',
+        width:l.w/1080*100+'%',height:l.h/1920*100+'%',
+        zIndex:Math.max(1,l.z-1),transform:'rotate('+(l.rotate||0)+'deg)'
+      });
+      fx.innerHTML="<svg viewBox=\"0 0 1000 680\" preserveAspectRatio=\"none\" xmlns=\"http://www.w3.org/2000/svg\" aria-hidden=\"true\"><g class=\"zeus-bolt zeus-bolt-one\"><path class=\"zeus-bolt-glow\" d=\"M888 -14 732 121 805 149 641 270 710 299 487 496 536 443 377 679\"/><path class=\"zeus-bolt-core\" d=\"M888 -14 732 121 805 149 641 270 710 299 487 496 536 443 377 679\"/><path class=\"zeus-bolt-branch\" d=\"M641 270 496 209 539 285 430 336 M487 496 345 529 400 563 258 618\"/></g><g class=\"zeus-bolt zeus-bolt-two\"><path class=\"zeus-bolt-glow\" d=\"M48 18 226 149 172 181 359 290 317 323 526 496 439 467 661 673\"/><path class=\"zeus-bolt-core\" d=\"M48 18 226 149 172 181 359 290 317 323 526 496 439 467 661 673\"/><path class=\"zeus-bolt-branch\" d=\"M359 290 452 222 422 302 537 342 M526 496 640 469 591 523 748 610\"/></g><g class=\"zeus-bolt zeus-bolt-three\"><path class=\"zeus-bolt-glow\" d=\"M552 -20 590 120 528 162 635 264 571 305 676 454\"/><path class=\"zeus-bolt-core\" d=\"M552 -20 590 120 528 162 635 264 571 305 676 454\"/></g></svg>";
+      scene.append(fx);
+    }
     scene.append(wrap);
   }
   const missingBet=['minusbtn','plusbtn'].filter(id=>!project.layers.some(l=>l.id===id));
