@@ -100,6 +100,35 @@ try:
                 )
                 state = page.evaluate("window.SlotGameTest.getState()")
                 assert state["rounds"] == 1 and state["credits"] >= 0, state
+                # Use the shared real Game/Studio renderer with the imported
+                # Olympus preset. Check visual geometry and preserved controls.
+                preset = json.loads((ROOT / "studio/themes/olympus-gold/project.json").read_text())
+                page.evaluate("(project) => window.SkygateApplyLayout(project, path => 'assets/' + path)", preset)
+                assert page.locator(".split-credit-panel .wallet-coin-credit svg").count() == 1
+                assert page.locator(".split-bet-panel .wallet-coin-bet svg").count() == 1
+                assert page.locator('[data-layer="credits"] .wallet-a11y-label').count() == 1
+                assert page.locator('[data-layer="betlabel"] .wallet-a11y-label').count() == 1
+                assert page.locator('[data-layer="credits"] .wallet-a11y-label').evaluate(
+                    "(el) => getComputedStyle(el).clipPath"
+                ).startswith("inset(")
+                panel = page.locator(".split-bet-panel").bounding_box()
+                minus = page.locator('[data-layer="minusbtn"]').bounding_box()
+                plus = page.locator('[data-layer="plusbtn"]').bounding_box()
+                chip = page.locator(".wallet-coin-bet").bounding_box()
+                bet_value = page.locator('[data-layer="betlabel"]').bounding_box()
+                left_margin = minus["x"] - panel["x"]
+                right_margin = panel["x"] + panel["width"] - plus["x"] - plus["width"]
+                assert abs(left_margin-right_margin) < 1.5, (left_margin, right_margin)
+                assert chip["x"] >= minus["x"]+minus["width"], (chip, minus)
+                assert chip["x"]+chip["width"] < bet_value["x"], (chip, bet_value)
+                credit_before = page.locator("#credits").inner_text()
+                current_bet = page.evaluate("window.SlotGameTest.getState().bet")
+                page.locator("#minus").click()
+                assert page.evaluate("window.SlotGameTest.getState().bet") < current_bet
+                page.locator("#plus").click()
+                assert page.evaluate("window.SlotGameTest.getState().bet") == current_bet
+                assert page.locator("#credits").inner_text() == credit_before
+                page.screenshot(path=str(OUT / "olympus-coin-panel-390.png"))
             assert not errors, (width, errors)
             context.close()
 

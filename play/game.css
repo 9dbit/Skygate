@@ -495,3 +495,23 @@ dialog .dialog-body .confirm-actions button{font:700 11px Georgia!important;padd
 @media(prefers-reduced-motion:reduce){
   .olympus-gold .published-layer[data-layer="spinbutton"] #spin .spin-rotor{animation:none!important;will-change:auto}
 }
+
+
+/* Skygate v0.13.7: emblem-only credit and poker-chip BET, without altering
+   live numbers, touch controls, snapshot math or user-edited source art. */
+.olympus-gold .split-wallet-panel .wallet-coin-icon{
+  position:absolute;z-index:2;display:block;pointer-events:none;
+  top:50%;transform:translateY(-50%);
+  width:13%;height:67%;filter:drop-shadow(0 .22cqw .36cqw #000a)
+}
+.olympus-gold .split-wallet-panel .wallet-coin-icon svg{
+  display:block;width:100%;height:100%;overflow:visible
+}
+.olympus-gold .split-credit-panel .wallet-coin-credit{left:5.7%}
+.olympus-gold .split-bet-panel .wallet-coin-bet{left:25%;width:10.2%;height:60%}
+.olympus-gold .published-layer[data-layer=credits] .wallet-a11y-label,
+.olympus-gold .published-layer[data-layer=betlabel] .wallet-a11y-label{
+  position:absolute!important;width:1px!important;height:1px!important;
+  overflow:hidden!important;white-space:nowrap!important;
+  clip-path:inset(50%)!important;pointer-events:none!important
+}

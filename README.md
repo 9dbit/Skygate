@@ -1,5 +1,14 @@
 # SKYGATE — Portrait Game & Studio
 
+### v0.13.7 — gold credit stack, poker chip and balanced BET steppers
+
+- On the existing Olympus gold pill-shaped panels, the visible CREDIT label becomes a glossy stack of gold coins at the left edge. The visible BET label becomes an original illustrated gold/navy poker chip, positioned left of the live bet amount.
+- The minus button mirrors the plus button's 26px inset from the respective left/right ends of the BET panel. Existing published layouts with legacy minus x=643 are corrected at render time; the imported Olympus Studio preset now has x=577, and designer-moved controls remain editable.
+- Decorative SVGs are inline and aria-hidden. Screen-reader-only captions still identify both credit and bet values, preserving the actual live numeric DOM and control handlers.
+- Both panels continue using the real BUY SPIN image and crop. The UI patch does not alter credits, round math, buy/spin operations, popup mechanics, audio, or published snapshot data.
+- QA covers Olympus renderer structure, clipping, matching inset, legacy fallback, accessible labels, and Chromium mobile rendering with working bet steppers.
+
+
 ### v0.13.6 — approved UI preview: sapphire 1000x pill and matching metallic panels
 
 - WIN UP TO 1000x promo banner is centered (52% width), enlarged, with sapphire gems and double antique-gold edges. This changes promotional text only; the published game's actual 5000x round cap remains defined by Game Rules.

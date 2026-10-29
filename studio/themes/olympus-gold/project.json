@@ -1,6 +1,6 @@
 {
   "schema": "skygate/studio-v0.3",
-  "projectName": "SKYGATE \u00b7 Olympus Gold",
+  "projectName": "SKYGATE · Olympus Gold",
   "virtualCreditsOnly": true,
   "stage": {
     "width": 1080,
@@ -24,7 +24,7 @@
     },
     {
       "id": "guardian",
-      "name": "Zeus \u00b7 transparent character",
+      "name": "Zeus · transparent character",
       "kind": "image",
       "x": 504,
       "y": -8,
@@ -37,15 +37,15 @@
       "locked": false,
       "asset": "custom/zeus_guardian.png",
       "crop": {
-        "x": 0.0,
-        "y": 0.0,
-        "w": 1.0,
-        "h": 1.0
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1
       }
     },
     {
       "id": "logo",
-      "name": "SKYGATE \u00b7 sculpted gold logo",
+      "name": "SKYGATE · sculpted gold logo",
       "kind": "image",
       "x": 12,
       "y": 36,
@@ -66,7 +66,7 @@
     },
     {
       "id": "reelframe",
-      "name": "Gold Ionic columns \u00b7 reel architecture",
+      "name": "Gold Ionic columns · reel architecture",
       "kind": "image",
       "x": 0,
       "y": 520,
@@ -87,7 +87,7 @@
     },
     {
       "id": "reels",
-      "name": "Live 6 \u00d7 5 symbols",
+      "name": "Live 6 × 5 symbols",
       "kind": "grid",
       "x": 122,
       "y": 596,
@@ -101,7 +101,7 @@
     },
     {
       "id": "winbanner",
-      "name": "Round total \u00b7 laurel banner",
+      "name": "Round total · laurel banner",
       "kind": "image",
       "x": 92,
       "y": 457,
@@ -139,7 +139,7 @@
     },
     {
       "id": "antebtn",
-      "name": "Ante Bet \u00b7 live toggle",
+      "name": "Ante Bet · live toggle",
       "kind": "image",
       "x": 551,
       "y": 1268,
@@ -160,7 +160,7 @@
     },
     {
       "id": "controlboard",
-      "name": "Credit and bet \u00b7 marble panel",
+      "name": "Credit and bet · marble panel",
       "kind": "image",
       "x": 28,
       "y": 1390,
@@ -217,7 +217,7 @@
       "id": "minusbtn",
       "name": "Decrease bet",
       "kind": "circle",
-      "x": 643,
+      "x": 577,
       "y": 1402,
       "w": 90,
       "h": 90,
@@ -226,7 +226,7 @@
       "opacity": 100,
       "visible": true,
       "locked": false,
-      "text": "\u2212",
+      "text": "−",
       "font": 32.4,
       "color": "#fff0a3",
       "asset": "custom/round_button.png",
@@ -263,7 +263,7 @@
     },
     {
       "id": "spinbutton",
-      "name": "Spin \u00b7 gold laurel medallion",
+      "name": "Spin · gold laurel medallion",
       "kind": "image",
       "x": 366,
       "y": 1471,
@@ -284,7 +284,7 @@
     },
     {
       "id": "autobtn",
-      "name": "Auto \u00b7 live toggle",
+      "name": "Auto · live toggle",
       "kind": "circle",
       "x": 202,
       "y": 1552,
@@ -295,7 +295,7 @@
       "opacity": 100,
       "visible": true,
       "locked": false,
-      "text": "\u25b6",
+      "text": "▶",
       "font": 51.48,
       "color": "#fff0a3",
       "asset": "custom/round_button.png",
@@ -308,7 +308,7 @@
     },
     {
       "id": "turbobtn",
-      "name": "Turbo \u00b7 live toggle",
+      "name": "Turbo · live toggle",
       "kind": "circle",
       "x": 735,
       "y": 1552,
@@ -319,7 +319,7 @@
       "opacity": 100,
       "visible": true,
       "locked": false,
-      "text": "\u03df",
+      "text": "ϟ",
       "font": 51.48,
       "color": "#fff0a3",
       "asset": "custom/round_button.png",
@@ -332,7 +332,7 @@
     },
     {
       "id": "autolabel",
-      "name": "Auto \u00b7 live start/stop caption",
+      "name": "Auto · live start/stop caption",
       "kind": "text",
       "x": 197,
       "y": 1704,
@@ -349,7 +349,7 @@
     },
     {
       "id": "turbolabel",
-      "name": "Spin speed \u00b7 live caption",
+      "name": "Spin speed · live caption",
       "kind": "text",
       "x": 728,
       "y": 1704,
@@ -377,7 +377,7 @@
       "opacity": 100,
       "visible": true,
       "locked": false,
-      "text": "\u2630",
+      "text": "☰",
       "font": 32.4,
       "color": "#fff0a3",
       "asset": "custom/round_button.png",
@@ -390,7 +390,7 @@
     },
     {
       "id": "soundbtn",
-      "name": "Sound \u00b7 live mute toggle",
+      "name": "Sound · live mute toggle",
       "kind": "circle",
       "x": 850,
       "y": 1814,
@@ -401,7 +401,7 @@
       "opacity": 100,
       "visible": true,
       "locked": false,
-      "text": "\u266a",
+      "text": "♪",
       "font": 32.4,
       "color": "#fff0a3",
       "asset": "custom/round_button.png",
@@ -438,7 +438,7 @@
     },
     {
       "id": "buybtn",
-      "name": "Buy Free Spins \u00b7 live purchase",
+      "name": "Buy Free Spins · live purchase",
       "kind": "image",
       "x": 35,
       "y": 1268,
@@ -766,12 +766,16 @@
     ]
   },
   "winPresentation": {
-    "smallX": 1.0,
+    "smallX": 1,
     "bigX": 10,
     "megaX": 25,
     "superX": 100
   },
-  "spinMotion": {"normalMs": 1800, "quickMs": 1150, "turboMs": 650},
+  "spinMotion": {
+    "normalMs": 1800,
+    "quickMs": 1150,
+    "turboMs": 650
+  },
   "targetRTP": 96.5,
   "seed": 20261027,
   "bet": 2,
@@ -782,5 +786,5 @@
     "showGridGuides": false
   },
   "presentation": "olympus-gold",
-  "name": "SKYGATE \u00b7 Gold"
+  "name": "SKYGATE · Gold"
 }
