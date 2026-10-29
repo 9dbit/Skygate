@@ -190,7 +190,7 @@ test('wallet CREDIT and BET get separate static shells without mutating the Stud
   assert(left&&right,'both panels appear in the Game and Studio shared renderer');
   assert.equal(backing.style.visibility,'hidden');
   assert(Number(left.style.left.slice(0,-1))<Number(right.style.left.slice(0,-1)));
-  assert(Number(left.style.zIndex)<Number(d.nodes.get('credits').parent.style.zIndex));
+  assert(Number(left.style.zIndex)<Number(d.nodes.get('credits').parent.parent.style.zIndex));
   assert(Number(right.style.zIndex)<Number(d.nodes.get('minus').parent.style.zIndex));
   assert.equal(d.nodes.get('minus').parent.dataset.layer,'minusbtn');
   assert.equal(d.nodes.get('plus').parent.dataset.layer,'plusbtn');
