@@ -35,10 +35,20 @@
   function remember(){undoHistory.push(deep(state));if(undoHistory.length>35)undoHistory.shift();}
   function saveLocal(showToast=false){try{localStorage.setItem(storageKey,JSON.stringify(state));$('#saveStatus').textContent='Saved locally';if(showToast)toast('Project saved in this browser.');}catch(e){$('#saveStatus').textContent='Storage unavailable';if(showToast)toast('Storage is unavailable; export JSON for backup.');}}
   function invalidateEngine(){engine=null;testStats=null;}
+  function validateSpinMotion(motion){
+    if(!motion||typeof motion!=='object'||Array.isArray(motion))throw Error('Invalid spin motion settings');
+    for(const [key,min,max] of [['normalMs',1200,3500],['quickMs',750,2300],['turboMs',420,1300]]){
+      const n=motion[key];if(!Number.isInteger(n)||n<min||n>max)throw Error(key+' must be '+min+' to '+max+' ms');
+    }
+    if(!(motion.normalMs>motion.quickMs&&motion.quickMs>motion.turboMs))throw Error('Keep NORMAL slower than QUICK, and QUICK slower than TURBO');
+  }
   function validateLoaded(data){
     if(!data||data.schema!==DEFAULT.schema||!Array.isArray(data.layers)||!Array.isArray(data.grid)||data.grid.length!==30||!Array.isArray(data.tracks))throw Error('Invalid Skygate Studio project schema');
     if(data.layers.some(l=>!['image','grid','text','panel','circle'].includes(l.kind)||!Number.isFinite(l.x)||!Number.isFinite(l.y)||!Number.isFinite(l.w)||!Number.isFinite(l.h)))throw Error('Layer geometry must be numeric');
     window.SlotGameMath.validateConfig(data.math);window.SkygateStudioMath.validateJackpot(data.jackpot);
+    // Older exported projects and published snapshots do not have motion yet.
+    data.spinMotion={...DEFAULT.spinMotion,...(data.spinMotion||{})};
+    validateSpinMotion(data.spinMotion);
     return data;
   }
   function restoreLocal(){try{const raw=localStorage.getItem(storageKey);if(raw)state=validateLoaded(JSON.parse(raw));}catch(e){state=deep(DEFAULT);}}
@@ -92,7 +102,7 @@
     }else if(activeTab==='jackpot'){
       label.textContent='JACKPOT TIERS';count.textContent=state.jackpot.enabled?'Active':'Disabled';
       side.innerHTML=state.jackpot.tiers.map(t=>`<div class="property-card" style="border-left:3px solid ${esc(t.color)}"><strong>${esc(t.name)}</strong><p>${fmt(t.awardX)}× bet · ${fmt(t.perMillion)} per million paid spins</p></div>`).join('');
-    }else{label.textContent='QUALITY GATES';count.textContent='Test Lab';side.innerHTML=`<div class="property-card"><strong>Test sequence</strong><p>1. Edit math profile<br>2. Run sample rounds<br>3. Inspect hit rate, RTP and jackpot events<br>4. Export project config and overrides</p></div><div class="warning-note">The studio is a research prototype. No deposits, withdrawals or account/player targeting.</div>`;}
+    }else{label.textContent='SPIN & TEST';count.textContent='Motion + QA';side.innerHTML=`<div class="property-card"><strong>Test sequence</strong><p>1. Edit math profile<br>2. Run sample rounds<br>3. Inspect hit rate, RTP and jackpot events<br>4. Export project config and overrides</p></div><div class="warning-note">The studio is a research prototype. No deposits, withdrawals or account/player targeting.</div>`;}
   }
   function field(path,label,type='number',opts={}){
     const val=getAt(path);const attrs=`data-path="${esc(path)}" ${opts.min!==undefined?'min="'+opts.min+'"':''} ${opts.max!==undefined?'max="'+opts.max+'"':''} ${opts.step!==undefined?'step="'+opts.step+'"':''}`;
@@ -132,8 +142,10 @@
       root.innerHTML=`<div class="section-head">FIXED JACKPOT SYSTEM</div><label class="switchline">Enable demo jackpot <input type="checkbox" data-path="jackpot.enabled" ${state.jackpot.enabled?'checked':''}/></label><div class="warning-note">Default OFF. This is a fictional fixed-award lottery that uses an independent seeded stream. The game does NOT select winners by user, balance, operator intervention, or loss streak.</div><div class="section-head">JACKPOT CONFIGURATION</div><table class="table-like"><thead><tr><th>Tier</th><th>Award ×bet</th><th>Hits / 1M</th></tr></thead><tbody>${tiers.map((t,i)=>`<tr><td style="color:${esc(t.color)}">${esc(t.name)}</td><td><input type="number" min="0" max="${state.math.round_max_win_x}" data-path="jackpot.tiers.${i}.awardX" value="${t.awardX}"/></td><td><input type="number" min="0" max="1000000" step="1" data-path="jackpot.tiers.${i}.perMillion" value="${t.perMillion}"/></td></tr>`).join('')}</tbody></table>
       <div class="property-card" style="margin-top:14px"><strong>Expected jackpot add-on (uncapped)</strong><p style="font-size:24px;color:#ffe0a6;font-weight:900;margin:3px 0">${window.SkygateStudioMath.jackpotContributionPct(state.jackpot).toFixed(4)}%</p><p>Upper-bound component before overall max-win clipping. Not an observed RTP or the game’s total return.</p></div><div class="prop-row"><button class="prop-btn" id="testJackpotMini">Preview MINI FX</button><button class="prop-btn" id="testJackpotGrand">Preview GRAND FX</button></div><div class="inspector-note">FX Preview only, never awards credits. Real outcomes only use the published probability settings and engine seed.</div>`;
     }else{
-      title.textContent='Preview & Test Lab';
-      root.innerHTML=`<div class="section-head">RUN REPRODUCIBLE SAMPLE</div><div class="field-grid">${field('seed','Seed','number',{min:1,max:4294967295,step:1})}${field('bet','Virtual Bet','number',{min:1,max:1000000,step:1})}</div><div class="field"><label class="field-label">Paid Spins (sample)</label><select id="simCount"><option value="1000">1,000</option><option selected value="10000">10,000</option><option value="100000">100,000</option></select></div><div class="prop-row"><button class="sim-button" id="runSimBtn">▷ Run Simulation</button><button class="prop-btn alt" id="cancelSimBtn">Stop</button></div><div class="progress" aria-label="Simulation progress"><div id="simProgress"></div></div><div class="section-head">SAMPLE RESULTS</div><div id="simStats">${testStats?metricHTML(testStats):'<div class="inspector-note">No sample has been run under the current editable configuration.</div>'}</div><div class="section-head">PLAYABLE DEMO</div><div class="prop-row"><button class="prop-btn" id="testSingleSpin">↻ Spin Once</button><button class="prop-btn alt" id="resetCredits">Reset Credits</button></div><div class="property-card" style="margin-top:13px"><strong>Demo Session</strong><p>Credits: <b id="creditsRead">${fmt(window.SKYGATE_CANVAS?.session()?.credits??state.credit)}</b><br>Stake: <b>${fmt(window.SKYGATE_CANVAS?.session()?.bet??state.bet)}</b></p></div><div class="section-head">REPLAY / EXPORT</div><div class="prop-row"><button class="prop-btn" id="replayLast">↶ Replay last result</button><button class="prop-btn alt" id="exportRound">↓ Round JSON</button></div><div class="warning-note">Stats describe only this synthetic simulation profile. Neither the initial target RTP nor the old v0.2 historical RTP is certified or guaranteed after changing settings.</div>`;
+      title.textContent='Spin Speed & Test Lab';
+      const motionFields=[['normalMs','NORMAL',1200,3500],['quickMs','QUICK',750,2300],['turboMs','TURBO',420,1300]]
+        .map(([key,label,min,max])=>`<div class="field spin-speed-field"><label class="field-label" for="spin-speed-${key}">${label} <strong data-motion-readout>${(state.spinMotion[key]/1000).toFixed(2)} s</strong></label><input id="spin-speed-${key}" type="range" data-path="spinMotion.${key}" min="${min}" max="${max}" step="50" value="${state.spinMotion[key]}"></div>`).join('');
+      root.innerHTML=`<div class="section-head">SPIN SPEED · REEL MOTION</div><div class="property-card"><strong>Animation duration for each spin mode</strong><p>Slide to adjust the approximate time from first reel start through the last reel stop. Smaller numbers are faster. Results, bets and bonus odds never change.</p><div class="motion-sliders">${motionFields}</div><p class="inspector-note">Changes update your local draft. Choose Edit / Playtest to preview, then Preview & Publish to activate on the public game.</p></div><div class="section-head">RUN REPRODUCIBLE SAMPLE</div><div class="field-grid">${field('seed','Seed','number',{min:1,max:4294967295,step:1})}${field('bet','Virtual Bet','number',{min:1,max:1000000,step:1})}</div><div class="field"><label class="field-label">Paid Spins (sample)</label><select id="simCount"><option value="1000">1,000</option><option selected value="10000">10,000</option><option value="100000">100,000</option></select></div><div class="prop-row"><button class="sim-button" id="runSimBtn">▷ Run Simulation</button><button class="prop-btn alt" id="cancelSimBtn">Stop</button></div><div class="progress" aria-label="Simulation progress"><div id="simProgress"></div></div><div class="section-head">SAMPLE RESULTS</div><div id="simStats">${testStats?metricHTML(testStats):'<div class="inspector-note">No sample has been run under the current editable configuration.</div>'}</div><div class="section-head">PLAYABLE DEMO</div><div class="prop-row"><button class="prop-btn" id="testSingleSpin">↻ Spin Once</button><button class="prop-btn alt" id="resetCredits">Reset Credits</button></div><div class="property-card" style="margin-top:13px"><strong>Demo Session</strong><p>Credits: <b id="creditsRead">${fmt(window.SKYGATE_CANVAS?.session()?.credits??state.credit)}</b><br>Stake: <b>${fmt(window.SKYGATE_CANVAS?.session()?.bet??state.bet)}</b></p></div><div class="section-head">REPLAY / EXPORT</div><div class="prop-row"><button class="prop-btn" id="replayLast">↶ Replay last result</button><button class="prop-btn alt" id="exportRound">↓ Round JSON</button></div><div class="warning-note">Stats describe only this synthetic simulation profile. Neither the initial target RTP nor the old v0.2 historical RTP is certified or guaranteed after changing settings.</div>`;
     }
     if(activeTab==='layers'){
       const options=[...state.layers].sort((a,b)=>b.z-a.z).map(l=>`<option value="${esc(l.id)}" ${selected===l.id?'selected':''}>${esc(l.name)}${l.locked?' [locked]':''}</option>`).join('');
@@ -171,6 +183,16 @@
     if(typeof value==='number'&&!Number.isFinite(value))return;
     if(!pendingEdit||pendingEdit.path!==path)pendingEdit={path,snapshot:deep(state)};
     setAt(path,value);
+    if(path.startsWith('spinMotion.')){
+      if(commit){
+        try{validateSpinMotion(state.spinMotion);}catch(e){state=pendingEdit.snapshot;pendingEdit=null;toast('Invalid spin speed: '+e.message);render();return;}
+        // Refresh the shared playable draft only once the slider is released.
+        drawCanvas();
+      }else{
+        const readout=el.closest('.field')?.querySelector('[data-motion-readout]');
+        if(readout)readout.textContent=(value/1000).toFixed(2)+' s';
+      }
+    }
     if(path.startsWith('math.')||path.startsWith('jackpot.')||path==='seed'){
       if(commit){
         try{window.SlotGameMath.validateConfig(state.math);window.SkygateStudioMath.validateJackpot(state.jackpot);}catch(e){state=pendingEdit.snapshot;pendingEdit=null;toast('Invalid configuration: '+e.message);render();return;}
@@ -417,5 +439,5 @@
     saveLocal();render();toast('Snapshot loaded into this browser.');
   }
   restoreLocal();attach();render();const overridesReady=loadOverrides();
-  window.SKYGATE_STUDIO={version:'0.12.0',ready:overridesReady,refreshSession:renderInspector,setMode,getPreviewData:()=>({project:deep(state),assets:Object.fromEntries([...new Set([...state.layers.filter(l=>l.asset).map(l=>l.asset),...symbolNames.map(n=>'symbols/'+n+'.png')])].map(p=>['assets/'+p,new URL(assetURL(p),location.href).href]).concat(state.tracks.map(t=>['assets/audio/'+t.id+'.mp3',new URL(audioURL(t.id),location.href).href])))}),hasLocalDraft:()=>!!localStorage.getItem(storageKey),getPublishBundle:async()=>{await overridesReady;return {project:deep(state),overrides:[...overrideBlobs]};},restoreRelease,getState:()=>deep(state),getSelected:()=>selected,getOverrideKeys:()=>[...overrideBlobs.keys()],runSimulation,demoSpin,saveLocal,exportProject,exportChangesZip,importChangesZip,playAudio,stopAll,selectTab,audioReady:()=>audioKit.isReady(),audioPlaying:id=>audioKit.isPlaying(id),openMobilePanel:setMobilePanel};
+  window.SKYGATE_STUDIO={version:'0.13.0',ready:overridesReady,refreshSession:renderInspector,setMode,getPreviewData:()=>({project:deep(state),assets:Object.fromEntries([...new Set([...state.layers.filter(l=>l.asset).map(l=>l.asset),...symbolNames.map(n=>'symbols/'+n+'.png')])].map(p=>['assets/'+p,new URL(assetURL(p),location.href).href]).concat(state.tracks.map(t=>['assets/audio/'+t.id+'.mp3',new URL(audioURL(t.id),location.href).href])))}),hasLocalDraft:()=>!!localStorage.getItem(storageKey),getPublishBundle:async()=>{await overridesReady;return {project:deep(state),overrides:[...overrideBlobs]};},restoreRelease,getState:()=>deep(state),getSelected:()=>selected,getOverrideKeys:()=>[...overrideBlobs.keys()],runSimulation,demoSpin,saveLocal,exportProject,exportChangesZip,importChangesZip,playAudio,stopAll,selectTab,audioReady:()=>audioKit.isReady(),audioPlaying:id=>audioKit.isPlaying(id),openMobilePanel:setMobilePanel};
 })();
