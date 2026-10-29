@@ -1,9 +1,14 @@
-# Approved Skygate 5000 logo asset
+# Skygate approved logo: Studio upload
 
-**Required file:** `skygate-5000-approved.png`
+The exact owner-approved transparent PNG is uploaded through Skygate Studio.
+It is intentionally **not** a tracked GitHub asset.
 
-Upload the exact transparent 1536 x 1024 PNG supplied by the Skygate owner to this folder, on branch `skygate/approved-logo-only-v0.13.1`. Do not regenerate, recolor, crop or rename it.
+Steps:
+1. Open Studio, choose **Edit Live** and select the existing **logo** layer.
+2. Press **Replace PNG/SVG** and select `skygate-5000-approved.png`.
+3. Studio stores the image as an override for `custom/skygate-5000-approved.png`, without creating new layers or moving the old logo.
+4. Inspect the shared gameplay preview, then **Preview & Publish**.
 
-The v0.13.1 renderer substitutes this one logo in the existing Olympus gameplay and splash while preserving the immutable release layout, reels, controls, credits and game mathematics.
+The backend stores the binary in the versioned release media volume. The full-lockup renderer does not add another “5000” number, and leaves all other released UI and engine settings untouched.
 
-The PR must not be merged until the PNG exists and can be fetched from this path. Run `npm test` and verify game + Studio after merging.
+This README is not a required runtime file.
