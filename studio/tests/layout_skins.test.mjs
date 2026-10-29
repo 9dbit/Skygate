@@ -103,3 +103,30 @@ test('game splash and dialog artwork fall back to shipped assets without a live 
   assert.equal(image.src,'assets/'+live.layers.find(l=>l.id==='logo').asset);
   assert.ok(properties['--sg-action-image'].includes('assets/custom/feature_panel.png'));
 });
+
+test('approved full Skygate logo uses one uncut image and no duplicate numeric label',()=>{
+  const p=preset(),logo=p.layers.find(l=>l.id==='logo');
+  logo.asset='custom/skygate-5000-approved.png';
+  const d=dom();d.window.SkygateApplyLayout(p,path=>'assets/'+path);
+  const scene=d.game.children.at(-1),rendered=scene.children.find(n=>n.dataset.layer==='logo');
+  assert.equal(rendered.children.length,1);
+  assert.equal(rendered.children[0].src,'assets/custom/skygate-5000-approved.png');
+  assert.equal(rendered.children[0].alt,'Skygate 5000');
+  assert.equal(rendered.children[0].style.objectFit,'contain');
+  assert.equal(rendered.children[0].style.position,'static');
+  assert.match(rendered.className,/brand-complete/);
+});
+test('approved logo on splash does not render a second 5000',()=>{
+  const brand={classList:{add(){}},nodes:{
+    img:{style:{}},'.brand-top':{style:{}},'.brand-number':{hidden:false}
+  },querySelector(query){return this.nodes[query]||null;}};
+  const document={querySelectorAll:()=>[brand],documentElement:{style:{setProperty(){}}}};
+  const window={SKY_PREVIEW_ASSETS:{}};
+  vm.runInNewContext(read('play/release.js'),{window,document});
+  const project=preset();project.layers.find(l=>l.id==='logo').asset='custom/skygate-5000-approved.png';
+  window.SkygateSyncChrome(project,path=>'assets/'+path);
+  assert.equal(brand.nodes['.brand-number'].hidden,true);
+  assert.equal(brand.nodes.img.src,'assets/custom/skygate-5000-approved.png');
+  assert.equal(brand.nodes.img.style.objectFit,'contain');
+  assert.equal(brand.nodes['.brand-top'].style.inset,'0');
+});
