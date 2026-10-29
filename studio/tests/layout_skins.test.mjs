@@ -139,7 +139,7 @@ test('approved logo on splash does not render a second 5000',()=>{
 test('Studio replaces logo through its existing PNG picker without creating a second logo layer',()=>{
   const script=read('studio/studio.js');
   assert.match(script,/layer\?\.id==='logo'&&layer\.asset===asset/);
-  assert.match(script,/storeOverride\('asset:custom\/skygate-5000-approved\.png',f\)/);
+  assert.match(script,/saveImageUpload\('asset:custom\/skygate-5000-approved\.png',f\)/);
   assert.match(script,/delete layer\.crop/);
   assert.match(script,/saveLocal\(\);render\(\)/);
 });
