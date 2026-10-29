@@ -80,6 +80,18 @@ try:
             assert "Bonus Booster" in page.locator("#anteFeature").inner_text()
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), f"{width}: overflow"
             if width == 390:
+                # Artwork is rendered through the same public Game shell and
+                # Studio preview code. Banner text/centering are responsive.
+                badge = page.locator("#promoBadge")
+                assert "WIN UP TO" in badge.inner_text()
+                assert "1000x" in badge.inner_text()
+                stage = page.locator(".game").bounding_box()
+                # The approved Olympus skin is live-only in production. Toggle
+                # the style class to test the responsive design in local CI.
+                page.evaluate("document.querySelector('.game').classList.add('olympus-gold')")
+                banner = badge.bounding_box()
+                assert abs(banner["x"] + banner["width"]/2 - stage["x"] - stage["width"]/2) < 2
+                assert abs(banner["width"]/stage["width"] - .52) < .012
                 page.screenshot(path=str(OUT / "play-390.png"))
                 page.locator("#spin").click()
                 page.wait_for_function(
