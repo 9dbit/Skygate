@@ -87,12 +87,13 @@ window.SkygateApplyLayout=(project,asset)=>{
 window.SkygateSyncChrome=(project,asset)=>{
   const logo=project?.layers.find(l=>l.id==='logo');
   const panel=project?.layers.find(l=>l.id==='buybtn');
-  if(logo){
-    for(const host of document.querySelectorAll('[data-game-brand]')){
-      const img=host.querySelector('img');img.src=asset(logo.asset);
-      const c=logo.crop;
-      if(c)Object.assign(img.style,{position:'absolute',left:-c.x/c.w*100+'%',top:-c.y/c.h*100+'%',width:100/c.w+'%',height:100/c.h+'%',objectFit:'fill'});
-    }
+  // Published snapshots keep their immutable artwork. A fresh/unpublished game
+  // must not depend on a media hash stored only in the production volume.
+  for(const host of document.querySelectorAll('[data-game-brand]')){
+    const img=host.querySelector('img');
+    img.src=asset(logo?.asset||'scene/logo.png');
+    const c=logo?.crop;
+    if(c)Object.assign(img.style,{position:'absolute',left:-c.x/c.w*100+'%',top:-c.y/c.h*100+'%',width:100/c.w+'%',height:100/c.h+'%',objectFit:'fill'});
   }
-  if(panel)document.documentElement.style.setProperty('--sg-action-image','url('+JSON.stringify(asset(panel.asset))+')');
+  document.documentElement.style.setProperty('--sg-action-image','url('+JSON.stringify(asset(panel?.asset||'ui/confirmation-panel-v1.png'))+')');
 };
