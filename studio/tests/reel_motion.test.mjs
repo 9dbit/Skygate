@@ -4,20 +4,23 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {makeDOM} from './dom-fixture.mjs';
 const source=readFileSync(new URL('../../play/reels.js',import.meta.url),'utf8');
-function setup(){
+function setup(motion=null){
   const dom=makeDOM(),window={},timers=new Map();let id=0;
   vm.runInNewContext(readFileSync(new URL('../../play/cascade-art.js',import.meta.url),'utf8'),{window});
   vm.runInNewContext(source,{window,document:{createElement:t=>new dom.Node(t)},setTimeout:(fn,ms)=>{timers.set(++id,{fn,ms});return id;},clearTimeout:id=>timers.delete(id)});
-  const root=new dom.Node(),renderer=new window.SkygateReels(root,{asset:p=>p,art:{ruby:'ruby',emerald:'emerald',orb:'orb'},label:{ruby:'Ruby',emerald:'Emerald',orb:'Orb'}});
+  const root=new dom.Node(),renderer=new window.SkygateReels(root,{asset:p=>p,art:{ruby:'ruby',emerald:'emerald',orb:'orb'},label:{ruby:'Ruby',emerald:'Emerald',orb:'Orb'},motion});
   const before=Array.from({length:30},(_,i)=>({id:i+1,kind:i%2?'emerald':'ruby'}));renderer.render(before);
-  return {...dom,renderer,root,before,timers};
+  return {...dom,window,renderer,root,before,timers};
 }
 test('six persistent strips stagger their stops, animate compositor properties and clean up',async()=>{
   const t=setup(),after=t.before.map(s=>({...s,kind:'orb',multiplier:4}));
   await t.renderer.ready;const count=t.created.length;
   const playing=t.renderer.spin(after);await Promise.resolve();
   assert.equal(t.root.classList.contains('rolling'),true);
-  assert.deepEqual(t.animations.map(a=>a.options.delay),[0,110,220,330,440,550]);assert(t.animations.every(a=>a.options.duration===600&&a.options.iterations===2));
+  const timing=t.window.SkygateSpinTiming('normal');
+  assert.deepEqual(t.animations.map(a=>a.options.delay),Array.from({length:6},(_,i)=>i*timing.staggerMs));
+  assert(t.animations.every(a=>a.options.duration===timing.rollMs&&a.options.iterations===2));
+  assert(Math.abs(timing.rollMs*2+timing.staggerMs*5+timing.settleMs-1800)<=6);
   assert.equal(t.animations.length,6);
   for(const timer of [...t.timers.values()])timer.fn();
   await playing;
@@ -47,7 +50,9 @@ test('cascades move surviving symbols from their previous row and retain orb lab
 });
 test('turbo shortens presentation without changing the grid; reduced motion creates no animations',async()=>{
   const t=setup();await t.renderer.ready;const playing=t.renderer.spin(t.before,{turbo:true});await Promise.resolve();
-  assert.deepEqual(t.animations.map(a=>a.options.delay),[0,35,70,105,140,175]);assert(t.animations.every(a=>a.options.duration===250&&a.options.iterations===1));
+  const timing=t.window.SkygateSpinTiming('turbo');
+  assert.deepEqual(t.animations.map(a=>a.options.delay),Array.from({length:6},(_,i)=>i*timing.staggerMs));
+  assert(t.animations.every(a=>a.options.duration===timing.rollMs&&a.options.iterations===1));
   for(const timer of [...t.timers.values()])timer.fn();await playing;
   const count=t.animations.length;await t.renderer.spin(t.before,{reduced:true});await t.renderer.cascade(t.before,t.before,{reduced:true});
   assert.equal(t.animations.length,count);assert.equal(t.renderer.grid,t.before);
@@ -128,4 +133,21 @@ test('reel stop introduces results offscreen and preserves the visible bank at e
  assert.equal(pending[6].a.frames[0].transform,pending[0].a.frames[0].transform);assert.equal(pending[6].a.frames.at(-1).transform,'translate3d(0,0,0)');
  pending[6].resolve();for(let i=0;i<5;i++)await Promise.resolve();assert(first.cells.every(c=>c.kind==='orb'),'both banks match before filled transform is released');assert(pending[6].a.cancelled);
  t.renderer.cancel();await playing;assert.equal(t.renderer.animations.size,0);
+});
+
+test('Studio duration override changes only reel timeline while preserving a fixed result',async()=>{
+  const motion={normalMs:2200,quickMs:1300,turboMs:600};
+  const t=setup(motion),after=t.before.map(x=>({...x,kind:'emerald'}));
+  const plan=t.window.SkygateSpinTiming('normal',motion);
+  const total=plan.rollMs*plan.iterations+5*plan.staggerMs+plan.settleMs;
+  assert(Math.abs(total-motion.normalMs)<6);
+  const play=t.renderer.spin(after);await Promise.resolve();
+  assert(t.animations.every(a=>a.options.duration===plan.rollMs));
+  for(const tick of [...t.timers.values()])tick.fn();
+  await play;
+  assert(t.renderer.cells.every(c=>c.kind==='emerald'));
+  assert(t.animations.every(a=>a.cancelled));
+  assert.equal(t.renderer.animations.size,0);
+  assert(t.window.SkygateSpinTiming('normal').rollMs<t.window.SkygateSpinTiming('normal',motion).rollMs);
+  assert(t.window.SkygateSpinTiming('normal',{normalMs:'not a number'}).rollMs===t.window.SkygateSpinTiming('normal').rollMs);
 });
