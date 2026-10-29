@@ -331,3 +331,19 @@ test('non-Olympus and customized fallback preserve their existing readable CREDI
   assert.equal(d.nodes.get('minus').parent.style.left,
     p.layers.find(l=>l.id==='minusbtn').x/1080*100+'%');
 });
+
+test('legacy Live minus x643 is corrected, new Studio preset x577 and designer edits are respected',()=>{
+  const original=preset(),newMinus=original.layers.find(l=>l.id==='minusbtn');
+  assert.equal(newMinus.x,577,'new Olympus imports match the displayed symmetric geometry');
+  const old=preset();old.layers.find(l=>l.id==='minusbtn').x=643;
+  const before=JSON.stringify(old),d=dom();
+  d.window.SkygateApplyLayout(old,path=>'assets/'+path);
+  assert.equal(d.nodes.get('minus').parent.style.left,577/1080*100+'%');
+  assert.equal(JSON.stringify(old),before,'historical Live snapshot remains immutable');
+  const custom=preset();custom.layers.find(l=>l.id==='minusbtn').x=620;
+  const c=dom();c.window.SkygateApplyLayout(custom,path=>'assets/'+path);
+  const scene=c.game.children.at(-1);
+  assert.equal(c.nodes.get('minus').parent.style.left,620/1080*100+'%');
+  assert.equal(scene.children.filter(n=>n.dataset.fx?.startsWith('wallet-')).length,0,
+    'use original panel and labels if a custom move would overlap the poker icon');
+});
