@@ -1,5 +1,9 @@
 # SKYGATE — Portrait Game & Studio
 
+### v0.13.4 — Zeus lightning behind character
+
+The common Game/Studio renderer now adds forked blue-white lightning and a subtle storm halo **behind Zeus**, following the existing guardian layer's geometry and z-index. It leaves the published snapshot, selected logo, 50% background opacity, spin controls, credit ledger, math, audio, and image assets untouched. Battery Saver and reduced-motion preferences suppress the FX. Regressions for z-order, alignment, artwork integrity and visibility are included. Native iPhone/GPU testing remains pending.
+
 Greek-mythology-inspired **virtual-credit** game development playground. Includes a layout studio, modular icon assets, original music and sound effects, math experimentation, free spins, and simulated jackpot controls. This is not connected to deposits, withdrawals, or real-money gambling.
 
 ### Current release: v0.13.0 — Bonus Booster and Studio-editable spin timing

@@ -143,3 +143,39 @@ test('Studio replaces logo through its existing PNG picker without creating a se
   assert.match(script,/delete layer\.crop/);
   assert.match(script,/saveLocal\(\);render\(\)/);
 });
+
+
+test('Zeus lightning is behind the guardian and follows edited position without changing approved logo or 50% background',()=>{
+  const p=preset(),guardian=p.layers.find(l=>l.id==='guardian'),logo=p.layers.find(l=>l.id==='logo');
+  const sky=p.layers.find(l=>l.id==='sky');sky.opacity=50;
+  logo.asset='custom/skygate-5000-approved.png';delete logo.crop;
+  Object.assign(guardian,{x:444,y:66,w:590,h:430,rotate:5});
+  const before=JSON.stringify(p),d=dom();d.window.SkygateApplyLayout(p,path=>'assets/'+path);
+  const scene=d.game.children.at(-1);
+  const fx=scene.children.find(l=>l.dataset.fx==='guardian-lightning');
+  const zeus=scene.children.find(l=>l.dataset.layer==='guardian');
+  const bg=scene.children.find(l=>l.dataset.layer==='sky');
+  const brand=scene.children.find(l=>l.dataset.layer==='logo');
+  assert.ok(fx,'Lightning is a separate DOM visual layer');
+  assert.equal(fx.className,'zeus-lightning-fx');
+  assert.equal(fx['aria-hidden'],'true');
+  assert.ok(scene.children.indexOf(fx)<scene.children.indexOf(zeus));
+  assert.ok(Number(fx.style.zIndex)<Number(zeus.style.zIndex));
+  for(const key of ['left','top','width','height','transform']) assert.equal(fx.style[key],zeus.style[key]);
+  assert.match(fx.innerHTML,/<svg/);
+  assert.equal(bg.style.opacity,.5);
+  assert.equal(brand.children[0].src,'assets/custom/skygate-5000-approved.png');
+  assert.equal(JSON.stringify(p),before,'Do not modify Studio state or published artwork');
+});
+test('Hidden or transparent guardian does not leave an orphan effect',()=>{
+  for(const value of [{visible:false},{opacity:0}]){
+    const p=preset();Object.assign(p.layers.find(l=>l.id==='guardian'),value);
+    const d=dom();d.window.SkygateApplyLayout(p,path=>'assets/'+path);
+    assert.equal(d.game.children.at(-1).children.filter(n=>n.dataset.fx==='guardian-lightning').length,0);
+  }
+});
+test('Zeus electricity respects reduced motion and battery saver',()=>{
+  const css=read('play/game.css');
+  assert.match(css,/prefers-reduced-motion:reduce[\s\S]*?zeus-lightning-fx\{display:none!important\}/);
+  assert.match(css,/:has\(#spin\.battery-saver\) \.zeus-lightning-fx\{display:none\}/);
+});
