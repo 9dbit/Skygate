@@ -1,5 +1,13 @@
 # SKYGATE — Portrait Game & Studio
 
+### v0.13.9 — Apple Touch Icon white-screen repair
+
+- Fixed the old 48px favicon incorrectly used as an iPhone icon: the user-approved Zeus / SKYGATE 5000 artwork now has real 180×180 Apple Touch, 192×192 PWA, and 512×512 PWA + maskable PNG files.
+- Each icon has a new v0139 filename to avoid Safari's sticky Home Screen caching. Game and Studio have separate manifests and explicit Apple icon metadata, while fallback /apple-touch-icon.png routes cover implicit device discovery.
+- Game credits, reels, probability/math, saved Live releases, audio and editor state are unchanged.
+- QA verifies binary PNG dimensions, file contents, metadata, network delivery and responsive gameplay. After this release installs, any existing white Home Screen shortcut should be deleted and added again using Safari.
+
+
 ### v0.13.8 — Zeus 5000 touch icon
 
 - Added Zeus / Skygate 5000 artwork as the app icon, updated Play and Studio icon links and provided an installable PWA manifest with a consistent Home Screen identity. The latest GitHub embedded asset is a compact 48px derivative; keep the full-resolution 180/192/512px source outputs for a future asset-quality upgrade.
