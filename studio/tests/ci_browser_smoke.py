@@ -49,9 +49,27 @@ try:
             )
             page = context.new_page()
             errors = []
+            failed_requests = []
+            failed_responses = []
             page.on("pageerror", lambda error: errors.append(str(error)))
+            page.on("requestfailed", lambda req: failed_requests.append(req.url))
+            page.on("response", lambda res: failed_responses.append([res.status, res.url]) if res.status >= 400 else None)
             page.goto(base + "/play/", wait_until="domcontentloaded", timeout=30000)
-            assert page.locator("html").get_attribute("data-boot") in ("loading", "ready")
+            initial_boot = page.locator("html").get_attribute("data-boot")
+            if initial_boot not in ("loading", "ready"):
+                snapshot = page.evaluate("""() => ({
+                    boot: document.documentElement.dataset.boot,
+                    status: document.getElementById('bootStatus')?.textContent,
+                    appStatus: document.getElementById('status')?.textContent,
+                    broken: [...document.images].filter(x => x.complete && !x.naturalWidth)
+                      .map(x => ({src: x.getAttribute('src'), cls: x.className})).slice(0, 30)
+                })""")
+                print("BOOT DIAGNOSTICS", json.dumps({
+                    "snapshot": snapshot, "errors": errors,
+                    "failed_requests": failed_requests, "failed_responses": failed_responses
+                }, ensure_ascii=False), flush=True)
+                page.screenshot(path=str(OUT / f"boot-failure-{width}.png"))
+                raise AssertionError(f"Unexpected Skygate boot state: {initial_boot}")
             page.wait_for_function("document.documentElement.dataset.boot === 'ready'", timeout=30000)
             assert page.locator("#bootPlay").is_enabled()
             if width == 390:
