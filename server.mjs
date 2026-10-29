@@ -41,6 +41,9 @@ createServer(async(req,res)=>{
   // Authorize the same canonical path that will be resolved on disk. Encoded
   // separators/dot segments must never turn a public path into a private file.
   raw=posix.normalize(raw);
+  // iOS also probes the conventional root path. Remap only this icon to
+  // the public Game asset without exposing any other repository-root files.
+  if(raw==='/apple-touch-icon.png')raw='/play/apple-touch-icon.png';
   const api=raw.startsWith('/studio/api/');
   if(!['GET','HEAD'].includes(req.method||'')&&!(api&&req.method==='POST')){res.writeHead(405,{...base,Allow:'GET, HEAD'});res.end();return;}
   if(raw==='/health') {res.writeHead(200,{...base,'Content-Type':'application/json','Cache-Control':'no-store'});res.end(req.method==='HEAD'?'':JSON.stringify({ok:true,service:'skygate-studio',version}));return;}
