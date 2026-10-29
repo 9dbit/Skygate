@@ -244,7 +244,7 @@ test('approved reference panel skins match BUY SPIN width, x positions and sourc
   assert.equal(bet.style.width,booster.w/1080*100+'%');
   assert.equal(credit.style.width,bet.style.width,'equal panel widths');
   for(const panel of [credit,bet]){
-    assert.equal(panel.children.length,1);
+    assert.equal(panel.children.length,2,'feature frame and decorative emblem');
     assert.equal(panel.children[0].className,'feature-skin wallet-skin');
     assert.equal(panel.children[0].src,'assets/'+buy.asset);
     assert.equal(panel.children[0].style.objectFit,'fill');
@@ -270,5 +270,64 @@ test('approved 1000x pill copy, centering, ring scale and static frame are share
   assert(css.includes('.promo-badge::after'));
   assert(!css.includes('spin-frame{animation:'));
   assert.match(read('play/game.js'),/WIN UP TO 1000×/);
-  assert.match(read('studio/index.html'),/v0\.13\.6/);
+  assert.match(read('studio/index.html'),/v0\.13\.7/);
+});
+
+test('Olympus credit and bet show SVG currency icons instead of visible text labels',()=>{
+  const p=preset(),original=JSON.stringify(p),d=dom();
+  d.window.SkygateApplyLayout(p,path=>'assets/'+path);
+  const scene=d.game.children.at(-1);
+  for(const [kind,layerId,expected] of [
+    ['credit','credits','Kredit virtual: '],['bet','betlabel','Nilai taruhan: ']
+  ]){
+    const panel=scene.children.find(n=>n.dataset.fx==='wallet-'+kind);
+    assert(panel);
+    assert.equal(panel.children[0].className,'feature-skin wallet-skin');
+    const emblem=panel.children[1];
+    assert.equal(emblem.className,'wallet-coin-icon wallet-coin-'+kind);
+    assert.equal(emblem['aria-hidden'],'true');
+    assert.match(emblem.innerHTML,/<svg[\s\S]*<\/svg>/);
+    if(kind==='credit')assert.match(emblem.innerHTML,/sg-gold-stack-v137/);
+    else assert.match(emblem.innerHTML,/sg-poker-rim-v137/);
+    const layer=scene.children.find(n=>n.dataset.layer===layerId);
+    const accessible=layer.children[0].children[0];
+    assert.equal(accessible.className,'sr-only wallet-a11y-label');
+    assert.equal(accessible.textContent,expected);
+    assert(!layer.children[0].children.some(n=>n.textContent==='CREDIT '||n.textContent==='BET '));
+  }
+  assert.equal(d.nodes.get('credits').parent.parent.dataset.layer,'credits');
+  assert.equal(d.nodes.get('betText').parent.parent.dataset.layer,'betlabel');
+  assert.equal(JSON.stringify(p),original);
+});
+test('minus button mirrors plus inset exactly and leaves a gap for poker chip and bet amount',()=>{
+  const p=preset(),d=dom();d.window.SkygateApplyLayout(p,path=>'assets/'+path);
+  const panel=p.layers.find(l=>l.id==='antebtn');
+  const plus=p.layers.find(l=>l.id==='plusbtn');
+  const minus=p.layers.find(l=>l.id==='minusbtn');
+  const value=p.layers.find(l=>l.id==='betlabel');
+  const rightInset=panel.x+panel.w-plus.x-plus.w;
+  const mirroredX=panel.x+rightInset;
+  const moved=d.nodes.get('minus').parent;
+  assert.equal(moved.style.left,mirroredX/1080*100+'%');
+  assert.equal(rightInset,26);
+  assert.equal(mirroredX,577);
+  assert(mirroredX+minus.w<value.x-32,'minus must not overlap bet amount');
+  // The poker chip follows the minus and precedes the numeric live BET.
+  const iconStart=panel.x+panel.w*.25;
+  const iconEnd=iconStart+panel.w*.102;
+  assert(iconStart>mirroredX+minus.w,'chip must clear the minus hit target');
+  assert(iconEnd<value.x,'chip must not obscure bet amount');
+  assert.equal(d.nodes.get('plus').parent.style.left,plus.x/1080*100+'%');
+});
+test('non-Olympus and customized fallback preserve their existing readable CREDIT/BET labels',()=>{
+  const p=preset();p.layers.find(l=>l.id==='plusbtn').visible=false;
+  const d=dom();d.window.SkygateApplyLayout(p,path=>'assets/'+path);
+  const scene=d.game.children.at(-1);
+  for(const [id,label] of [['credits','CREDIT '],['betlabel','BET ']]){
+    const node=scene.children.find(l=>l.dataset.layer===id);
+    assert.equal(node.children[0].children[0].textContent,label);
+    assert.notEqual(node.children[0].children[0].className,'sr-only wallet-a11y-label');
+  }
+  assert.equal(d.nodes.get('minus').parent.style.left,
+    p.layers.find(l=>l.id==='minusbtn').x/1080*100+'%');
 });
