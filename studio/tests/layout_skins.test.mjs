@@ -86,3 +86,20 @@ test('amount-only releases retain new Buy and Ante controls without obsolete lab
   const broken=preset();broken.layers=broken.layers.filter(l=>l.id!=='winamount');
   assert.throws(()=>validateProject(broken,keys(broken)),/Keep winamount visible/);
 });
+
+test('game splash and dialog artwork fall back to shipped assets without a live snapshot',()=>{
+  const image={style:{}},properties={};
+  const document={
+    querySelectorAll:()=>[{querySelector:()=>image}],
+    documentElement:{style:{setProperty:(key,value)=>{properties[key]=value;}}}
+  };
+  const window={SKY_PREVIEW_ASSETS:{}};
+  vm.runInNewContext(read('play/release.js'),{window,document});
+  window.SkygateSyncChrome(null,path=>'assets/'+path);
+  assert.equal(image.src,'assets/scene/logo.png');
+  assert.ok(properties['--sg-action-image'].includes('assets/ui/confirmation-panel-v1.png'));
+  const live=preset();
+  window.SkygateSyncChrome(live,path=>'assets/'+path);
+  assert.equal(image.src,'assets/'+live.layers.find(l=>l.id==='logo').asset);
+  assert.ok(properties['--sg-action-image'].includes('assets/custom/feature_panel.png'));
+});

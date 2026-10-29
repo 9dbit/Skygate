@@ -22,9 +22,20 @@
   play.addEventListener('click',enter);
   retry.addEventListener('click',()=>window.location.reload());
   timer=setTimeout(()=>fail(Error('Loading timeout')),30000);
-  window.SkygateBoot={fail,async ready(images,sources=[]){
+  // Only first-paint art should gate Play. Offscreen reel banks, lightning and
+  // fireworks are decoded independently by SkygateReels before their first use.
+  function critical(images){
+    return images.filter(image=>{
+      if(image.matches?.('.cascade-fx, .firework-flare'))return false;
+      if(image.closest?.('.tile[aria-hidden="true"]'))return false;
+      return image.closest?.('.published-layer')?.style?.display!=='none';
+    });
+  }
+  window.SkygateBoot={fail,critical,async ready(images,sources=[]){
     const extra=[...new Set(sources)].map(src=>{const image=new Image();image.src=src;return image;});
-    await Promise.all([...images,...extra].map(image=>image.decode()));
+    // Supplemental art is best-effort prefetch; it never blocks the splash.
+    void Promise.allSettled(extra.map(image=>image.decode()));
+    await Promise.all([...new Set(images)].map(image=>image.decode()));
     if(document.fonts)await document.fonts.ready;
     // The stylesheet is render-blocking; its absence means the UI cannot be revealed safely.
     if(!document.getElementById('gameStyles').sheet)throw Error('Game stylesheet unavailable');
