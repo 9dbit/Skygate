@@ -128,12 +128,14 @@ window.SkygateReels = class {
     const clear = () => {for (const a of active) {a.cancel(); this.animations.delete(a);} active.length = 0;};
     try {
       this.root.dataset.fxPhase = 'charge';
-      await Promise.all(selected.map(i => play(this.cells[i].fx.edge, [
-        {opacity:0,transform:'scale(.98)'},
-        {opacity:1,transform:'scale(1)',offset:.25},
-        {opacity:.65,transform:'scale(1)',offset:.6},
-        {opacity:1,transform:'scale(1)'}
-      ], turbo ? 95 : quick ? 190 : 320)));
+      const chargeDuration=turbo ? 95 : quick ? 190 : 320;
+      await Promise.all(selected.flatMap(i => {
+        const {motion,fx}=this.cells[i];
+        return [
+          play(fx.edge,[{opacity:0},{opacity:1,offset:.2},{opacity:.55,offset:.4},{opacity:1,offset:.6},{opacity:.65,offset:.8},{opacity:1}],chargeDuration,'linear'),
+          play(motion,[{transform:'translate3d(0,0,0)'},{transform:'translate3d(-1.5px,1px,0)',offset:.15},{transform:'translate3d(1.5px,-1px,0)',offset:.3},{transform:'translate3d(-1.5px,-1px,0)',offset:.45},{transform:'translate3d(1.5px,1px,0)',offset:.6},{transform:'translate3d(-1px,0,0)',offset:.8},{transform:'translate3d(0,0,0)'}],chargeDuration,'linear')
+        ];
+      }));
       if (generation !== this.generation) return;
       clear();
       this.root.dataset.fxPhase = 'burst';

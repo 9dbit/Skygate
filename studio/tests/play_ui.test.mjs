@@ -181,7 +181,7 @@ test('returning from background restores Home without starting audio or a round'
   assert.equal(plays,0,lifecycle);assert.equal(ui.state().rounds,0,lifecycle);
   await ui.click('home');
   assert(ui.nodes.get('featureDialog').open,'Home must reopen after '+lifecycle);
-  assert.equal(ui.nodes.get('featureTitle').textContent,'SKYGATE');
+  assert.equal(ui.nodes.get('featureTitle').textContent,'SKYGATE 5000');
   await ui.click('featureContinue');
   assert.equal(plays,0,lifecycle);assert.equal(ui.state().credits,100000,lifecycle);
  }
