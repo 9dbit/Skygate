@@ -35,6 +35,7 @@ function fixture(){
     return {ok:true,status:code,json:async()=>data};
   }
   const window={
+    SkygateImageOptimizer:{formatBytes:n=>Math.round(n/1024)+' KB',encode:async blob=>blob},
     SKYGATE_STUDIO:{ready:Promise.resolve(),getPreviewData:()=>({project:{schema:'skygate/studio-v0.3'},assets:{}}),getPublishBundle:async()=>({project:{schema:'skygate/studio-v0.3'},overrides:[]})},
     addEventListener:(type,cb)=>{callbacks[type]=cb;},dispatchEvent:()=>{events++;},
   };
