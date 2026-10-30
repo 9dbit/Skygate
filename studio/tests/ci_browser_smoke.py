@@ -200,6 +200,22 @@ try:
                 assert page.evaluate("window.SlotGameTest.getState().bet") == current_bet
                 assert page.locator("#credits").inner_text() == credit_before
                 page.screenshot(path=str(OUT / "olympus-coin-panel-390.png"))
+            # The Studio skin is installed on the 390px path above. Install it
+            # also on small/large mobile sizes to catch PWA ratio regressions.
+            if width != 390:
+                olympus=json.loads((ROOT / "studio/themes/olympus-gold/project.json").read_text())
+                page.evaluate("(project) => window.SkygateApplyLayout(project, path => 'assets/' + path)", olympus)
+            for layer_id, button_id in [("autobtn","auto"),("turbobtn","turbo")]:
+                layer=page.locator(f'[data-layer="{layer_id}"]')
+                button=page.locator("#"+button_id)
+                shell=layer.bounding_box()
+                control=button.bounding_box()
+                assert shell is not None and control is not None
+                assert abs(shell["width"]-shell["height"]) < 1.2, (width, layer_id, shell)
+                assert abs(control["width"]-control["height"]) < 1.2, (width, button_id, control)
+                assert abs((shell["x"]+shell["width"]/2)-(control["x"]+control["width"]/2)) < 1.2
+                assert abs((shell["y"]+shell["height"]/2)-(control["y"]+control["height"]/2)) < 1.2
+                assert button.is_enabled() and button.is_visible()
             assert not errors, (width, errors)
             context.close()
 

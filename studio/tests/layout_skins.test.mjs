@@ -270,7 +270,7 @@ test('approved 1000x pill copy, centering, ring scale and static frame are share
   assert(css.includes('.promo-badge::after'));
   assert(!css.includes('spin-frame{animation:'));
   assert.match(read('play/game.js'),/WIN UP TO 1000×/);
-  assert.match(read('studio/index.html'),/v0\.14\.1/);
+  assert.match(read('studio/index.html'),/v0\.14\.2/);
 });
 
 test('Olympus credit and bet show SVG currency icons instead of visible text labels',()=>{
@@ -383,4 +383,31 @@ test('v0.14.1 anchors WIN 1000x and BET settings to the same safe-area stage',()
   assert(css.includes('height:var(--sg-pwa-full-height,100dvh)'));
   assert(html.includes('window.navigator.standalone===true'));
   assert(html.includes('window.screen?.height'));
+});
+
+test('Olympus AUTO / NORMAL stay 1:1 and keep saved layer centers unchanged',()=>{
+  const p=preset(),before=JSON.stringify(p),d=dom();
+  d.window.SkygateApplyLayout(p,path=>'assets/'+path);
+  const scene=d.game.children.at(-1);
+  for(const id of ['autobtn','turbobtn']){
+    const l=p.layers.find(layer=>layer.id===id);
+    const node=scene.children.find(child=>child.dataset.layer===id);
+    const diameter=l.w/1080*100;
+    const centerY=(l.y+l.h/2)/1920*100;
+    assert(node.className.includes('published-mode-circle'),id);
+    assert.equal(node.style.width,diameter+'%',id);
+    assert.equal(node.style.height,diameter+'cqw',id);
+    assert.equal(node.style.top,`calc(${centerY}% - ${diameter/2}cqw)`,id);
+    assert.equal(node.style.aspectRatio,'1 / 1',id);
+    assert.equal(node.children[0],d.nodes.get(id==='autobtn'?'auto':'turbo'),id);
+  }
+  assert.equal(JSON.stringify(p),before,'Studio snapshot must remain immutable');
+  const custom=preset(),edit=custom.layers.find(layer=>layer.id==='autobtn');
+  edit.y+=38;edit.w=160;
+  const changed=dom();changed.window.SkygateApplyLayout(custom,path=>'assets/'+path);
+  const rendered=changed.game.children.at(-1).children.find(child=>child.dataset.layer==='autobtn');
+  assert.equal(rendered.style.height,160/1080*100+'cqw');
+  assert.equal(rendered.style.top,`calc(${(edit.y+edit.h/2)/1920*100}% - ${160/1080*50}cqw)`);
+  const css=read('play/game.css');
+  assert(css.includes('.published-layer.published-mode-circle>.mode-control'));
 });
