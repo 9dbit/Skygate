@@ -1,5 +1,14 @@
 # SKYGATE — Portrait Game & Studio
 
+### v0.14.2 — geometrically circular AUTO and NORMAL controls
+
+The shared game/Studio Olympus renderer sizes the AUTO and NORMAL (spin speed)
+control shells from the same viewport-width-based diameter in both axes.
+Centers, gold frames, symbols and labels remain aligned in tall iPhone PWAs.
+Node and browser QA verify 1:1 physical bounding boxes at multiple widths.
+No game mathematics, stored Studio project, or published assets are changed.
+
+
 ### v0.14.0 — full-bleed mobile PWA and emissive vector Play
 
 - Mobile portrait PWA and browser viewport fill 100dvh end-to-end, including image backdrop behind the translucent status bar and Home-indicator safe area. No more 9:16 letterboxing bands under splash or gameplay.

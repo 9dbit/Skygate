@@ -91,6 +91,21 @@ window.SkygateApplyLayout=(project,asset)=>{
     if(retired.has(l.id)||(l.id==='antetext'&&project.math.reference_rules))continue;
     const wrap=document.createElement('div');wrap.className='published-layer '+l.kind+'-layer';wrap.dataset.layer=l.id;
     Object.assign(wrap.style,{left:l.x/1080*100+'%',top:l.y/1920*100+'%',width:l.w/1080*100+'%',height:l.h/1920*100+'%',zIndex:l.z,opacity:l.opacity/100,transform:`rotate(${l.rotate}deg)`,display:l.visible?'':'none',fontSize:(l.font||40)/1080*100+'cqw',color:l.color||'#ffe5af'});
+    // AUTO and NORMAL are circles. The 1080x1920 Studio canvas is rendered
+    // inside variable-height iPhone PWAs; independent % widths and % heights
+    // stretch the same square design into an oval. Size BOTH axes from game
+    // width, retaining the editable design layer's vertical center.
+    if(project.presentation==='olympus-gold'&&l.kind==='circle'&&
+       (l.id==='autobtn'||l.id==='turbobtn')){
+      const diameter=l.w/1080*100;
+      const centerY=(l.y+l.h/2)/1920*100;
+      wrap.classList.add('published-mode-circle');
+      Object.assign(wrap.style,{
+        top:`calc(${centerY}% - ${diameter/2}cqw)`,
+        height:diameter+'cqw',
+        aspectRatio:'1 / 1'
+      });
+    }
     if(l.id==='controlboard'&&splitPanels)wrap.style.visibility='hidden';
     if(l.id==='minusbtn'&&splitPanels)wrap.style.left=splitPanels.minusX/1080*100+'%';
     const node=boundNodes[l.id];

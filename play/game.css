@@ -630,3 +630,20 @@ dialog .dialog-body .confirm-actions button{font:700 11px Georgia!important;padd
 @media (display-mode:standalone) and (max-width:699px) and (orientation:portrait){
   html{--sg-pwa-full-height:100lvh}
 }
+
+/* v0.14.2: AUTO and NORMAL stay perfectly circular regardless of iOS
+   standalone screen height, safe area, or Studio viewport aspect ratio.
+   The JS renderer gives the layer equal physical width/height; its gold
+   frame and icon must inherit the same square without scaling artifacts. */
+.olympus-gold .published-layer.published-mode-circle,
+.olympus-gold .published-layer.published-mode-circle>.mode-control{
+  aspect-ratio:1 / 1;
+  border-radius:50%;
+}
+.olympus-gold .published-layer.published-mode-circle>.mode-control{
+  width:100%;height:100%;min-width:0;min-height:0;
+  overflow:hidden;
+}
+.olympus-gold .published-layer.published-mode-circle .control-skin{
+  object-fit:contain;
+}
