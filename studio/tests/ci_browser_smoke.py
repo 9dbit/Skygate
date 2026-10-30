@@ -208,10 +208,10 @@ try:
         pwa = browser.new_context(viewport={"width":390,"height":844},
             device_scale_factor=1,is_mobile=True,has_touch=True,
             reduced_motion="reduce")
-        pwa.add_init_script("""() => {
+        pwa.add_init_script("""(() => {
           Object.defineProperty(navigator,'standalone',{configurable:true,value:true});
           Object.defineProperty(screen,'height',{configurable:true,value:932});
-        }""")
+        })();""")
         phone = pwa.new_page()
         phone.goto(base + "/play/",wait_until="domcontentloaded",timeout=30000)
         phone.wait_for_function("document.documentElement.dataset.boot === 'ready'",timeout=30000)
