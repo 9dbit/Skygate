@@ -217,9 +217,10 @@ test('real high-resolution Zeus touch icon PNGs are installed for Safari, Androi
   }
   const game=read('play/index.html'),studio=read('studio/index.html');
   assert.match(game,/rel="apple-touch-icon" sizes="180x180" href="icons\/skygate-touch-180-v0139.png"/);
-  assert.match(game,/rel="manifest" href="manifest.webmanifest\?v=0\.14\.0"/);
+  const version=JSON.parse(read('package.json')).version;
+  assert(game.includes(`rel="manifest" href="manifest.webmanifest?v=${version}"`));
   assert.match(studio,/rel="apple-touch-icon" sizes="180x180" href="\/play\/icons\/skygate-touch-180-v0139.png"/);
-  assert.match(studio,/rel="manifest" href="\/studio\/manifest.webmanifest\?v=0\.14\.0"/);
+  assert(studio.includes(`rel="manifest" href="/studio/manifest.webmanifest?v=${version}"`));
   const gameManifest=JSON.parse(read('play/manifest.webmanifest'));
   assert.equal(gameManifest.id,'/play/');
   assert.equal(gameManifest.start_url,'/play/');
