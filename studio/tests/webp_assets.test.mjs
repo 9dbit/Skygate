@@ -86,8 +86,12 @@ test('browser optimizer maintains transparent canvas and adapts WebP output to s
 
 test('Studio loads optimizer before upload and publisher; snapshot path is MIME aware',()=>{
   const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
-  assert(html.indexOf('image-optimizer.js')<html.indexOf('studio.js?v=0.14.0'));
-  assert(html.indexOf('image-optimizer.js')<html.indexOf('publish.js?v=0.14.0'));
+  const optimizer=html.indexOf('image-optimizer.js');
+  const uploader=html.indexOf('studio.js?v=');
+  const publisher=html.indexOf('publish.js?v=');
+  assert(optimizer>=0&&uploader>=0&&publisher>=0,'all asset scripts are present');
+  assert(optimizer<uploader,'optimizer must load before Studio upload code');
+  assert(optimizer<publisher,'optimizer must load before publisher');
   const source=readFileSync(new URL('../publish.js',import.meta.url),'utf8');
   assert.match(source,/SkygateImageOptimizer\.encode\(original,\{key\}\)/);
   assert.doesNotMatch(source,/\bawait png\(original/);

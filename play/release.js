@@ -238,6 +238,20 @@ window.SkygateApplyLayout=(project,asset)=>{
   // Preserve activity details in the menu and a visible virtual-credit identity.
   document.getElementById('status').classList.add('published-status');
   const identity=document.createElement('span');identity.className='published-identity';identity.textContent='VIRTUAL CREDITS\nSKYGATE';scene.append(identity);
+  // The old promo and BET floated against the full viewport while the WIN
+  // frame and MENU lived inside the safe-area stage. On iPhones their edges
+  // drifted apart. Parent them to the shared, editable Olympus scene instead.
+  if(project.presentation==='olympus-gold'){
+    const winFrame=shown('winbanner');
+    const promo=document.getElementById('promoBadge');
+    if(promo&&winFrame){
+      // 3.2%-high pill overlaps the frame top by 0.2%, with no visible gap.
+      promo.style.top=(winFrame.y/1920*100-3)+'%';
+      scene.append(promo);
+    }
+    const betSettings=document.getElementById('betMenu');
+    if(betSettings)scene.append(betSettings);
+  }
   game.append(scene);game.classList.add('has-published-scene');
   window.SkygateRefitText=()=>window.SkygateTextFit.request(scene);
   window.addEventListener('resize',window.SkygateRefitText);

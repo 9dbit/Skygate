@@ -159,6 +159,22 @@ try:
                 # Olympus preset. Check visual geometry and preserved controls.
                 preset = json.loads((ROOT / "studio/themes/olympus-gold/project.json").read_text())
                 page.evaluate("(project) => window.SkygateApplyLayout(project, path => 'assets/' + path)", preset)
+                # The 1000x chip sits immediately on the WIN frame, and BET
+                # must share MENU's physical safe-area footer baseline.
+                promo = page.locator("#promoBadge")
+                frame = page.locator('[data-layer="winbanner"]')
+                bet_settings = page.locator("#betMenu")
+                footer_menu = page.locator("#menu")
+                assert promo.evaluate("(el) => el.parentElement.classList.contains('published-scene')")
+                assert bet_settings.evaluate("(el) => el.parentElement.classList.contains('published-scene')")
+                pill_rect = promo.bounding_box()
+                frame_rect = frame.bounding_box()
+                bet_rect = bet_settings.bounding_box()
+                menu_rect = footer_menu.bounding_box()
+                assert abs(pill_rect["x"] + pill_rect["width"]/2 - stage["x"] - stage["width"]/2) < 2
+                assert 0 <= pill_rect["y"]+pill_rect["height"]-frame_rect["y"] < 5, (pill_rect, frame_rect)
+                assert abs(bet_rect["y"]+bet_rect["height"] - menu_rect["y"]-menu_rect["height"]) < 2, (bet_rect, menu_rect)
+                assert bet_settings.evaluate("(el) => getComputedStyle(el).pointerEvents") == "auto"
                 assert page.locator(".split-credit-panel .wallet-coin-credit svg").count() == 1
                 assert page.locator(".split-bet-panel .wallet-coin-bet svg").count() == 1
                 assert page.locator('[data-layer="credits"] .wallet-a11y-label').count() == 1
@@ -186,6 +202,26 @@ try:
                 page.screenshot(path=str(OUT / "olympus-coin-panel-390.png"))
             assert not errors, (width, errors)
             context.close()
+
+        # Emulate iOS standalone where innerHeight excludes an extra 88 CSS px.
+        # Screen-height takeover must fill that bottom band on splash and game.
+        pwa = browser.new_context(viewport={"width":390,"height":844},
+            device_scale_factor=1,is_mobile=True,has_touch=True,
+            reduced_motion="reduce")
+        pwa.add_init_script("""(() => {
+          Object.defineProperty(navigator,'standalone',{configurable:true,value:true});
+          Object.defineProperty(screen,'height',{configurable:true,value:932});
+        })();""")
+        phone = pwa.new_page()
+        phone.goto(base + "/play/",wait_until="domcontentloaded",timeout=30000)
+        phone.wait_for_function("document.documentElement.dataset.boot === 'ready'",timeout=30000)
+        assert phone.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--sg-pwa-full-height').trim()") == "932px"
+        assert abs(phone.locator("#bootSplash").bounding_box()["height"]-932) < 2
+        assert abs(phone.locator(".splash-background").bounding_box()["height"]-932) < 2
+        phone.locator("#bootPlay").click()
+        phone.wait_for_function("document.documentElement.dataset.boot === 'entered'",timeout=12000)
+        assert abs(phone.locator(".game").bounding_box()["height"]-932) < 2
+        pwa.close()
 
         # Animate only the central medallion. Battery Saver freezes it.
         motion = browser.new_context(
