@@ -270,7 +270,7 @@ test('approved 1000x pill copy, centering, ring scale and static frame are share
   assert(css.includes('.promo-badge::after'));
   assert(!css.includes('spin-frame{animation:'));
   assert.match(read('play/game.js'),/WIN UP TO 1000×/);
-  assert.match(read('studio/index.html'),/v0\.14\.2/);
+  assert.match(read('studio/index.html'),/v0\.14\.3/);
 });
 
 test('Olympus credit and bet show SVG currency icons instead of visible text labels',()=>{
@@ -410,4 +410,33 @@ test('Olympus AUTO / NORMAL stay 1:1 and keep saved layer centers unchanged',()=
   assert.equal(rendered.style.top,`calc(${(edit.y+edit.h/2)/1920*100}% - ${160/1080*50}cqw)`);
   const css=read('play/game.css');
   assert(css.includes('.published-layer.published-mode-circle>.mode-control'));
+});
+
+test('v0.14.3 Olympus central SPIN is physically square, centered and unchanged in Studio data',()=>{
+  const p=preset(),before=JSON.stringify(p),d=dom();
+  d.window.SkygateApplyLayout(p,path=>'assets/'+path);
+  const scene=d.game.children.at(-1);
+  const l=p.layers.find(x=>x.id==='spinbutton');
+  const wrap=scene.children.find(x=>x.dataset.layer==='spinbutton');
+  const diameter=l.w/1080*100;
+  const centerY=(l.y+l.h/2)/1920*100;
+  assert(wrap.className.includes('published-spin-circle'));
+  assert.equal(wrap.style.width,diameter+'%');
+  assert.equal(wrap.style.height,diameter+'cqw');
+  assert.equal(wrap.style.top,`calc(${centerY}% - ${diameter/2}cqw)`);
+  assert.equal(wrap.style.aspectRatio,'1 / 1');
+  assert.equal(d.nodes.get('spin').parent,wrap,'interactive spinner stays attached');
+  assert.equal(JSON.stringify(p),before,'do not modify the published or Studio project');
+  for(const id of ['autobtn','turbobtn']){
+    assert(scene.children.find(x=>x.dataset.layer===id).className.includes('published-mode-circle'));
+  }
+  const custom=preset(),edited=custom.layers.find(x=>x.id==='spinbutton');
+  edited.y=1380;edited.h=420;edited.w=300;
+  const other=dom();other.window.SkygateApplyLayout(custom,path=>'assets/'+path);
+  const customWrap=other.game.children.at(-1).children.find(x=>x.dataset.layer==='spinbutton');
+  assert.equal(customWrap.style.height,300/1080*100+'cqw');
+  assert.equal(customWrap.style.top,`calc(${(1380+420/2)/1920*100}% - ${300/1080*50}cqw)`);
+  const css=read('play/game.css');
+  assert(css.includes('.published-layer.published-spin-circle > #spin'));
+  assert(css.includes('width:60%;height:60%'),'keep approved spinner visual scale');
 });
