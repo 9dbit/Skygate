@@ -148,6 +148,17 @@ try:
                 assert abs(banner["x"] + banner["width"]/2 - stage["x"] - stage["width"]/2) < 2
                 assert abs(banner["width"]/stage["width"] - .52) < .012
                 page.screenshot(path=str(OUT / "play-390.png"))
+                page.locator("#spin").click()
+                page.wait_for_function(
+                    "window.SlotGameTest?.getState().rounds === 1 && !window.SlotGameTest?.getState().busy",
+                    timeout=35000
+                )
+                state = page.evaluate("window.SlotGameTest.getState()")
+                assert state["rounds"] == 1 and state["credits"] >= 0, state
+                # Use the shared real Game/Studio renderer with the imported
+                # Olympus preset. Check visual geometry and preserved controls.
+                preset = json.loads((ROOT / "studio/themes/olympus-gold/project.json").read_text())
+                page.evaluate("(project) => window.SkygateApplyLayout(project, path => 'assets/' + path)", preset)
                 # The 1000x chip sits immediately on the WIN frame, and BET
                 # must share MENU's physical safe-area footer baseline.
                 promo = page.locator("#promoBadge")
@@ -164,17 +175,6 @@ try:
                 assert 0 <= pill_rect["y"]+pill_rect["height"]-frame_rect["y"] < 5, (pill_rect, frame_rect)
                 assert abs(bet_rect["y"]+bet_rect["height"] - menu_rect["y"]-menu_rect["height"]) < 2, (bet_rect, menu_rect)
                 assert bet_settings.evaluate("(el) => getComputedStyle(el).pointerEvents") == "auto"
-                page.locator("#spin").click()
-                page.wait_for_function(
-                    "window.SlotGameTest?.getState().rounds === 1 && !window.SlotGameTest?.getState().busy",
-                    timeout=35000
-                )
-                state = page.evaluate("window.SlotGameTest.getState()")
-                assert state["rounds"] == 1 and state["credits"] >= 0, state
-                # Use the shared real Game/Studio renderer with the imported
-                # Olympus preset. Check visual geometry and preserved controls.
-                preset = json.loads((ROOT / "studio/themes/olympus-gold/project.json").read_text())
-                page.evaluate("(project) => window.SkygateApplyLayout(project, path => 'assets/' + path)", preset)
                 assert page.locator(".split-credit-panel .wallet-coin-credit svg").count() == 1
                 assert page.locator(".split-bet-panel .wallet-coin-bet svg").count() == 1
                 assert page.locator('[data-layer="credits"] .wallet-a11y-label').count() == 1
