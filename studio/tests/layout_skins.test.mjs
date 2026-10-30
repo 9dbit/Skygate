@@ -353,7 +353,7 @@ test('PWA publishes the sky background as a full-viewport underlay without editi
   d.window.SkygateApplyLayout(p,path=>'assets/'+path);
   const backdrop=d.game.children[0];
   assert.equal(backdrop.className,'pwa-stage-background');
-  assert.equal(backdrop.attributes['aria-hidden'],'true');
+  assert.equal(backdrop['aria-hidden'],'true');
   assert.equal(backdrop.src,'assets/custom/olympus_background.png');
   assert.equal(d.game.children.at(-1).className,'published-scene');
   assert.equal(JSON.stringify(p),before);
