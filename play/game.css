@@ -647,3 +647,18 @@ dialog .dialog-body .confirm-actions button{font:700 11px Georgia!important;padd
 .olympus-gold .published-layer.published-mode-circle .control-skin{
   object-fit:contain;
 }
+
+/* v0.14.3 responsive central spinner. The Olympus published image layer has
+   a width-based square geometry in release.js, as do AUTO/NORMAL. Keep the
+   approved 60% central rotor diameter instead of enlarging it to the frame. */
+.olympus-gold .published-layer.published-spin-circle{
+  aspect-ratio:1 / 1;
+  align-items:center;justify-content:center;
+}
+.olympus-gold .published-layer.published-spin-circle > #spin{
+  width:60%;height:60%;min-width:0;min-height:0;
+  flex:0 0 auto;aspect-ratio:1 / 1;border-radius:50%;
+}
+.olympus-gold .published-layer.published-spin-circle > #spin img{
+  object-fit:contain;
+}

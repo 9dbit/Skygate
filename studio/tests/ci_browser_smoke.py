@@ -205,7 +205,9 @@ try:
             if width != 390:
                 olympus=json.loads((ROOT / "studio/themes/olympus-gold/project.json").read_text())
                 page.evaluate("(project) => window.SkygateApplyLayout(project, path => 'assets/' + path)", olympus)
-            for layer_id, button_id in [("autobtn","auto"),("turbobtn","turbo")]:
+            # Measure actual CSS boxes, not merely border-radius. Even a
+            # 50% border radius paints an oval when the parent is stretched.
+            for layer_id, button_id in [("autobtn","auto"),("spinbutton","spin"),("turbobtn","turbo")]:
                 layer=page.locator(f'[data-layer="{layer_id}"]')
                 button=page.locator("#"+button_id)
                 shell=layer.bounding_box()
@@ -216,6 +218,10 @@ try:
                 assert abs((shell["x"]+shell["width"]/2)-(control["x"]+control["width"]/2)) < 1.2
                 assert abs((shell["y"]+shell["height"]/2)-(control["y"]+control["height"]/2)) < 1.2
                 assert button.is_enabled() and button.is_visible()
+                if button_id == "spin":
+                    assert abs(control["width"]/shell["width"]-.60)<.012, (
+                        width, "preserve 60% spinner diameter", control, shell)
+                    assert page.locator("#spin .spin-rotor").count() == 1
             assert not errors, (width, errors)
             context.close()
 
@@ -237,6 +243,14 @@ try:
         phone.locator("#bootPlay").click()
         phone.wait_for_function("document.documentElement.dataset.boot === 'entered'",timeout=12000)
         assert abs(phone.locator(".game").bounding_box()["height"]-932) < 2
+        preset = json.loads((ROOT / "studio/themes/olympus-gold/project.json").read_text())
+        phone.evaluate("(p) => window.SkygateApplyLayout(p, path => 'assets/' + path)", preset)
+        for selector in ['[data-layer="autobtn"]','#auto',
+                         '[data-layer="spinbutton"]','#spin',
+                         '[data-layer="turbobtn"]','#turbo']:
+            bounds = phone.locator(selector).bounding_box()
+            assert bounds and abs(bounds["width"]-bounds["height"]) < 1.2, (
+                "physical iPhone PWA height 932", selector, bounds)
         pwa.close()
 
         # Animate only the central medallion. Battery Saver freezes it.

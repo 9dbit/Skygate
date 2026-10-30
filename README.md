@@ -1,5 +1,17 @@
 # SKYGATE — Portrait Game & Studio
 
+### v0.14.3 — responsive 1:1 central SPIN button
+
+- On mobile PWA, the central gold SPIN ring is truly circular at all supported
+  portrait heights, using viewport-width-based diameter in the shared renderer.
+- Keep the approved spinner visual scale (60% of its editable frame) and center
+  aligned with the original layer. AUTO and NORMAL remain 1:1.
+- Unit and Chromium smoke tests measure the physical button and wrapper aspect
+  ratio across 320px, 390px, 430px, and simulated standalone iPhone.
+- Live virtual-credit mathematics, published project JSON, symbols, audio, and
+  Studio editing controls are not changed.
+
+
 ### v0.14.2 — geometrically circular AUTO and NORMAL controls
 
 The shared game/Studio Olympus renderer sizes the AUTO and NORMAL (spin speed)
