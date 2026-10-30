@@ -34,7 +34,21 @@
 window.SkygateApplyLayout=(project,asset)=>{
   const game=document.querySelector('.game');
   const scene=document.createElement('div');scene.className='published-scene';
-  if(project.presentation==='olympus-gold')game.classList.add('olympus-gold');
+  if(project.presentation==='olympus-gold'){
+    game.classList.add('olympus-gold');
+    // The PWA viewport is taller than the 9:16 authoring canvas. Reuse the
+    // published sky source to paint behind system status and home-indicator
+    // safe areas without clipping or duplicating the full game interface.
+    const sky=project.layers.find(l=>l.id==='sky'&&l.asset&&l.visible!==false);
+    if(sky){
+      const bleed=document.createElement('img');
+      bleed.className='pwa-stage-background';
+      bleed.alt='';bleed.draggable=false;bleed.decoding='async';
+      bleed.setAttribute('aria-hidden','true');
+      bleed.src=asset(sky.asset);
+      game.append(bleed);
+    }
+  }
   const cropImage=(img,c)=>{if(c)Object.assign(img.style,{position:'absolute',left:-c.x/c.w*100+'%',top:-c.y/c.h*100+'%',width:100/c.w+'%',height:100/c.h+'%',objectFit:'fill'});};
   const bindings={winamount:'win',credits:'credits',betlabel:'betText',reels:'reels',spinbutton:'spin',autobtn:'auto',turbobtn:'turbo',menubtn:'menu',soundbtn:'sound',infobtn:'help',minusbtn:'minus',plusbtn:'plus',autolabel:'autoStatus',turbolabel:'turboStatus'};
 
