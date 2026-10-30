@@ -1,5 +1,14 @@
 # SKYGATE — Portrait Game & Studio
 
+### v0.14.0 — full-bleed mobile PWA and emissive vector Play
+
+- Mobile portrait PWA and browser viewport fill 100dvh end-to-end, including image backdrop behind the translucent status bar and Home-indicator safe area. No more 9:16 letterboxing bands under splash or gameplay.
+- Splash artwork is full-viewport cover with separately padded safe-area content; the PLAY emoji is replaced by an accessible, independent original cyan/sapphire and antique-gold emissive SVG icon, with reduced-motion support.
+- Gameplay reuses the current published Olympus sky artwork as a full-bleed underlay while its editable project layers occupy the safe-area stage. Reel layout, image cropping, animations, touch controls and game math remain unchanged.
+- Desktop and landscape retain the legacy framed 9:16 layout; Game and Studio preview share the same CSS and renderer. 320/390/430 mobile Chromium smoke validates full-height splash and gameplay and the SVG icon.
+- Native iPhone Safari standalone QA remains a final device verification checkpoint.
+
+
 ### v0.13.9 — Apple Touch Icon white-screen repair
 
 - Fixed the old 48px favicon incorrectly used as an iPhone icon: the user-approved Zeus / SKYGATE 5000 artwork now has real 180×180 Apple Touch, 192×192 PWA, and 512×512 PWA + maskable PNG files.
