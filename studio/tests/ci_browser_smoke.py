@@ -105,12 +105,34 @@ try:
                 raise AssertionError(f"Unexpected Skygate boot state: {initial_boot}")
             page.wait_for_function("document.documentElement.dataset.boot === 'ready'", timeout=30000)
             assert page.locator("#bootPlay").is_enabled()
+            # PWA mobile portrait: splash image must paint all the way to the
+            # physical viewport edges, with an accessible emissive SVG Play.
+            splash = page.locator("#bootSplash").bounding_box()
+            splash_art = page.locator("#bootSplash .splash-background").bounding_box()
+            assert abs(splash["y"]) < 1, splash
+            assert abs(splash["height"] - height) < 2, (width, splash)
+            assert abs(splash_art["y"]) < 1, splash_art
+            assert abs(splash_art["height"] - height) < 2, (width, splash_art)
+            assert page.locator("#bootPlay .splash-play-icon svg").count() == 1
+            assert page.locator("#bootPlay .splash-play-icon path").count() >= 1
+            assert "▶" not in page.locator("#bootPlay").inner_text()
             if width == 390:
                 page.screenshot(path=str(OUT / "splash-390.png"))
             page.locator("#bootPlay").click()
             page.wait_for_function("document.documentElement.dataset.boot === 'entered'", timeout=12000)
             assert page.locator("#spin").is_visible()
             assert "Bonus Booster" in page.locator("#anteFeature").inner_text()
+            # The old centered 9:16 card left letterbox bars on tall phones.
+            # Full-bleed game fills height while Studio binds the same scene.
+            game_bounds=page.locator(".game").bounding_box()
+            assert abs(game_bounds["y"]) < 1, (width, game_bounds)
+            assert abs(game_bounds["height"] - height) < 2, (width, game_bounds)
+            if page.locator(".game.has-published-scene").count():
+                backdrop = page.locator(".game .pwa-stage-background")
+                assert backdrop.count() == 1
+                bleed_bounds = backdrop.bounding_box()
+                assert abs(bleed_bounds["height"] - height) < 2
+                assert backdrop.evaluate("(el) => el.complete && el.naturalWidth > 0")
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), f"{width}: overflow"
             if width == 390:
                 # Artwork is rendered through the same public Game shell and
