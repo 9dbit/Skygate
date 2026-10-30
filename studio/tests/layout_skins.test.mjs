@@ -270,7 +270,7 @@ test('approved 1000x pill copy, centering, ring scale and static frame are share
   assert(css.includes('.promo-badge::after'));
   assert(!css.includes('spin-frame{animation:'));
   assert.match(read('play/game.js'),/WIN UP TO 1000×/);
-  assert.match(read('studio/index.html'),/v0\.14\.0/);
+  assert.match(read('studio/index.html'),/v0\.14\.1/);
 });
 
 test('Olympus credit and bet show SVG currency icons instead of visible text labels',()=>{
@@ -362,4 +362,25 @@ test('PWA publishes the sky background as a full-viewport underlay without editi
   assert(css.includes('height:100vh;height:100dvh;min-height:100dvh'));
   assert(css.includes('bottom:env(safe-area-inset-bottom,0px)'));
   assert(css.includes('.game.has-published-scene>.pwa-stage-background'));
+});
+
+test('v0.14.1 anchors WIN 1000x and BET settings to the same safe-area stage',()=>{
+  const project=preset(),snapshot=JSON.stringify(project),d=dom();
+  d.window.SkygateApplyLayout(project,path=>'assets/'+path);
+  const scene=d.game.children.at(-1),promo=d.nodes.get('promoBadge');
+  const bet=d.nodes.get('betMenu'),frame=project.layers.find(l=>l.id==='winbanner');
+  assert.equal(promo.parent,scene,'promo must follow WIN banner in the scene');
+  assert.equal(bet.parent,scene,'BET button must follow MENU footer baseline');
+  assert.equal(promo.style.top,(frame.y/1920*100-3)+'%');
+  assert.equal(JSON.stringify(project),snapshot,'never mutate editable Studio layout');
+  const moved=preset();moved.layers.find(l=>l.id==='winbanner').y+=80;
+  const d2=dom();d2.window.SkygateApplyLayout(moved,path=>'assets/'+path);
+  assert.equal(d2.nodes.get('promoBadge').style.top,
+    ((frame.y+80)/1920*100-3)+'%','promo must follow custom Studio WIN position');
+  const css=read('play/game.css'),html=read('play/index.html');
+  assert(css.includes('.olympus-gold .published-scene > .promo-badge'));
+  assert(css.includes('.olympus-gold .published-scene > .bet-menu{pointer-events:auto}'));
+  assert(css.includes('height:var(--sg-pwa-full-height,100dvh)'));
+  assert(html.includes('window.navigator.standalone===true'));
+  assert(html.includes('window.screen?.height'));
 });

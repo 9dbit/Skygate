@@ -595,3 +595,38 @@ dialog .dialog-body .confirm-actions button{font:700 11px Georgia!important;padd
 }
 /* Large screens and the desktop Studio layout retain their framed 9:16
    presentation. The SVG Play icon remains crisp at any size. */
+
+/* Skygate v0.14.1: preserve background artwork to the physical iPhone bottom.
+   A solid-black splash fade hid the lower part of the reference image. */
+.splash-shade{
+  background:linear-gradient(180deg,#03091080 0%,#03091000 23%,#03091012 49%,#03091075 78%,#03091052 100%);
+}
+/* Keep the pill and its WIN frame inside the same safe-area-aware scene.
+   The top edge is calculated from the editable winbanner Y coordinate. */
+.olympus-gold .published-scene > .promo-badge{
+  left:50%;transform:translateX(-50%);
+  width:52%;height:3.2%;z-index:55;
+}
+/* BET is a live sibling of MENU, VOLUME and RULES: identical footer baseline. */
+.olympus-gold .published-scene > .bet-menu{pointer-events:auto}
+
+/* v0.14.1 fixes iOS standalone's smaller dynamic viewport. The screen-height
+   CSS custom property is measured early in the document head for real PWAs;
+   ordinary Safari retains the current visual viewport and browser chrome. */
+@media (max-width:699px) and (orientation:portrait){
+  html,body,.game{
+    height:var(--sg-pwa-full-height,100dvh);
+    min-height:var(--sg-pwa-full-height,100dvh);
+  }
+  #bootSplash.boot-splash{
+    height:var(--sg-pwa-full-height,100dvh);
+    min-height:var(--sg-pwa-full-height,100dvh);
+    max-height:var(--sg-pwa-full-height,100dvh);
+  }
+  #bootSplash .splash-art,#bootSplash .splash-background{
+    height:100%;min-height:100%;
+  }
+}
+@media (display-mode:standalone) and (max-width:699px) and (orientation:portrait){
+  html{--sg-pwa-full-height:100lvh}
+}
