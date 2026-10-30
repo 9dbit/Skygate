@@ -270,7 +270,7 @@ test('approved 1000x pill copy, centering, ring scale and static frame are share
   assert(css.includes('.promo-badge::after'));
   assert(!css.includes('spin-frame{animation:'));
   assert.match(read('play/game.js'),/WIN UP TO 1000×/);
-  assert.match(read('studio/index.html'),/v0\.13\.9/);
+  assert.match(read('studio/index.html'),/v0\.14\.0/);
 });
 
 test('Olympus credit and bet show SVG currency icons instead of visible text labels',()=>{
@@ -346,4 +346,20 @@ test('legacy Live minus x643 is corrected, new Studio preset x577 and designer e
   assert.equal(c.nodes.get('minus').parent.style.left,620/1080*100+'%');
   assert.equal(scene.children.filter(n=>n.dataset.fx?.startsWith('wallet-')).length,0,
     'use original panel and labels if a custom move would overlap the poker icon');
+});
+
+test('PWA publishes the sky background as a full-viewport underlay without editing the studio project',()=>{
+  const p=preset(),before=JSON.stringify(p),d=dom();
+  d.window.SkygateApplyLayout(p,path=>'assets/'+path);
+  const backdrop=d.game.children[0];
+  assert.equal(backdrop.className,'pwa-stage-background');
+  assert.equal(backdrop.attributes['aria-hidden'],'true');
+  assert.equal(backdrop.src,'assets/custom/olympus_background.png');
+  assert.equal(d.game.children.at(-1).className,'published-scene');
+  assert.equal(JSON.stringify(p),before);
+  const css=read('play/game.css');
+  assert(css.includes('Skygate v0.14.0 full-bleed mobile viewport'));
+  assert(css.includes('height:100vh;height:100dvh;min-height:100dvh'));
+  assert(css.includes('bottom:env(safe-area-inset-bottom,0px)'));
+  assert(css.includes('.game.has-published-scene>.pwa-stage-background'));
 });
