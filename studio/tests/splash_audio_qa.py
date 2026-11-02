@@ -34,7 +34,7 @@ INSTRUMENT = """(() => {
   document.addEventListener('click', event => {
     if (event.isTrusted && event.target.closest?.('#bootPlay')) {
       window.__inSplashGesture = true;
-      queueMicrotask(() => { window.__inSplashGesture = false; });
+      setTimeout(() => { window.__inSplashGesture = false; }, 0);
     }
   }, true);
   Object.defineProperty(window, 'SkyAudioMixer', {
