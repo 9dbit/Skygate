@@ -68,7 +68,9 @@ def publish_test_music():
     project = json.loads((ROOT/'studio/project.json').read_text())
     project['audio']['master'] = 63
     track = next(t for t in project['tracks'] if t['id'] == TRACK)
-    track.update(loop=True, volume=23, fade=80, rate=1.1, trimStart=.125, trimEnd=1.75)
+    # The release schema supports loop, volume and fade. It intentionally
+    # excludes editor-only rate/trim fields; test the public contract.
+    track.update(loop=True, volume=23, fade=80)
     output = io.BytesIO()
     with wave.open(output, 'wb') as wav:
         wav.setnchannels(1)
@@ -135,11 +137,11 @@ def check_game(browser, engine, custom_path=None):
               return {loop:channel.source.loop, start:channel.source.loopStart,
                 end:channel.source.loopEnd, rate:channel.source.playbackRate.value,
                 master:m.settings().master, volume:m.track('bgm_celestial_loop').volume,
-                duration:channel.buffer.duration};
+                fade:m.track('bgm_celestial_loop').fade, duration:channel.buffer.duration};
             }""")
-            assert values['loop'] and abs(values['start']-.125)<.001, values
-            assert abs(values['end']-1.75)<.001 and abs(values['rate']-1.1)<.001, values
-            assert values['master']==63 and values['volume']==23, values
+            assert values['loop'] and abs(values['start'])<.001, values
+            assert abs(values['end']-2)<.01 and abs(values['rate']-1)<.001, values
+            assert values['master']==63 and values['volume']==23 and values['fade']==80, values
             assert abs(values['duration']-2)<.01, values
         # The same original mixer owns both splash start and subsequent controls.
         page.locator('#sound').tap()
