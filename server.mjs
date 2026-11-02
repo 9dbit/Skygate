@@ -1,3 +1,4 @@
+import { startBridge } from './gameops-heartbeat.cjs';
 import { createServer } from 'node:http';
 import { timingSafeEqual, randomBytes } from 'node:crypto';
 import { createReadStream } from 'node:fs';
@@ -91,4 +92,4 @@ createServer(async(req,res)=>{
   res.writeHead(200,{...base,...(privateRoute?{'X-Robots-Tag':'noindex, nofollow, noarchive'}:{}),'Content-Type':type,'Content-Length':info.size,'Cache-Control':privateRoute?'private, no-store':type.startsWith('text/html')?'no-cache':'public, max-age=3600'});
   if(req.method==='HEAD'){res.end();return;}createReadStream(target).on('error',()=>res.destroy()).pipe(res);
  }catch(e){if(!(e instanceof ReleaseError))console.error(e.message);if(!res.headersSent)json(res,e.status||500,{error:e instanceof ReleaseError?e.message:'Server error'});else res.destroy();}
-}).listen(port,'0.0.0.0',function(){console.log(`SKYGATE Studio listening on ${this.address().port}`);});
+}).listen(port,'0.0.0.0',function(){console.log(`SKYGATE Studio listening on ${this.address().port}`);startBridge({game:'skygate-5000',port:this.address().port,version});});
