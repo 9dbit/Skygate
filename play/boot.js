@@ -12,10 +12,23 @@
     play.hidden=true;retry.hidden=false;progress.hidden=true;
     console.error('Skygate loading failed:',error);
   }
-  function enter(){
+  function enter(event){
     if(state!=='ready')return;
     state='entered';root.dataset.boot=state;splash.hidden=true;
     document.querySelector('.game').inert=false;
+    // A real splash tap starts the existing game audio path synchronously.
+    // Its handler unlocks Web Audio before fetching/decoding the Studio BGM.
+    // Reuse that one mixer and its published track settings, not a second player.
+    // Studio previews enter without a gesture and must remain silent.
+    if(event?.isTrusted&&!window.SkygatePreview){
+      try{
+        const sound=document.getElementById('sound');
+        if(sound&&!sound.disabled&&sound.getAttribute('aria-pressed')!=='true')sound.click();
+      }catch(error){
+        // An audio problem must never block gameplay or the manual retry control.
+        console.error('Skygate audio activation failed:',error);
+      }
+    }
     window.SkygateRefitText?.();
     if(!window.SkygatePreview)document.getElementById('spin').focus({preventScroll:true});
   }
