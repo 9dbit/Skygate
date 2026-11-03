@@ -20,7 +20,8 @@
     for(const node of E('stageLayers').children){
       const layer=[...doc.querySelectorAll('.published-layer')].find(l=>l.dataset.layer===node.dataset.id);
       if(!layer){node.style.display='none';continue;}
-      const r=layer.getBoundingClientRect();Object.assign(node.style,{left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px',transform:'none'});
+      const r=layer.getBoundingClientRect(),stage=E('stage').getBoundingClientRect();
+      Object.assign(node.style,{left:(r.left-stage.left)+'px',top:(r.top-stage.top)+'px',width:r.width+'px',height:r.height+'px',transform:'none'});
     }
   }
   function draftRender(){
