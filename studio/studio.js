@@ -95,7 +95,7 @@
       side.innerHTML=imageFiles.map(f=>{let head='';if(f.group!==last){last=f.group;head=`<div class="asset-group">${esc(last)}</div>`;}return head+`<button class="asset-row" data-asset="${esc(f.path)}"><img src="${esc(assetURL(f.path))}" loading="lazy"><span>${esc(f.id.replaceAll('_',' '))}<small>PNG / SVG · individual</small></span><b class="asset-chip">↗</b></button>`;}).join('');
     }else if(activeTab==='audio'){
       label.textContent='AUDIO ASSETS';count.textContent=state.tracks.length+' tracks';
-      side.innerHTML=state.tracks.map(t=>`<div class="track-mini"><span style="color:var(--gold);font-size:17px">♫</span><span style="flex:1">${esc(t.name)}</span><span style="color:#7fdaa8;font-size:10px">${t.loop?'LOOP':'SFX'}</span></div>`).join('');
+      side.innerHTML=state.tracks.map(t=>`<div class="track-mini"><button type="button" class="track-preview-button" data-audio-preview="${esc(t.id)}" aria-label="Preview ${esc(t.name)}" title="Play / stop audio">▶</button><span class="track-name">${esc(t.name)}</span><small style="color:#7fdaa8;font-size:10px">${t.loop?'LOOP':'SFX'}</small></div>`).join('');
     }else if(activeTab==='math'){
       label.textContent='GAME MATH';count.textContent='Virtual-only';
       side.innerHTML=`<div class="property-card"><strong>6×5 / 8+ Anywhere</strong><p>Tumble, multiplier orb, free spins and payouts use deterministic demo engine.</p></div><div class="property-card"><strong>Configurable model</strong><p>Symbol weights and paytable are the real inputs to the simulated round engine. Target RTP is planning metadata.</p></div>`;
@@ -382,6 +382,20 @@
     window.addEventListener('pagehide',()=>stopAll());
     $('#mainNav').addEventListener('click',e=>{const el=e.target.closest('[data-tab]');if(el)selectTab(el.dataset.tab);});
     $('#sideContent').addEventListener('click',e=>{
+      const preview=e.target.closest('[data-audio-preview]');if(preview){
+        const id=preview.dataset.audioPreview;
+        if(audioKit.isPlaying(id)){stopAudio(id,false);preview.textContent='▶';preview.setAttribute('aria-label','Preview '+id);}
+        else {
+          if(state.audio.muted){toast('Matikan Mute All untuk mendengar preview audio.');return;}
+          stopAll(); // The list is a single-channel audition, not a second mix.
+          preview.textContent='■';preview.setAttribute('aria-label','Stop '+id);
+          void audioKit.unlock().then(ready=>{
+            if(!ready){preview.textContent='▶';toast('Audio belum aktif. Ketuk Play sekali lagi.');return;}
+            return audioKit.play(id).then(ok=>{if(!ok){preview.textContent='▶';toast('Track tidak dapat diputar.');}});
+          });
+        }
+        return;
+      }
       const lock=e.target.closest('[data-lock]');if(lock){const l=lookupLayer(lock.dataset.lock);remember();l.locked=!l.locked;saveLocal();render();return;}
       const eye=e.target.closest('[data-eye]');if(eye){const l=lookupLayer(eye.dataset.eye);remember();l.visible=!l.visible;saveLocal();render();return;}
       const layer=e.target.closest('[data-layer-row]');if(layer){selectLayer(layer.dataset.layerRow);return;}
