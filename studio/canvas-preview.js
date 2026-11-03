@@ -20,8 +20,11 @@
     for(const node of E('stageLayers').children){
       const layer=[...doc.querySelectorAll('.published-layer')].find(l=>l.dataset.layer===node.dataset.id);
       if(!layer){node.style.display='none';continue;}
-      const r=layer.getBoundingClientRect(),stage=E('stage').getBoundingClientRect();
-      Object.assign(node.style,{left:(r.left-stage.left)+'px',top:(r.top-stage.top)+'px',width:r.width+'px',height:r.height+'px',transform:'none'});
+      // Child rects are already relative to the iframe viewport. The iframe
+      // and handles share a 393x852 logical stage and one outer scale. Never
+      // subtract a parent-page viewport rect from these local coordinates.
+      const r=layer.getBoundingClientRect();
+      Object.assign(node.style,{left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px',transform:'none',display:layer.style.display});
     }
   }
   function draftRender(){
@@ -50,7 +53,11 @@
     reset(){if(ready){frame.contentDocument.getElementById('reset')?.click();studio.refreshSession();}},move(layer){
     if(source!=='draft'||!ready)return;
     const node=[...frame.contentDocument.querySelectorAll('.published-layer')].find(n=>n.dataset.layer===layer.id);
-    if(node){node.style.left=layer.x/1080*100+'%';node.style.top=layer.y/1920*100+'%';}
+    if(node){
+      node.style.left=layer.x/1080*100+'%';
+      const circle=node.classList.contains('published-spin-circle')||node.classList.contains('published-mode-circle');
+      node.style.top=circle?`calc(${(layer.y+layer.h/2)/1920*100}% - ${layer.w/1080*50}cqw)`:layer.y/1920*100+'%';
+    }
   },spin(replay=false){
     if(!ready){note('Tunggu sampai preview siap.');return;}
     if(source==='draft')studio.setMode('preview');
@@ -71,6 +78,7 @@
   });
   window.addEventListener('skygate-draft-change',()=>{if(source==='draft'){clearTimeout(timer);timer=setTimeout(draftRender,180);}});
   window.addEventListener('resize',alignHandles);
+  window.addEventListener('skygate-device-resize',alignHandles);
   window.addEventListener('skygate-live-changed',loadLive);
   E('liveModeBtn').onclick=()=>{source='live';loadLive();};
   E('editLiveBtn').onclick=async()=>{

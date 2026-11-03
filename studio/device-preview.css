@@ -1,0 +1,38 @@
+/* Studio display profile is distinct from the 1080 x 1920 design source. */
+.phone.iphone15pro-preview{
+  width:var(--device-phone-width,413px)!important;
+  min-width:0!important;max-width:none!important;
+  height:auto!important;max-height:none!important;aspect-ratio:auto!important;
+  flex:0 0 auto;padding:8px;border-width:2px;
+}
+.device-screen-slot{position:relative;flex:0 0 auto;overflow:hidden;background:#080c0f}
+.device-screen-canvas{border-radius:30px}
+.device-screen-release{border-radius:18px;align-self:center}
+.device-screen-slot[hidden]{display:none!important}
+.phone.iphone15pro-preview #stage{
+  position:absolute;left:0;top:0;right:auto;bottom:auto;
+  width:393px!important;height:852px!important;min-height:0;max-height:none;
+  aspect-ratio:393/852;transform-origin:0 0;
+  transform:scale(var(--device-scale,1));border-radius:0;
+}
+.release-preview #releaseFrame{
+  position:absolute;left:0;top:0;right:auto;bottom:auto;
+  width:393px!important;height:852px!important;max-width:none;max-height:none;
+  aspect-ratio:393/852;transform-origin:0 0;
+  transform:scale(var(--device-scale,1));border:0;border-radius:0;
+}
+/* Remove the old attached notch: this is a viewport preview, not OS emulation. */
+.iphone15pro-preview>.screen-notch,.iphone15pro-preview>.phone-bottom{display:none}
+.device-viewport-caption{display:block;margin-top:4px;font:11px/1.4 system-ui;color:#d6bb80}
+.workspace-header>div:first-child{min-width:0}
+.workspace-header{flex-wrap:wrap}
+.viewport-wrap{flex-shrink:0}
+@media(max-width:800px){
+  .workspace-header{align-items:flex-start;gap:8px}
+  .workspace-header .stage-controls{max-width:100%;flex-wrap:wrap}
+  .device-viewport-caption{font-size:10px}
+  /* Keep the complete brand visible instead of clipping page overflow. */
+  .topbar .brand{min-width:0;max-width:100%;flex-shrink:1}
+  .topbar .brand-title{min-width:0}
+  .topbar .brand-title small{white-space:normal;overflow-wrap:anywhere}
+}
