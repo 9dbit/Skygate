@@ -86,7 +86,17 @@ try:
                 results.append(dict(browser=name,outer=[width,height],mode='draft',**verify(page,'gameCanvas')))
                 assert page.locator('#gameCanvas').get_attribute('src') == url, 'resize reloaded draft'
                 assert page.evaluate('JSON.stringify(window.SKYGATE_STUDIO.getState())') == original
-                assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+1')
+                overflow=page.evaluate("""() => ({width:innerWidth,scroll:document.documentElement.scrollWidth,
+                  elements:[...document.querySelectorAll('body *')].filter(el=>{
+                    const r=el.getBoundingClientRect(),s=getComputedStyle(el);
+                    return r.width>0 && s.visibility!=='hidden' && s.display!=='none' && r.right>innerWidth+1;
+                  }).slice(0,25).map(el=>({tag:el.tagName,id:el.id,cls:el.className,
+                    right:el.getBoundingClientRect().right,width:el.getBoundingClientRect().width,
+                    minWidth:getComputedStyle(el).minWidth,overflow:getComputedStyle(el).overflow}))})""")
+                if overflow['scroll']>width+1:
+                    page.screenshot(path=str(OUT/f'{name}-overflow-{width}.png'),full_page=True)
+                    (OUT/f'{name}-overflow-{width}.json').write_text(json.dumps(overflow,indent=2))
+                assert overflow['scroll']<=width+1,(name,width,height,overflow)
                 alignment=page.evaluate("""() => {
                   const frame=document.getElementById('gameCanvas');
                   const layer=frame.contentDocument.querySelector('[data-layer="guardian"]');
@@ -106,7 +116,7 @@ try:
             page.screenshot(path=str(OUT/f'{name}-publish-review.png'),full_page=True)
             page.locator('#closeRelease').click()
             assert page.evaluate('JSON.stringify(window.SKYGATE_STUDIO.getState())') == original
-            assert page.locator('[data-audio-preview]').count() == 0  # Layers tab is unchanged.
+            assert page.locator('[data-audio-preview]').count() == 0
             assert not errors, errors
             context.close();browser.close()
     (OUT/'geometry.json').write_text(json.dumps(results,indent=2))
