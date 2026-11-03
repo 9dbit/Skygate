@@ -105,3 +105,21 @@
 .spin-speed-field [data-motion-readout]{font-variant-numeric:tabular-nums;font-weight:800;color:var(--gold2);font-size:15px;white-space:nowrap}
 .spin-speed-field input[type=range]{width:100%;margin:6px 0 0;accent-color:var(--gold);cursor:pointer;touch-action:pan-x}
 @media(max-width:600px){.motion-sliders{gap:10px}.spin-speed-field [data-motion-readout]{font-size:14px}}
+
+/* Mobile viewport fidelity: the CONTENT screen, not the decorative bezel, is 9:16. */
+.phone{aspect-ratio:auto;height:auto;max-height:none;box-sizing:border-box}
+.phone .stage{aspect-ratio:9/16;height:auto;min-height:0}
+.viewport-wrap{min-height:0}
+.release-preview iframe{display:block;width:min(100%,calc(min(74svh,780px)*9/16));height:auto;aspect-ratio:9/16;flex:none;align-self:center}
+.release-preview iframe[hidden]{display:none}
+.release-preview{min-width:0}
+.track-mini{gap:7px;min-height:46px}
+.track-mini .track-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.track-preview-button{flex:none;width:30px;height:30px;display:grid;place-items:center;background:#302044;border:1px solid #9068ad;border-radius:50%;color:#ffdf9e;font-size:13px;padding:0;line-height:1}
+.track-preview-button:focus-visible{outline:2px solid #f6cf83;outline-offset:2px}
+@media(max-width:800px){
+ .phone{width:min(100%,330px,calc((100dvh - 270px)*9/16));height:auto;max-height:none}
+ .release-preview iframe{width:min(100%,calc(62svh*9/16));height:auto;aspect-ratio:9/16}
+ .release-preview{overflow:hidden}
+}
+@media(max-width:360px){.phone{width:min(100%,310px,calc((100dvh - 274px)*9/16))}}
