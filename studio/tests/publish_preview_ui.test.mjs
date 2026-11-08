@@ -17,13 +17,14 @@ function fixture(){
     append(...children){this.children.push(...children);}
     replaceChildren(){this.children=[];}
     send(type,details={}){return this.listeners[type]?.(details);}
+    click(){this.clicked=true;}
   }
-  const ids=['releaseBtn','releaseDialog','releaseStatus','prepareRelease','publishRelease','rollbackRelease','loadRelease','closeRelease','releaseFrame','previewLabel','liveRelease','releaseHistory'];
+  const ids=['releaseBtn','releaseDialog','releaseStatus','prepareRelease','publishRelease','rollbackRelease','loadRelease','closeRelease','releaseFrame','previewLabel','liveRelease','releaseHistory','exportPlayground'];
   const nodes=Object.fromEntries(ids.map(id=>[id,new Node(id)]));
   const requests=[],posted=[],callbacks={},timers=new Map();
   let nextTimer=0,active=live,events=0;
   nodes.releaseFrame.contentWindow={postMessage:(msg,origin)=>posted.push({msg,origin})};
-  const document={getElementById:id=>nodes[id],createElement:tag=>new Node(tag)};
+  const created=[];const document={getElementById:id=>nodes[id],createElement:tag=>{const n=new Node(tag);created.push(n);return n;}};
   const inventory=()=>({active,previous:null,available:true,csrf:'test-csrf',revisions:[{id:active,name:'SKYGATE',published:true,createdAt:'2026-10-29T16:00:00Z'}]});
   async function fetch(path,opts={}){
     requests.push({path,method:opts.method||'GET',body:opts.body?JSON.parse(opts.body):null});
@@ -39,20 +40,22 @@ function fixture(){
     SKYGATE_STUDIO:{ready:Promise.resolve(),getPreviewData:()=>({project:{schema:'skygate/studio-v0.3'},assets:{}}),getPublishBundle:async()=>({project:{schema:'skygate/studio-v0.3'},overrides:[]})},
     addEventListener:(type,cb)=>{callbacks[type]=cb;},dispatchEvent:()=>{events++;},
   };
-  const context={document,window,fetch,location:{origin:'https://sky.example'},URL,Image:class{},FileReader:class{},console,
+  const context={document,window,fetch,location:{origin:'https://sky.example'},URL,Blob,Image:class{},FileReader:class{},console,
     Event:class{constructor(type){this.type=type;}},setTimeout:(fn)=>{const id=++nextTimer;timers.set(id,fn);return id;},clearTimeout:id=>timers.delete(id)};
   vm.runInNewContext(code,context);
-  return {nodes,requests,posted,timers,events:()=>events,
+  return {nodes,requests,posted,timers,created,events:()=>events,
     receive:(data,source=nodes.releaseFrame.contentWindow)=>callbacks.message({origin:'https://sky.example',source,data}),
     expire:()=>{for(const [id,fn] of [...timers]){timers.delete(id);fn();}}};
 }
 
 test('opening Publish immediately shows playable Draft, does not stage a snapshot',async()=>{
   const f=fixture();f.nodes.releaseBtn.onclick();
+  assert.equal(f.nodes.exportPlayground.disabled,true,'Export waits until the active request finishes');
   assert.equal(f.nodes.releaseDialog.open,true);
   assert.equal(f.nodes.releaseFrame.hidden,false);
   assert.match(f.nodes.releaseFrame.src,/^\/studio\/editor-preview\/\?publish-draft=/);
   await settle();
+  assert.equal(f.nodes.exportPlayground.disabled,false);
   assert.equal(f.nodes.liveRelease.textContent,'Live: '+live.slice(0,8));
   assert.equal(f.requests.filter(x=>x.method==='POST').length,0,'Opening is read-only');
   f.receive({type:'skygate-editor-request'});await settle();
@@ -66,6 +69,18 @@ test('opening Publish immediately shows playable Draft, does not stage a snapsho
   assert.equal(f.nodes.releaseFrame.src,'about:blank');
   assert.equal(f.nodes.releaseFrame.hidden,true);
   assert.equal(f.nodes.releaseDialog.open,false);
+});
+
+test('Playground export downloads the complete envelope without publishing a release',async()=>{
+  const f=fixture();f.nodes.releaseBtn.onclick();await settle();
+  f.nodes.exportPlayground.send('click');await settle();
+  const link=f.created.find(n=>n.id==='a'&&n.clicked);assert.ok(link);
+  assert.equal(link.download,'skygate-playground.json');
+  const bundle=await (await fetch(link.href)).json();URL.revokeObjectURL(link.href);
+  assert.equal(bundle.format,'playground.studio.v1');assert.equal(bundle.game,'skygate-5000');
+  assert.equal(bundle.payload.project.schema,'skygate/studio-v0.3');
+  assert.equal(f.requests.filter(r=>r.method==='POST').length,0);
+  assert.equal(f.nodes.exportPlayground.disabled,false);
 });
 
 test('prepare explicitly stages snapshot, validates preview READY, then enables Publish',async()=>{
