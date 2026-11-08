@@ -4,6 +4,7 @@
   let inventory=null,selected=null,previewReady=false,busy=false,previewKind='none',previewTimeout=null,previewSerial=0;
   const message=text=>E('releaseStatus').textContent=text;
   function controls(){
+    const exportButton=E('exportPlayground');if(exportButton)exportButton.disabled=busy;
     E('prepareRelease').disabled=busy||!inventory?.available;
     E('publishRelease').disabled=busy||previewKind!=='snapshot'||!previewReady||!selected||selected===inventory?.active;
     E('rollbackRelease').disabled=busy||!inventory?.available||(!inventory.active&&!inventory.previous);
