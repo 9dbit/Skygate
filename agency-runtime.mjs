@@ -5,6 +5,7 @@ import {createHash,createHmac,randomUUID,randomBytes} from 'node:crypto';
 import {mkdirSync,readFileSync} from 'node:fs';
 import {dirname,isAbsolute} from 'node:path';
 import walletTransport from './agency-wallet.cjs';
+import {createStudioSync} from './agency-studio.mjs';
 import math from './studio/math/engine.js';
 import studioMath from './studio/math/studio_math.js';
 import settings from './play/settings-model.js';
@@ -37,6 +38,13 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
  if(!mode)return {enabled:false,health:()=>({}),handle:async()=>false,close:()=>{}};
  if(!isAbsolute(env.SKYGATE_AGENCY_DB_PATH||''))throw Error('Persistent SKYGATE_AGENCY_DB_PATH required');
  const client=wallet||walletTransport.createAgencyWallet({origin:env.AGENCY_WALLET_ORIGIN,keyId:env.AGENCY_WALLET_KEY_ID,secret:env.AGENCY_WALLET_SECRET,allowLocal:env.AGENCY_WALLET_LOCAL_QA==='1'});
+ let baseline;
+ if(env.AGENCY_STUDIO_SYNC==='1'){
+  const project=JSON.parse(readFileSync(new URL('./studio/project-data.js',import.meta.url),'utf8').replace(/^window\.SKY_PROJECT_DEFAULT\s*=\s*/,'').trim().replace(/;$/,''));
+  project.math=JSON.parse(readFileSync(new URL('./play/config.js',import.meta.url),'utf8').replace(/^window\.SlotGameConfig\s*=\s*/,'').trim().replace(/;$/,''));
+  project.bet=2; // Keep the bundled runtime's starting stake, not Studio's demo stake.
+  baseline={format:'playground.studio.v1',game:'skygate-5000',name:'Template Studio Skygate',payload:{project,overrides:{}}};
+ }
  if(typeof env.AGENCY_WALLET_SECRET!=='string'||env.AGENCY_WALLET_SECRET.length<32)throw Error('Sandbox session signing key required');
  mkdirSync(dirname(env.SKYGATE_AGENCY_DB_PATH),{recursive:true});
  const db=new DatabaseSync(env.SKYGATE_AGENCY_DB_PATH,{timeout:30000});
@@ -46,6 +54,7 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
   stake TEXT NOT NULL,payout TEXT NOT NULL,max_payout TEXT NOT NULL,result_json TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'intent',central_id TEXT,error_status INTEGER,created_at INTEGER NOT NULL,finished_at INTEGER,UNIQUE(actor,request_id));
  CREATE UNIQUE INDEX IF NOT EXISTS one_pending ON rounds(actor) WHERE state IN ('intent','reserved');`);
  const query=(sql,...args)=>db.prepare(sql).get(...args),all=(sql,...args)=>db.prepare(sql).all(...args),run=(sql,...args)=>db.prepare(sql).run(...args);
+ const studio=createStudioSync({env,client,releases,baseline});
  let queue=Promise.resolve();
  const serial=fn=>{const task=queue.then(fn);queue=task.catch(()=>{});return task;};
  async function call(action,p){try{return await client[action](p);}catch(e){if(e instanceof walletTransport.AgencyWalletError)throw e;throw new NativeError(503,'Koneksi wallet terputus. Ulangi request yang sama; hasil tersimpan.');}}
@@ -150,7 +159,7 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
   }catch(e){send(e instanceof NativeError?e.status:500,{error:e instanceof NativeError?e.message:'Native wallet error; retry the same request'});}
   return true;
  }
- return {enabled:true,handle,health:()=>{query('SELECT 1');return {wallet:'playground',mode:'sandbox',database:'connected',source_commit:env.RAILWAY_GIT_COMMIT_SHA||''};},close:()=>{clearInterval(timer);db.close();},
+ return {enabled:true,handle,health:()=>{query('SELECT 1');return {wallet:'playground',mode:'sandbox',database:'connected',source_commit:env.RAILWAY_GIT_COMMIT_SHA||'',studio:studio.status()};},close:()=>{clearInterval(timer);studio.close();db.close();},
   // Local test harness can exercise the same serialized domain operations.
   test:{redeem:token=>serial(()=>redeem(token)),state:raw=>serial(()=>{const {s,actor}=session(raw);return snapshot(s,actor);}),spin:(raw,p)=>serial(()=>{const {s,actor}=session(raw);return spin(s,actor,p);}),recover:()=>serial(recover)}};
 }

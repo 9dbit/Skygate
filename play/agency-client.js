@@ -18,7 +18,10 @@ window.SkygateAgencyReady=(async()=>{
  await window.SkygateReleaseReady;
  const api={state:await request('state'),async spin(bet,ante,buy_bonus){
   let payload=JSON.parse(sessionStorage.getItem(key)||'null');
-  if(!payload){payload={request_id:crypto.randomUUID(),bet:String(bet),ante,buy_bonus,release_id:api.state.release_id};sessionStorage.setItem(key,JSON.stringify(payload));}
+  if(!payload){
+   if(api.state.release_id!==(window.SkygateActiveRelease?.id||'bundled'))throw Error('Versi berubah. Muat ulang game sebelum spin berikutnya.');
+   payload={request_id:crypto.randomUUID(),bet:String(bet),ante,buy_bonus,release_id:api.state.release_id};sessionStorage.setItem(key,JSON.stringify(payload));
+  }
   try{const result=await request('spin',payload);api.state=result.state;window.PlaygroundNavigation.update(result.state);sessionStorage.removeItem(key);return result;}
   catch(e){if(e.status<500&&![408,429].includes(e.status))sessionStorage.removeItem(key);window.PlaygroundNavigation.error(e);throw e;}
  }};

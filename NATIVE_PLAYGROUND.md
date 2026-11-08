@@ -38,3 +38,20 @@ Backend pusat tetap berwenang terhadap saldo, batas player, pilihan game agen, e
 Runtime native menampilkan tombol kembali putih/ungu dan tautan menu ke storefront agen. Tujuan berasal dari metadata Playground yang ditandatangani server, tidak dari referrer atau parameter player. `/api/agency/context` membutuhkan cookie native dan hanya mengembalikan metadata navigasi/expiry tersimpan; state wallet menyegarkannya dari pusat. Sesi kedaluwarsa memberi petunjuk membuka ulang melalui agen. Klik kembali menghentikan autoplay/animasi tetapi tidak membatalkan ronde yang sudah diterima. Retry membaca/memulihkan hasil yang sama.
 
 UAT browser memeriksa kembali saat respons spin ditahan, saldo di akun 64COR, tepat satu settlement, dan pesan expired. Modul `agency-navigation.js` diselaraskan byte-for-byte dengan sumber `Playground/adapters/agency-navigation.js` (pada Skygate di direktori `play/`).
+# Central Studio publication
+
+Set `AGENCY_STUDIO_SYNC=1` on the native agency sandbox after deploying the matching
+Playground backend. **Manage Games → Rilis Studio** stages immutable packages,
+waits for native validation, then requires explicit master publication. Applied
+status requires the native receipt. Rollback and restarts retain old outcomes and
+previously published media; publication never changes wallet balances.
+
+Studio's **Export paket Playground** action includes validated project settings
+and embedded media for upload to the master panel. The original Studio deployment
+must be updated separately to expose that button. The master panel can edit basic
+animation/audio settings independently. Its first Skygate release uses the Studio
+template layout, bundled math and bundled starting stake; the UI explains this.
+
+The existing persistent release directory and wallet volume are required, with
+one replica. New spins require the loaded page's release; reload after changing
+versions. Already accepted rounds remain idempotently retryable.
