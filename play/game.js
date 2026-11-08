@@ -169,6 +169,7 @@ function startSkygate() {
     if (!replay && state.credits<cost) {status(agency?'Saldo Playground tidak cukup. Kembali ke website agen.':'Kredit tidak cukup. Reset kredit melalui menu.');return;}
     if (replay && !state.last) {status('Belum ada ronde untuk replay.');return;}
     state.busy=true;suspended=document.hidden;
+    if(agency){clearTimeout(celebrationTimer);E('winToast').hidden=true;}
     let bet=replay?state.last.bet:state.bet;
     let round,accepted;
     if (replay) round=state.last.round;
@@ -190,8 +191,9 @@ function startSkygate() {
     refresh();
     try {
       await animateRound(round,bet);
-      if(round.jackpot?.hit){sound('jackpot');celebrate(round.jackpot.tier.toUpperCase()+' JACKPOT',credit(round.jackpot.awardX*bet),'jackpot');}
-      else if(round.winX>=thresholds.bigX){const big=round.winX>=thresholds.superX?'SUPER WIN':round.winX>=thresholds.megaX?'MEGA WIN':'BIG WIN';sound(round.winX>=thresholds.megaX?'mega':'big');celebrate(big,credit(round.winX*bet),'win');}
+      const creditedWin=agency?Number(accepted?.payout??state.last.payout):round.winX*bet;
+      if(round.jackpot?.hit){sound('jackpot');celebrate(round.jackpot.tier.toUpperCase()+(agency?' JACKPOT · TOTAL':' JACKPOT'),credit(agency?creditedWin:round.jackpot.awardX*bet),'jackpot');}
+      else if(round.winX>=thresholds.bigX){const big=round.winX>=thresholds.superX?'SUPER WIN':round.winX>=thresholds.megaX?'MEGA WIN':'BIG WIN';sound(round.winX>=thresholds.megaX?'mega':'big');celebrate(big,credit(creditedWin),'win');}
       status(`${replay?'REPLAY (tanpa debit)':'ROUND '+state.rounds} · ${credit(round.winX*bet)} kredit virtual · ${round.totalTumbles} tumbles${agency?' · Playground':' · seed '+state.seed}`,replay?'Replay selesai · saldo tetap':round.winX>0?`+${credit(round.winX*bet)} kredit virtual`:'Ronde selesai · coba spin lagi');
     } catch(e) {console.error(e);status(`Error saat render: ${String(e.message||e)}`,'Animasi terhenti · hasil tersimpan di menu');}
     finally {
