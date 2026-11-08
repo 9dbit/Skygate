@@ -1,4 +1,4 @@
-FROM node:22-alpine
+FROM node:24-alpine
 WORKDIR /app
 COPY . .
 RUN tar -xzf media_assets.tar.gz -C /app && rm media_assets.tar.gz && tar -xzf audio_mp3.tar.gz -C /app && rm audio_mp3.tar.gz

@@ -1,3 +1,5 @@
+import {createNative} from './agency-runtime.mjs';
+import {mkdirSync,chownSync} from 'node:fs';
 import { startBridge } from './gameops-heartbeat.cjs';
 import { createServer } from 'node:http';
 import { timingSafeEqual, randomBytes } from 'node:crypto';
@@ -16,7 +18,12 @@ const authPassword=process.env.SKYGATE_STUDIO_PASSWORD || '';
 // Explicit, reversible opt-in for the owner's password-free Studio testing.
 // Keep NODE_ENV, stored credentials, durable storage and request validation intact.
 const publicStudioTesting=process.env.SKYGATE_STUDIO_PUBLIC_TESTING==='true';
+// Prepare only the dedicated native mount, then run the game without root.
+if(process.env.AGENCY_WALLET_MODE && process.getuid?.()===0 && process.env.RAILWAY_VOLUME_MOUNT_PATH==='/data'){
+ mkdirSync('/data',{recursive:true});chownSync('/data',1000,1000);process.setgid(1000);process.setuid(1000);
+}
 const releases=createReleaseStore(process.env.SKYGATE_RELEASE_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || (process.env.NODE_ENV==='production'?null:resolve(root,'.local-data')));
+const native=createNative({releases});
 const csrf=randomBytes(32).toString('hex');
 const json=(res,status,value)=>{res.writeHead(status,{...base,'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(value));};
 async function readBody(req){
@@ -45,14 +52,17 @@ createServer(async(req,res)=>{
   // iOS also probes the conventional root path. Remap only this icon to
   // the public Game asset without exposing any other repository-root files.
   if(raw==='/apple-touch-icon.png')raw='/play/apple-touch-icon.png';
+  if(raw==='/api/agency/mode' && !native.enabled){json(res,200,{agency:false});return;}
+  if(await native.handle(req,res,raw))return;
+  if(native.enabled && (raw==='/studio'||raw.startsWith('/studio/'))){json(res,404,{error:'Studio unavailable on native runtime'});return;}
   const api=raw.startsWith('/studio/api/');
   if(!['GET','HEAD'].includes(req.method||'')&&!(api&&req.method==='POST')){res.writeHead(405,{...base,Allow:'GET, HEAD'});res.end();return;}
-  if(raw==='/health') {res.writeHead(200,{...base,'Content-Type':'application/json','Cache-Control':'no-store'});res.end(req.method==='HEAD'?'':JSON.stringify({ok:true,service:'skygate-studio',version}));return;}
+  if(raw==='/health') {res.writeHead(200,{...base,'Content-Type':'application/json','Cache-Control':'no-store'});res.end(req.method==='HEAD'?'':JSON.stringify({ok:true,service:native.enabled?'skygate-agency':'skygate-studio',version,...native.health()}));return;}
   // Only the two app directories are web roots; repository files are not routes.
   if(raw!=='/'&&raw!=='/studio'&&!raw.startsWith('/studio/')&&raw!=='/play'&&!raw.startsWith('/play/')){res.writeHead(404,base);res.end('Not Found');return;}
   if(raw.split('/').some(part=>part.startsWith('.'))){res.writeHead(404,base);res.end('Not Found');return;}
   const privateRoute=needsAuth(raw);
-  if(privateRoute&&!publicStudioTesting&&process.env.NODE_ENV==='production'&&(api||(raw.startsWith('/studio/preview')||raw.startsWith('/studio/editor-preview'))||authPassword||process.env.SKYGATE_STUDIO_REQUIRE_AUTH==='true')){
+  if(!native.enabled&&privateRoute&&!publicStudioTesting&&process.env.NODE_ENV==='production'&&(api||(raw.startsWith('/studio/preview')||raw.startsWith('/studio/editor-preview'))||authPassword||process.env.SKYGATE_STUDIO_REQUIRE_AUTH==='true')){
     const privateHeaders={...base,'X-Robots-Tag':'noindex, nofollow, noarchive','Cache-Control':'no-store'};
     if(!authPassword){res.writeHead(503,privateHeaders);res.end('Studio access is not configured');return;}
     if(!isAuthed(req)){res.writeHead(401,{...privateHeaders,'WWW-Authenticate':'Basic realm="SKYGATE Studio", charset="UTF-8"'});res.end('Private studio: authentication required');return;}
@@ -83,7 +93,7 @@ createServer(async(req,res)=>{
     const html=(await readFile(resolve(root,'play/index.html'),'utf8')).replace('<head>','<head><base href="/play/">');
     res.writeHead(200,{...base,'Content-Type':'text/html; charset=utf-8','Cache-Control':'private, no-store','X-Robots-Tag':'noindex, nofollow, noarchive'});res.end(req.method==='HEAD'?'':html);return;
   }
-  if(raw==='/'){res.writeHead(308,{...base,Location:'/studio/','Cache-Control':'no-store'});res.end();return;}
+  if(raw==='/'){res.writeHead(308,{...base,Location:native.enabled?'/play/':'/studio/','Cache-Control':'no-store'});res.end();return;}
   if(raw==='/studio'||raw==='/play'){res.writeHead(308,{...base,Location:raw+'/'});res.end();return;}
   let target=resolve(root,'.'+raw);
   if(target!==root&&!target.startsWith(root+sep)){res.writeHead(403,base);res.end('Forbidden');return;}

@@ -5,12 +5,12 @@
   "description": "Skygate Studio editor and virtual-credit game preview",
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --test studio/tests/*.test.js studio/tests/*.test.mjs",
+    "test": "node --test studio/tests/*.test.js studio/tests/*.test.mjs tests/*.test.mjs",
     "prepare:play": "node scripts/prepare-play.mjs",
     "pretest": "node scripts/prepare-play.mjs",
     "prestart": "node scripts/prepare-play.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   }
 }

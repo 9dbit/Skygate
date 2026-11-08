@@ -13,10 +13,10 @@
    return cfg;
  }
  function jackpotContributionPct(cfg){validateJackpot(cfg);return cfg.enabled?100*cfg.tiers.reduce((s,t)=>s+t.awardX*t.perMillion/1e6,0):0;}
- function createStudioEngine(config,jackpotCfg,seed=20261027){
+ function createStudioEngine(config,jackpotCfg,seed=20261027,randomSources=null){
    math.validateConfig(config);validateJackpot(jackpotCfg);
-   const base=math.createEngine(config,seed);
-   const jpRng=math.createRng((math.uint32(seed)^0xA9E3779B)>>>0);
+   const base=math.createEngine(config,seed,randomSources?.base);
+   const jpRng=randomSources?.jackpot||math.createRng((math.uint32(seed)^0xA9E3779B)>>>0);
    function playRound(opt={}){
      const result=base.playRound(opt);
      let tier=null,awardX=0;
