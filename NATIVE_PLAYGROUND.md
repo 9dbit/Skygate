@@ -32,3 +32,9 @@ Intent, payload idempotency, hasil, payout dan sesi disimpan SQLite FULL/WAL seb
 - Database UAT terisolasi PGlite dan saldo sintetis; bukan transfer bank. Bukti deployment tersimpan dalam dokumen Playground.
 
 Backend pusat tetap berwenang terhadap saldo, batas player, pilihan game agen, environment, settlement dan risk pool. Runtime native tidak memiliki akses master atau konfigurasi payment gateway.
+
+## Navigasi dan pemulihan sesi
+
+Runtime native menampilkan tombol kembali putih/ungu dan tautan menu ke storefront agen. Tujuan berasal dari metadata Playground yang ditandatangani server, tidak dari referrer atau parameter player. `/api/agency/context` membutuhkan cookie native dan hanya mengembalikan metadata navigasi/expiry tersimpan; state wallet menyegarkannya dari pusat. Sesi kedaluwarsa memberi petunjuk membuka ulang melalui agen. Klik kembali menghentikan autoplay/animasi tetapi tidak membatalkan ronde yang sudah diterima. Retry membaca/memulihkan hasil yang sama.
+
+UAT browser memeriksa kembali saat respons spin ditahan, saldo di akun 64COR, tepat satu settlement, dan pesan expired. Modul `agency-navigation.js` diselaraskan byte-for-byte dengan sumber `Playground/adapters/agency-navigation.js` (pada Skygate di direktori `play/`).

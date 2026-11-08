@@ -83,12 +83,13 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
   }
   return r;
  }
+ function context(s){return {navigation:s.navigation||null,session_expires_at:s.expires_at||null,session_expired:!!s.expires_at&&Date.parse(s.expires_at)<=clock()};}
  async function snapshot(s,actor){
   const pending=query("SELECT id FROM rounds WHERE actor=? AND state IN ('intent','reserved')",actor);if(pending)await advance(pending.id);
   let b;try{b=await call('status',{tenant_id:s.tenant_id,session_id:s.session_id});}catch(e){if(e instanceof walletTransport.AgencyWalletError)fail(503,'Saldo pusat belum tersedia');throw e;}
   const cfg=await currentConfig();
   const history=all("SELECT id,result_json,payout,stake FROM rounds WHERE actor=? AND state='settled' ORDER BY finished_at DESC LIMIT 30",actor).map(r=>({...JSON.parse(r.result_json),id:r.id,payout:credits(r.payout,s.coin_scale),cost:credits(r.stake,s.coin_scale)}));
-  return {wallet:'playground',simulation:true,coin_scale:s.coin_scale,balance:credits(b.balance,s.coin_scale),reserved:credits(b.reserved,s.coin_scale),release_id:cfg.id,config_hash:cfg.hash,history,
+  return {...context({...s,...b}),wallet:'playground',simulation:true,coin_scale:s.coin_scale,balance:credits(b.balance,s.coin_scale),reserved:credits(b.reserved,s.coin_scale),release_id:cfg.id,config_hash:cfg.hash,history,
    policy:{rounding:'half_up',note:`Sandbox Playground: payout dibulatkan half-up ke ${s.coin_scale} desimal setelah seluruh bonus. Saldo pusat tidak dapat direset dari game.`}};
  }
  async function spin(s,actor,p){
@@ -142,10 +143,10 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
    }
    if(req.method==='POST'&&path==='/api/agency/launch'){
     const result=await serial(()=>redeem(data?.token));const secure=req.headers['x-forwarded-proto']==='https'||req.socket.encrypted;
-    send(200,{ok:true,mode:'sandbox'},{'Set-Cookie':`${COOKIE}=${result.cookie}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400${secure?'; Secure':''}`});return true;
+    send(200,{ok:true,mode:'sandbox',...context(result.session)},{'Set-Cookie':`${COOKIE}=${result.cookie}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400${secure?'; Secure':''}`});return true;
    }
    const raw=(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith(COOKIE+'='))?.slice(COOKIE.length+1);
-   const result=await serial(async()=>{const {s,actor}=session(raw);if(req.method==='GET'&&path==='/api/agency/state')return snapshot(s,actor);if(req.method==='POST'&&path==='/api/agency/spin')return spin(s,actor,data);fail(404,'Endpoint tidak tersedia');});send(200,result);
+   const result=await serial(async()=>{const {s,actor}=session(raw);if(req.method==='GET'&&path==='/api/agency/context')return context(s);if(req.method==='GET'&&path==='/api/agency/state')return snapshot(s,actor);if(req.method==='POST'&&path==='/api/agency/spin')return spin(s,actor,data);fail(404,'Endpoint tidak tersedia');});send(200,result);
   }catch(e){send(e instanceof NativeError?e.status:500,{error:e instanceof NativeError?e.message:'Native wallet error; retry the same request'});}
   return true;
  }

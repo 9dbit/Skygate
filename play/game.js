@@ -164,6 +164,7 @@ function startSkygate() {
   }
   async function runRound(replay=false,buyBonus=false) {
     if (state.busy) return;
+    if(agency&&!replay&&!window.PlaygroundNavigation.canStart())return;
     let cost=buyBonus?Settings.money(state.bet*100):totalBet();
     if(buyBonus && state.ante){status('Matikan Bonus Booster untuk membeli Free Spins.');return;}
     if (!replay && state.credits<cost) {status(agency?'Saldo Playground tidak cukup. Kembali ke website agen.':'Kredit tidak cukup. Reset kredit melalui menu.');return;}
@@ -361,6 +362,7 @@ function startSkygate() {
     suspended=true;state.auto=false;heldTurbo=false;clearTimeout(holdTimer);finishFeature?.();reels.cancel();mixer.stopAll();
     for(const [timer,resolve] of waiting){clearTimeout(timer);resolve();}waiting.clear();refresh();
   }
+  window.addEventListener('playground:leave',suspend);
   window.addEventListener('pagehide',suspend);
   document.addEventListener('visibilitychange',()=>{if(document.hidden)suspend();});
   document.addEventListener('pointerdown',()=>{
