@@ -1,5 +1,6 @@
 import {createNative} from './agency-runtime.mjs';
 import {restoreFromRemote} from './scripts/native-backup.mjs';
+import {requirePersistentMount} from './deployment-identity.mjs';
 import {backupHealth,startBackupLoop} from './scripts/native-backup-monitor.mjs';
 import {mkdirSync,chownSync} from 'node:fs';
 import { startBridge } from './gameops-heartbeat.cjs';
@@ -20,6 +21,8 @@ const authPassword=process.env.SKYGATE_STUDIO_PASSWORD || '';
 // Explicit, reversible opt-in for the owner's password-free Studio testing.
 // Keep NODE_ENV, stored credentials, durable storage and request validation intact.
 const publicStudioTesting=process.env.SKYGATE_STUDIO_PUBLIC_TESTING==='true';
+// An absent platform mount must not silently become a new ephemeral wallet DB.
+if(process.env.AGENCY_WALLET_MODE)requirePersistentMount(process.env);
 // Prepare only the dedicated native mount, then run the game without root.
 if(process.env.AGENCY_WALLET_MODE && process.getuid?.()===0 && process.env.RAILWAY_VOLUME_MOUNT_PATH==='/data'){
  mkdirSync('/data',{recursive:true});chownSync('/data',1000,1000);process.setgid(1000);process.setuid(1000);

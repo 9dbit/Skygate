@@ -1,6 +1,6 @@
 import {DatabaseSync} from 'node:sqlite';
 import {createHmac} from 'node:crypto';
-import {existsSync,mkdirSync,realpathSync,chmodSync} from 'node:fs';
+import {existsSync,mkdirSync,realpathSync,chmodSync,statSync} from 'node:fs';
 import {basename,dirname,isAbsolute,relative,resolve,sep} from 'node:path';
 
 export function requestedIdentity(env,game){
@@ -11,7 +11,11 @@ export function requestedIdentity(env,game){
  if([deployment_id,core_deployment_id].some(x=>!/^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(x)))throw Error('Invalid deployment identity');
  return Object.freeze({environment,deployment_id,core_deployment_id,game_id:game,identity_version:1});
 }
+export function requirePersistentMount(env){
+ if(['RAILWAY_PROJECT_ID','RAILWAY_SERVICE_ID','RAILWAY_DEPLOYMENT_ID'].some(name=>!!env[name])){const mount=env.RAILWAY_VOLUME_MOUNT_PATH;if(!mount||!isAbsolute(mount)||!existsSync(mount)||!statSync(mount).isDirectory())throw Error('PERSISTENT_NATIVE_VOLUME_REQUIRED');}
+}
 export function canonicalPath(path,env){
+ requirePersistentMount(env);
  if(!isAbsolute(path||''))throw Error('Absolute persistent database path required');
  let ancestor=path,parts=[];while(!existsSync(ancestor)){parts.unshift(basename(ancestor));ancestor=dirname(ancestor);}
  const result=resolve(realpathSync(ancestor),...parts),mount=env.RAILWAY_VOLUME_MOUNT_PATH;

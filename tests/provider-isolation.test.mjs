@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync,rmSync,readFileSync,mkdirSync,symlinkSync} from 'node:fs';
+import {mkdtempSync,rmSync,readFileSync,mkdirSync,symlinkSync,existsSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createHmac,createHash} from 'node:crypto';
@@ -42,4 +42,12 @@ test('v2 transport signs exact body, environment and Core audience',async()=>{
 test('production startup remains quarantined with no wallet calls',()=>fixture(async dir=>{
  let calls=0;const app=createNative({env:{...env(),AGENCY_ENVIRONMENT:'production',SKYGATE_AGENCY_DB_PATH:join(dir,'native.sqlite')},releases:{live:async()=>null},wallet:{redeem:async()=>{calls++;}}});
  try{assert.equal(app.health().deployment_identity.play_enabled,false);await assert.rejects(app.test.redeem('x'.repeat(48)),/PRODUCTION_RELEASE_GATES_PENDING/);await app.test.recover();assert.equal(calls,0);}finally{app.close();}
+}));
+
+test('every Railway native environment fails before creating an unmounted database',()=>fixture(dir=>{
+ for(const environment of ['sandbox','preproduction','production']){
+  const path=join(dir,environment,'native.sqlite');
+  assert.throws(()=>openBoundDatabase(path,{...env(),AGENCY_ENVIRONMENT:environment,RAILWAY_SERVICE_ID:'cloud-native-service'},'skygate-5000'),/PERSISTENT_NATIVE_VOLUME_REQUIRED/);
+  assert.equal(existsSync(join(dir,environment)),false);
+ }
 }));
