@@ -7,6 +7,7 @@ import {dirname,isAbsolute} from 'node:path';
 import walletTransport from './agency-wallet.cjs';
 import {createStudioSync} from './agency-studio.mjs';
 import {openBoundDatabase,validateRedeemed,nativeCookie,requestedIdentity} from './deployment-identity.mjs';
+import {DurableWrites} from './durable-writes.mjs';
 import math from './studio/math/engine.js';
 import studioMath from './studio/math/studio_math.js';
 import settings from './play/settings-model.js';
@@ -58,6 +59,8 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
   stake TEXT NOT NULL,payout TEXT NOT NULL,max_payout TEXT NOT NULL,result_json TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'intent',central_id TEXT,error_status INTEGER,created_at INTEGER NOT NULL,finished_at INTEGER,UNIQUE(actor,request_id));
  CREATE UNIQUE INDEX IF NOT EXISTS one_pending ON rounds(actor) WHERE state IN ('intent','reserved');`);
  const query=(sql,...args)=>db.prepare(sql).get(...args),all=(sql,...args)=>db.prepare(sql).all(...args),run=(sql,...args)=>db.prepare(sql).run(...args);
+ const journal=new DurableWrites(db,{fault:code=>new NativeError(503,code)});
+ const write=(sql,...args)=>journal.run(()=>run(sql,...args));
  const studio=createStudioSync({env,client,releases,baseline});
  const queues=new Map();
  const serial=(key,fn)=>{const task=(queues.get(key)||Promise.resolve()).then(fn),tail=task.catch(()=>{});queues.set(key,tail);void tail.then(()=>{if(queues.get(key)===tail)queues.delete(key);});return task;};
@@ -76,7 +79,7 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
   try{validateRedeemed(s,env,identity);}catch{fail(409,'CORE_DEPLOYMENT_IDENTITY_MISMATCH');}
   if(s.game!=='skygate-5000'||!Number.isInteger(s.coin_scale)||s.coin_scale<0||s.coin_scale>12)fail(409,'Scope game atau presisi tidak sesuai');
   const cookie=nativeCookie(token,env,identity);
-  run('INSERT INTO launches VALUES(?,?,?) ON CONFLICT(cookie_hash) DO UPDATE SET session_json=excluded.session_json',sha(cookie),JSON.stringify(s),clock());
+  await write('INSERT INTO launches VALUES(?,?,?) ON CONFLICT(cookie_hash) DO UPDATE SET session_json=excluded.session_json',sha(cookie),JSON.stringify(s),clock());
   return {cookie,session:s};
  }
  function session(raw){
@@ -91,13 +94,13 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
   const s=JSON.parse(r.session_json);
   if(r.state==='intent'){
    let result;try{result=await call('reserve',{tenant_id:s.tenant_id,session_id:s.session_id,round_ref:r.id,stake:r.stake,max_payout:r.max_payout});}
-   catch(e){if(e instanceof walletTransport.AgencyWalletError){if(e.status>=400&&e.status<500&&![408,429].includes(e.status))run("UPDATE rounds SET state='failed',error_status=? WHERE id=?",e.status,id);fail(e.status<500?e.status:503,'Reservasi wallet belum berhasil. Periksa saldo, sesi dan risk pool.');}throw e;}
-   run("UPDATE rounds SET state='reserved',central_id=? WHERE id=?",result.id,id);r=query('SELECT * FROM rounds WHERE id=?',id);
+   catch(e){if(e instanceof walletTransport.AgencyWalletError){if(e.status>=400&&e.status<500&&![408,429].includes(e.status))await write("UPDATE rounds SET state='failed',error_status=? WHERE id=?",e.status,id);fail(e.status<500?e.status:503,'Reservasi wallet belum berhasil. Periksa saldo, sesi dan risk pool.');}throw e;}
+   await write("UPDATE rounds SET state='reserved',central_id=? WHERE id=?",result.id,id);r=query('SELECT * FROM rounds WHERE id=?',id);
   }
   if(r.state==='reserved'){
    try{await call('settle',{tenant_id:s.tenant_id,round_id:r.central_id,payout:r.payout,evidence:'skygate-native-v1:'+sha(r.result_json)});}
    catch(e){if(e instanceof walletTransport.AgencyWalletError)fail(503,'Settlement tertunda; hasil tersimpan untuk rekonsiliasi');throw e;}
-   run("UPDATE rounds SET state='settled',finished_at=? WHERE id=?",clock(),id);r=query('SELECT * FROM rounds WHERE id=?',id);
+   await write("UPDATE rounds SET state='settled',finished_at=? WHERE id=?",clock(),id);r=query('SELECT * FROM rounds WHERE id=?',id);
   }
   return r;
  }
@@ -138,7 +141,7 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
    if(payout>max)fail(503,'Outcome exceeds reserved liability');
    const rid='skygate-'+randomUUID(),result={request_id:p.request_id,round,bet:p.bet,ante:p.ante,buy_bonus:p.buy_bonus,release_id:id,config_hash:hash,rounding:'half_up'};
    // SQLite synchronous FULL commits the immutable outcome before reserve.
-   run('INSERT INTO rounds(id,actor,request_id,payload_hash,session_json,stake,payout,max_payout,result_json,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)',rid,actor,p.request_id,payloadHash,JSON.stringify(s),String(stake),String(payout),String(max),JSON.stringify(result),clock());
+   await write('INSERT INTO rounds(id,actor,request_id,payload_hash,session_json,stake,payout,max_payout,result_json,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)',rid,actor,p.request_id,payloadHash,JSON.stringify(s),String(stake),String(payout),String(max),JSON.stringify(result),clock());
    r=query('SELECT * FROM rounds WHERE id=?',rid);
   }
   r=await advance(r.id);const state=await snapshot(s,actor);
@@ -169,7 +172,7 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
   }catch(e){send(e instanceof NativeError?e.status:500,{error:e instanceof NativeError?e.message:'Native wallet error; retry the same request'});}
   return true;
  }
- return {enabled:true,handle,health:()=>{query('SELECT 1');return {pending_operation_queues:queues.size,process_boot_id:PROCESS_BOOT_ID,uptime_seconds:Math.floor((performance.now()-PROCESS_STARTED)/1000),provider:'soft-tech',wallet:'soft-tech',mode:identity.environment,environment:identity.environment,deployment_identity:{...identity,identity_bound:true,physical_isolation_verified:false,play_enabled:identity.environment!=='production'},database:'connected',source_commit:env.RAILWAY_GIT_COMMIT_SHA||'',studio:studio.status()};},close:()=>{clearInterval(timer);studio.close();db.close();},
+ return {enabled:true,handle,health:()=>{query('SELECT 1');return {pending_operation_queues:queues.size,durable_journal:journal.status(),process_boot_id:PROCESS_BOOT_ID,uptime_seconds:Math.floor((performance.now()-PROCESS_STARTED)/1000),provider:'soft-tech',wallet:'soft-tech',mode:identity.environment,environment:identity.environment,deployment_identity:{...identity,identity_bound:true,physical_isolation_verified:false,play_enabled:identity.environment!=='production'},database:'connected',source_commit:env.RAILWAY_GIT_COMMIT_SHA||'',studio:studio.status()};},close:()=>{clearInterval(timer);studio.close();journal.close();db.close();},
   // Local test harness can exercise the same serialized domain operations.
-  test:{redeem:launch,state:raw=>forSession(raw,(s,actor)=>snapshot(s,actor)),spin:(raw,p)=>forSession(raw,(s,actor)=>spin(s,actor,p)),recover}};
+  test:{redeem:launch,state:raw=>forSession(raw,(s,actor)=>snapshot(s,actor)),spin:(raw,p)=>forSession(raw,(s,actor)=>spin(s,actor,p)),recover,journal}};
 }
