@@ -80,4 +80,4 @@ async function run(){
  console.log(JSON.stringify({object,manifest,remote_readback:true,isolated_restore:true}));
 }
 if(import.meta.url===new URL('file://'+process.argv[1]).href)run().catch(e=>{console.error(e.message);process.exitCode=1;});
-export {encrypt,decrypt,snapshot};
+export {encrypt,decrypt,snapshot,run};
