@@ -2,7 +2,7 @@ name: Native backup verification
 on:
   push:
     branches: [feat/softtech-provider-v1-20261109]
-    paths: [scripts/native-backup.mjs, tests/native-backup.test.mjs, .github/workflows/native-backup.yml]
+    paths: [scripts/native-backup.mjs, scripts/native-backup-monitor.mjs, server.mjs, tests/native-backup.test.mjs, .github/workflows/native-backup.yml]
   workflow_dispatch:
 jobs:
   backup-test:

@@ -57,7 +57,7 @@ async function s3Request(method,objectKey,body){
  const scope=date+'/'+region+'/s3/aws4_request';
  const signature=hmac(signingKey(secret,date,region),'AWS4-HMAC-SHA256\n'+amzDate+'\n'+scope+'\n'+sha256(canonical)).toString('hex');
  const authorization='AWS4-HMAC-SHA256 Credential='+access+'/'+scope+', SignedHeaders='+signedHeaders+', Signature='+signature;
- const response=await fetch(url,{method,headers:{...headers,authorization},body:method==='PUT'?body:undefined});
+ const response=await fetch(url,{method,headers:{...headers,authorization},body:method==='PUT'?body:undefined,signal:AbortSignal.timeout(30000)});
  if(!response.ok)throw Error('S3 '+method+' returned HTTP '+response.status);
  return Buffer.from(await response.arrayBuffer());
 }
@@ -77,7 +77,9 @@ async function run(){
   try{if(db.prepare('PRAGMA integrity_check').get().integrity_check!=='ok')throw Error('Restore integrity failure');}
   finally{db.close();}
  }finally{await rm(dir,{recursive:true,force:true});}
- console.log(JSON.stringify({object,manifest,remote_readback:true,isolated_restore:true}));
+ const result={object,manifest,remote_readback:true,isolated_restore:true};
+ console.log(JSON.stringify(result));
+ return result;
 }
 if(import.meta.url===new URL('file://'+process.argv[1]).href)run().catch(e=>{console.error(e.message);process.exitCode=1;});
 export {encrypt,decrypt,snapshot,run};

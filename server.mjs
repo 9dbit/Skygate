@@ -1,4 +1,5 @@
 import {createNative} from './agency-runtime.mjs';
+import {backupHealth,startBackupLoop} from './scripts/native-backup-monitor.mjs';
 import {mkdirSync,chownSync} from 'node:fs';
 import { startBridge } from './gameops-heartbeat.cjs';
 import { createServer } from 'node:http';
@@ -58,6 +59,7 @@ createServer(async(req,res)=>{
   const api=raw.startsWith('/studio/api/');
   if(!['GET','HEAD'].includes(req.method||'')&&!(api&&req.method==='POST')){res.writeHead(405,{...base,Allow:'GET, HEAD'});res.end();return;}
   if(raw==='/health') {res.writeHead(200,{...base,'Content-Type':'application/json','Cache-Control':'no-store'});res.end(req.method==='HEAD'?'':JSON.stringify({ok:true,service:native.enabled?'skygate-agency':'skygate-studio',version,...native.health()}));return;}
+  if(raw==='/health/backup') {const status=await backupHealth();res.writeHead(status.ok?200:503,{...base,'Content-Type':'application/json','Cache-Control':'no-store'});res.end(req.method==='HEAD'?'':JSON.stringify(status));return;}
   // Only the two app directories are web roots; repository files are not routes.
   if(raw!=='/'&&raw!=='/studio'&&!raw.startsWith('/studio/')&&raw!=='/play'&&!raw.startsWith('/play/')){res.writeHead(404,base);res.end('Not Found');return;}
   if(raw.split('/').some(part=>part.startsWith('.'))){res.writeHead(404,base);res.end('Not Found');return;}
@@ -102,4 +104,8 @@ createServer(async(req,res)=>{
   res.writeHead(200,{...base,...(privateRoute?{'X-Robots-Tag':'noindex, nofollow, noarchive'}:{}),'Content-Type':type,'Content-Length':info.size,'Cache-Control':privateRoute?'private, no-store':type.startsWith('text/html')?'no-cache':'public, max-age=3600'});
   if(req.method==='HEAD'){res.end();return;}createReadStream(target).on('error',()=>res.destroy()).pipe(res);
  }catch(e){if(!(e instanceof ReleaseError))console.error(e.message);if(!res.headersSent)json(res,e.status||500,{error:e instanceof ReleaseError?e.message:'Server error'});else res.destroy();}
-}).listen(port,'0.0.0.0',function(){console.log(`SKYGATE Studio listening on ${this.address().port}`);startBridge({game:'skygate-5000',port:this.address().port,version});if(process.env.ENGINE_BACKUP_ENABLED==='true'){import('./scripts/native-backup.mjs').then(({run})=>{const backup=async()=>{try{await run();console.log('[ENGINE BACKUP] verified')}catch(error){console.error('[ENGINE BACKUP] failed',error.message)}};void backup();setInterval(backup,Math.max(3600,Number(process.env.ENGINE_BACKUP_INTERVAL_SECONDS||86400))*1000).unref();}).catch(error=>console.error('[ENGINE BACKUP] import failed',error.message));}});
+}).listen(port,'0.0.0.0',function(){
+ console.log(`SKYGATE Studio listening on ${this.address().port}`);
+ startBridge({game:'skygate-5000',port:this.address().port,version});
+ if(process.env.ENGINE_BACKUP_ENABLED==='true')startBackupLoop();
+});
