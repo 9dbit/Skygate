@@ -30,7 +30,8 @@ async function snapshot(dbPath){
  const dir=await mkdtemp(join(tmpdir(),'skygate-backup-'));
  try{
   const dest=join(dir,'snapshot.sqlite');
-  await sqliteBackup(new DatabaseSync(dbPath,{readOnly:true}),dest,{rate:128});
+  const source=new DatabaseSync(dbPath,{readOnly:true});
+  try{await sqliteBackup(source,dest,{rate:128});}finally{source.close();}
   const db=new DatabaseSync(dest,{readOnly:true});
   try{if(db.prepare('PRAGMA integrity_check').get().integrity_check!=='ok')throw Error('Snapshot integrity failure');}
   finally{db.close();}
