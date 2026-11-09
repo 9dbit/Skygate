@@ -6,6 +6,7 @@ import {mkdirSync,readFileSync} from 'node:fs';
 import {dirname,isAbsolute} from 'node:path';
 import walletTransport from './agency-wallet.cjs';
 import {createStudioSync} from './agency-studio.mjs';
+import {openBoundDatabase,validateRedeemed,nativeCookie,requestedIdentity} from './deployment-identity.mjs';
 import math from './studio/math/engine.js';
 import studioMath from './studio/math/studio_math.js';
 import settings from './play/settings-model.js';
@@ -14,6 +15,7 @@ export class NativeError extends Error{constructor(status,message){super(message
 const fail=(status,message)=>{throw new NativeError(status,message);};
 const sha=value=>createHash('sha256').update(value).digest('hex');
 const COOKIE='skygate_agency';
+const PROCESS_BOOT_ID=randomUUID(),PROCESS_STARTED=performance.now();
 function decimal(value){
  if(typeof value!=='string'||!/^\d{1,16}(?:\.\d{1,12})?$/.test(value))fail(422,'Nominal harus string decimal non-negatif');
  const [a,b='']=value.split('.');return {n:BigInt(a+b),places:b.length};
@@ -37,7 +39,9 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
  if(!['','sandbox'].includes(mode))throw Error('Native Skygate supports sandbox only');
  if(!mode)return {enabled:false,health:()=>({}),handle:async()=>false,close:()=>{}};
  if(!isAbsolute(env.SKYGATE_AGENCY_DB_PATH||''))throw Error('Persistent SKYGATE_AGENCY_DB_PATH required');
- const client=wallet||walletTransport.createAgencyWallet({origin:env.AGENCY_WALLET_ORIGIN,keyId:env.AGENCY_WALLET_KEY_ID,secret:env.AGENCY_WALLET_SECRET,allowLocal:env.AGENCY_WALLET_LOCAL_QA==='1'});
+ const identity=requestedIdentity(env,'skygate-5000');
+ const requirePlay=()=>{if(identity.environment==='production')fail(423,'PRODUCTION_RELEASE_GATES_PENDING');};
+ const client=wallet||walletTransport.createAgencyWallet({environment:identity.environment,audience:env.AGENCY_CORE_DEPLOYMENT_ID||'',origin:env.AGENCY_WALLET_ORIGIN,keyId:env.AGENCY_WALLET_KEY_ID,secret:env.AGENCY_WALLET_SECRET,allowLocal:env.AGENCY_WALLET_LOCAL_QA==='1'});
  let baseline;
  if(env.AGENCY_STUDIO_SYNC==='1'){
   const project=JSON.parse(readFileSync(new URL('./studio/project-data.js',import.meta.url),'utf8').replace(/^window\.SKY_PROJECT_DEFAULT\s*=\s*/,'').trim().replace(/;$/,''));
@@ -46,8 +50,8 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
   baseline={format:'playground.studio.v1',game:'skygate-5000',name:'Template Studio Skygate',payload:{project,overrides:{}}};
  }
  if(typeof env.AGENCY_WALLET_SECRET!=='string'||env.AGENCY_WALLET_SECRET.length<32)throw Error('Sandbox session signing key required');
- mkdirSync(dirname(env.SKYGATE_AGENCY_DB_PATH),{recursive:true});
- const db=new DatabaseSync(env.SKYGATE_AGENCY_DB_PATH,{timeout:30000});
+ const opened=openBoundDatabase(env.SKYGATE_AGENCY_DB_PATH,env,'skygate-5000');
+ const db=opened.db;env.SKYGATE_AGENCY_DB_PATH=opened.path;
  db.exec(`PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON;
  CREATE TABLE IF NOT EXISTS launches(cookie_hash TEXT PRIMARY KEY,session_json TEXT NOT NULL,created_at INTEGER NOT NULL);
  CREATE TABLE IF NOT EXISTS rounds(id TEXT PRIMARY KEY,actor TEXT NOT NULL,request_id TEXT NOT NULL,payload_hash TEXT NOT NULL,session_json TEXT NOT NULL,
@@ -64,18 +68,21 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
   math.validateConfig(cfg);return {release,cfg,id:release?.id||'bundled',hash:sha(JSON.stringify({cfg,jackpot:release?.project?.jackpot||null}))};
  }
  async function redeem(token){
+  requirePlay();
   if(typeof token!=='string'||!/^[A-Za-z0-9_-]{30,120}$/.test(token))fail(422,'Token tidak valid');
   let s;try{s=await client.redeem(token,'skygate-redeem-'+sha(token));}catch(e){if(e instanceof walletTransport.AgencyWalletError)fail(e.status<500?e.status:503,'Launch ditolak. Buka kembali dari website agen.');throw new NativeError(503,'Koneksi launch terputus; ulangi token yang sama');}
+  try{validateRedeemed(s,env,identity);}catch{fail(409,'CORE_DEPLOYMENT_IDENTITY_MISMATCH');}
   if(s.game!=='skygate-5000'||!Number.isInteger(s.coin_scale)||s.coin_scale<0||s.coin_scale>12)fail(409,'Scope game atau presisi tidak sesuai');
-  const cookie=createHmac('sha256',env.AGENCY_WALLET_SECRET).update('cookie:'+token).digest('hex');
+  const cookie=nativeCookie(token,env,identity);
   run('INSERT INTO launches VALUES(?,?,?) ON CONFLICT(cookie_hash) DO UPDATE SET session_json=excluded.session_json',sha(cookie),JSON.stringify(s),clock());
   return {cookie,session:s};
  }
  function session(raw){
+  requirePlay();
   if(!/^[a-f0-9]{64}$/.test(raw||''))fail(401,'Buka Skygate dari website agen');
   const row=query('SELECT * FROM launches WHERE cookie_hash=? AND created_at>?',sha(raw),clock()-86400000);
   if(!row)fail(401,'Sesi tidak tersedia. Buka kembali dari website agen');
-  const s=JSON.parse(row.session_json);return {s,actor:s.tenant_id+':'+s.player_id};
+  const s=JSON.parse(row.session_json);try{validateRedeemed(s,env,identity);}catch{fail(409,'CORE_DEPLOYMENT_IDENTITY_MISMATCH');}return {s,actor:s.tenant_id+':'+s.player_id};
  }
  async function advance(id){
   let r=query('SELECT * FROM rounds WHERE id=?',id);if(r.state==='failed')fail(r.error_status,'Reservasi ditolak; gunakan request baru setelah memeriksa saldo/sesi');
@@ -124,7 +131,7 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
     round=engine.playRound({trace:true,ante:p.ante,buyBonus:p.buy_bonus});
    }
    // No seed/state can be used to predict another agency round.
-   round={...round,initialSeed:null,rngStateStart:null,rngStateEnd:null,rng:'node:crypto.randomInt'};
+   round={...round,initialSeed:null,rngStateStart:null,rngStateEnd:null,rng:'node:crypto.randomBytes(6)'};
    const payout=payoutUnits(p.bet,round.winX,s.coin_scale),max=payoutUnits(p.bet,cfg.round_max_win_x,s.coin_scale,'ceil');
    if(payout>max)fail(503,'Outcome exceeds reserved liability');
    const rid='skygate-'+randomUUID(),result={request_id:p.request_id,round,bet:p.bet,ante:p.ante,buy_bonus:p.buy_bonus,release_id:id,config_hash:hash,rounding:'half_up'};
@@ -135,13 +142,13 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
   r=await advance(r.id);const state=await snapshot(s,actor);
   return {...JSON.parse(r.result_json),id:r.id,payout:credits(r.payout,s.coin_scale),cost:credits(r.stake,s.coin_scale),state};
  }
- async function recover(){for(const row of all("SELECT id FROM rounds WHERE state IN ('intent','reserved') LIMIT 20")){try{await advance(row.id);}catch{}}}
+ async function recover(){if(identity.environment==='production')return;for(const row of all("SELECT id FROM rounds WHERE state IN ('intent','reserved') LIMIT 20")){try{await advance(row.id);}catch{}}}
  const timer=setInterval(()=>{void serial(recover);},30000);timer.unref();
  async function handle(req,res,path){
   if(!path.startsWith('/api/agency/'))return false;
   const send=(status,value,headers={})=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers});res.end(JSON.stringify(value));};
   try{
-   if(req.method==='GET'&&path==='/api/agency/mode'){send(200,{agency:true,environment:'sandbox'});return true;}
+   if(req.method==='GET'&&path==='/api/agency/mode'){send(200,{agency:true,environment:identity.environment,play_enabled:identity.environment!=='production'});return true;}
    if(!['GET','POST'].includes(req.method))fail(405,'Method not allowed');
    let data;
    if(req.method==='POST'){
@@ -152,14 +159,14 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
    }
    if(req.method==='POST'&&path==='/api/agency/launch'){
     const result=await serial(()=>redeem(data?.token));const secure=req.headers['x-forwarded-proto']==='https'||req.socket.encrypted;
-    send(200,{ok:true,mode:'sandbox',...context(result.session)},{'Set-Cookie':`${COOKIE}=${result.cookie}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400${secure?'; Secure':''}`});return true;
+    send(200,{ok:true,mode:identity.environment,...context(result.session)},{'Set-Cookie':`${COOKIE}=${result.cookie}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400${secure?'; Secure':''}`});return true;
    }
    const raw=(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith(COOKIE+'='))?.slice(COOKIE.length+1);
    const result=await serial(async()=>{const {s,actor}=session(raw);if(req.method==='GET'&&path==='/api/agency/context')return context(s);if(req.method==='GET'&&path==='/api/agency/state')return snapshot(s,actor);if(req.method==='POST'&&path==='/api/agency/spin')return spin(s,actor,data);fail(404,'Endpoint tidak tersedia');});send(200,result);
   }catch(e){send(e instanceof NativeError?e.status:500,{error:e instanceof NativeError?e.message:'Native wallet error; retry the same request'});}
   return true;
  }
- return {enabled:true,handle,health:()=>{query('SELECT 1');return {provider:'soft-tech',wallet:'soft-tech',mode:'sandbox',database:'connected',source_commit:env.RAILWAY_GIT_COMMIT_SHA||'',studio:studio.status()};},close:()=>{clearInterval(timer);studio.close();db.close();},
+ return {enabled:true,handle,health:()=>{query('SELECT 1');return {process_boot_id:PROCESS_BOOT_ID,uptime_seconds:Math.floor((performance.now()-PROCESS_STARTED)/1000),provider:'soft-tech',wallet:'soft-tech',mode:identity.environment,environment:identity.environment,deployment_identity:{...identity,identity_bound:true,physical_isolation_verified:false,play_enabled:identity.environment!=='production'},database:'connected',source_commit:env.RAILWAY_GIT_COMMIT_SHA||'',studio:studio.status()};},close:()=>{clearInterval(timer);studio.close();db.close();},
   // Local test harness can exercise the same serialized domain operations.
   test:{redeem:token=>serial(()=>redeem(token)),state:raw=>serial(()=>{const {s,actor}=session(raw);return snapshot(s,actor);}),spin:(raw,p)=>serial(()=>{const {s,actor}=session(raw);return spin(s,actor,p);}),recover:()=>serial(recover)}};
 }

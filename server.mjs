@@ -1,4 +1,5 @@
 import {createNative} from './agency-runtime.mjs';
+import {restoreFromRemote} from './scripts/native-backup.mjs';
 import {backupHealth,startBackupLoop} from './scripts/native-backup-monitor.mjs';
 import {mkdirSync,chownSync} from 'node:fs';
 import { startBridge } from './gameops-heartbeat.cjs';
@@ -23,6 +24,7 @@ const publicStudioTesting=process.env.SKYGATE_STUDIO_PUBLIC_TESTING==='true';
 if(process.env.AGENCY_WALLET_MODE && process.getuid?.()===0 && process.env.RAILWAY_VOLUME_MOUNT_PATH==='/data'){
  mkdirSync('/data',{recursive:true});chownSync('/data',1000,1000);process.setgid(1000);process.setuid(1000);
 }
+if(process.env.AGENCY_WALLET_MODE)await restoreFromRemote();
 const releases=createReleaseStore(process.env.SKYGATE_RELEASE_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || (process.env.NODE_ENV==='production'?null:resolve(root,'.local-data')));
 const native=createNative({releases});
 const csrf=randomBytes(32).toString('hex');

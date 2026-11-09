@@ -1,0 +1,14 @@
+{
+  "game": "skygate",
+  "scenario": "disposable-native-volume-deleted-and-replaced",
+  "transport": "in-memory S3 double; actual native domain + game RNG + SQLite + AES-GCM",
+  "settled_rounds_preserved": 1,
+  "pending_rounds_recovered": 1,
+  "duplicate_debits": 0,
+  "duplicate_credits": 0,
+  "rpo_lost_committed_rounds": 0,
+  "snapshot_age_seconds": 0.874000072479248,
+  "rto_seconds": 0.061465798999999974,
+  "old_and_new_keys_restore": true,
+  "production_certified": false
+}

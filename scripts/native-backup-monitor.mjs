@@ -30,7 +30,7 @@ export async function writeBackupStatus(statusFile,marker){
 
 function validObject(object,hash){
  return typeof object==='string'&&typeof hash==='string'&&HASH_RE.test(hash)&&
-  new RegExp('^native/skygate/[0-9]+-'+hash.slice(0,16)+'\\.aesgcm$').test(object);
+  new RegExp('^native/skygate/[0-9]+-'+hash.slice(0,16)+'(?:-[a-f0-9]{16})?\\.aesgcm$').test(object);
 }
 
 export async function backupHealth({statusFile=BACKUP_STATUS_FILE,
@@ -76,10 +76,10 @@ export function startBackupLoop({env=process.env,statusFile=BACKUP_STATUS_FILE,
    const result=await runBackup();
    if(!validResult(result))throw Error('Backup verification evidence is incomplete');
    const marker={backup_verified:true,source_commit:sourceCommit,verified_at:new Date(clock()).toISOString(),
-    object:result.object,sha256:result.manifest.sha256};
+    object:result.object,sha256:result.manifest.sha256,ciphertext_sha256:result.ciphertext_sha256||null,key_id:result.key_id||'legacy'};
    await writeBackupStatus(statusFile,marker);
    logger.log(JSON.stringify({event:'engine.backup.remote_verified',game:'skygate',
-    object:marker.object,sha256:marker.sha256,verified_at:marker.verified_at}));
+    object:marker.object,sha256:marker.sha256,ciphertext_sha256:marker.ciphertext_sha256,key_id:marker.key_id,verified_at:marker.verified_at}));
    delay=intervalMs;
   }catch(error){
    try{
