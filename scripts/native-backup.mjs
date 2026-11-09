@@ -6,6 +6,7 @@ import {existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,isAbsolute,dirname} from 'node:path';
 import {canonicalPath,requestedIdentity} from '../deployment-identity.mjs';
+import {enforceRetention} from './native-retention.mjs';
 
 const sha256=x=>createHash('sha256').update(x).digest('hex');
 const hmac=(key,data)=>createHmac('sha256',key).update(data).digest();
@@ -43,7 +44,7 @@ async function snapshot(dbPath){
  }finally{await rm(dir,{recursive:true,force:true});}
 }
 function signingKey(secret,date,region){let k=hmac('AWS4'+secret,date);k=hmac(k,region);k=hmac(k,'s3');return hmac(k,'aws4_request');}
-async function s3Request(method,objectKey,body){
+async function s3Request(method,objectKey='',body,options={}){
  const endpoint=new URL(process.env.ENGINE_BACKUP_S3_ENDPOINT);
  const bucket=process.env.ENGINE_BACKUP_S3_BUCKET;
  const region=process.env.ENGINE_BACKUP_S3_REGION||'auto';
@@ -53,17 +54,18 @@ async function s3Request(method,objectKey,body){
  if((process.env.ENGINE_BACKUP_S3_URL_STYLE||'virtual-host')==='virtual-host')url.hostname=bucket+'.'+url.hostname;
  else url.pathname=endpoint.pathname.replace(/\/$/,'')+'/'+encodeURIComponent(bucket);
  url.pathname=url.pathname.replace(/\/$/,'')+'/'+objectKey.split('/').map(encodeURIComponent).join('/');
+ const canonicalQuery=Object.entries(options.query||{}).sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>encodeURIComponent(k)+'='+encodeURIComponent(v).replace(/[!'()*]/g,c=>'%'+c.charCodeAt(0).toString(16).toUpperCase())).join('&');url.search=canonicalQuery;
  const now=new Date(),amzDate=now.toISOString().replace(/[:-]|\.\d{3}/g,''),date=amzDate.slice(0,8);
  const payloadHash=sha256(body||Buffer.alloc(0));
- const signedHeaders='host;x-amz-content-sha256;x-amz-date';
- const headers={host:url.host,'x-amz-content-sha256':payloadHash,'x-amz-date':amzDate};
- const canonical=method+'\n'+url.pathname+'\n\n'+Object.entries(headers).map(([k,v])=>k+':'+v+'\n').join('')+'\n'+signedHeaders+'\n'+payloadHash;
+ const headers={host:url.host,...(options.ifMatch?{'if-match':options.ifMatch}:{}),'x-amz-content-sha256':payloadHash,'x-amz-date':amzDate};
+ const signedHeaders=Object.keys(headers).sort().join(';');
+ const canonical=method+'\n'+url.pathname+'\n'+canonicalQuery+'\n'+Object.entries(headers).sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>k+':'+v+'\n').join('')+'\n'+signedHeaders+'\n'+payloadHash;
  const scope=date+'/'+region+'/s3/aws4_request';
  const signature=hmac(signingKey(secret,date,region),'AWS4-HMAC-SHA256\n'+amzDate+'\n'+scope+'\n'+sha256(canonical)).toString('hex');
  const authorization='AWS4-HMAC-SHA256 Credential='+access+'/'+scope+', SignedHeaders='+signedHeaders+', Signature='+signature;
  const response=await fetch(url,{method,headers:{...headers,authorization},body:method==='PUT'?body:undefined,signal:AbortSignal.timeout(30000)});
  if(!response.ok)throw Error('S3 '+method+' returned HTTP '+response.status);
- return Buffer.from(await response.arrayBuffer());
+ const bytes=Buffer.from(await response.arrayBuffer());return options.metadata?{bytes,etag:response.headers.get('etag')}:bytes;
 }
 async function run(){
  const {key,name:key_id}=activeKey();
@@ -82,10 +84,30 @@ async function run(){
   finally{db.close();}
  }finally{await rm(dir,{recursive:true,force:true});}
  const result={object,manifest,ciphertext_sha256:sha256(payload),key_id,remote_readback:true,isolated_restore:true};
+ if(process.env.ENGINE_BACKUP_RETENTION_ENABLED==='true')result.retention=await runRetention(result);
  console.log(JSON.stringify(result));
  return result;
 }
 if(process.argv[1]&&import.meta.url===new URL('file://'+process.argv[1]).href)run().catch(e=>{console.error(e.message);process.exitCode=1;});
+
+const xmlText=value=>value.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&');
+export function parseObjectList(bytes){
+ const xml=bytes.toString('utf8');if(!xml.includes('<ListBucketResult')||xml.includes('<!DOCTYPE')||xml.includes('<!ENTITY'))throw Error('RETENTION_INVENTORY_INVALID');
+ const keys=[...xml.matchAll(/<Contents>[\s\S]*?<Key>([\s\S]*?)<\/Key>[\s\S]*?<\/Contents>/g)].map(x=>xmlText(x[1]));
+ const truncated=/<IsTruncated>true<\/IsTruncated>/.test(xml),token=xml.match(/<NextContinuationToken>([\s\S]*?)<\/NextContinuationToken>/)?.[1];
+ if(truncated&&!token)throw Error('RETENTION_INVENTORY_INVALID');return {keys,nextToken:truncated?xmlText(token):null};
+}
+export async function runRetention(current,env=process.env){
+ const identity=current.manifest.deployment_identity;
+ return enforceRetention({game:'skygate',identity,currentObject:current.object,currentCiphertextSha256:current.ciphertext_sha256,
+  mode:env.ENGINE_BACKUP_RETENTION_MODE||'dry-run',restoringObject:env.ENGINE_RESTORE_OBJECT_KEY||env.ENGINE_RESTORE_OBJECT||null,
+  maxDeletes:Number(env.ENGINE_BACKUP_RETENTION_MAX_DELETES||5),
+  list:async token=>parseObjectList(await s3Request('GET','',undefined,{query:{'list-type':'2',prefix:'native/skygate/',...(token?{'continuation-token':token}:{})}})),
+  download:key=>s3Request('GET',key,undefined,{metadata:true}),remove:(key,etag)=>s3Request('DELETE',key,undefined,{ifMatch:etag}),
+  verify:async payload=>{const restored=decrypt(payload);const dir=await mkdtemp(join(tmpdir(),'retention-verify-'));try{const path=join(dir,'snapshot.sqlite');await writeFile(path,restored.plaintext);const db=new DatabaseSync(path,{readOnly:true});try{if(db.prepare('PRAGMA integrity_check').get().integrity_check!=='ok')throw Error('RETENTION_INTEGRITY_FAILED');}finally{db.close();}if(!sameIdentity(snapshotIdentity(path),identity))throw Error('RETENTION_FOREIGN_OR_MALFORMED_MANIFEST');return restored.manifest;}finally{await rm(dir,{recursive:true,force:true});}},
+  logger:event=>console.log(JSON.stringify(event))});
+}
+
 export function keyRing(env=process.env){
  let keys;try{keys=JSON.parse(env.ENGINE_BACKUP_KEYS_JSON||'{}');}catch{throw Error('Invalid backup key ring');}
  if(!keys||typeof keys!=='object'||Array.isArray(keys))throw Error('Backup key ring must be an object');

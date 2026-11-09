@@ -46,7 +46,9 @@ export async function backupHealth({statusFile=BACKUP_STATUS_FILE,
   if(!Number.isFinite(verifiedAt)||new Date(verifiedAt).toISOString()!==marker.verified_at)return unverified();
   const age=clock()-verifiedAt;
   if(!Number.isFinite(age)||age<0||age>MAX_AGE_MS)return unverified();
-  return {ok:true,backup_verified:true,verified_at:marker.verified_at,source_commit:marker.source_commit};
+  const result={ok:true,backup_verified:true,verified_at:marker.verified_at,source_commit:marker.source_commit};
+  if(marker.retention?.enabled===true)result.retention=Object.fromEntries(['policy','enabled','mode','verified','verified_at','eligible_count','deleted_count','error_code'].map(key=>[key,marker.retention[key]??null]));
+  return result;
  }catch{return unverified();}
 }
 
@@ -76,7 +78,7 @@ export function startBackupLoop({env=process.env,statusFile=BACKUP_STATUS_FILE,
    const result=await runBackup();
    if(!validResult(result))throw Error('Backup verification evidence is incomplete');
    const marker={backup_verified:true,source_commit:sourceCommit,verified_at:new Date(clock()).toISOString(),
-    object:result.object,sha256:result.manifest.sha256,ciphertext_sha256:result.ciphertext_sha256||null,key_id:result.key_id||'legacy'};
+    object:result.object,sha256:result.manifest.sha256,ciphertext_sha256:result.ciphertext_sha256||null,key_id:result.key_id||'legacy',retention:result.retention||null};
    await writeBackupStatus(statusFile,marker);
    logger.log(JSON.stringify({event:'engine.backup.remote_verified',game:'skygate',
     object:marker.object,sha256:marker.sha256,ciphertext_sha256:marker.ciphertext_sha256,key_id:marker.key_id,verified_at:marker.verified_at}));

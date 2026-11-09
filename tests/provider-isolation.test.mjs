@@ -27,8 +27,8 @@ test('volume containment and cookie/deployment namespaces reject cross-environme
  assert.throws(()=>openBoundDatabase(join(mount,'link','native.sqlite'),{...env(),RAILWAY_VOLUME_MOUNT_PATH:mount},'skygate-5000'),/escapes/);
  const opened=openBoundDatabase(join(mount,'native.sqlite'),env(),'skygate-5000');opened.db.close();
  assert.notEqual(nativeCookie('x'.repeat(48),env(),opened.identity),nativeCookie('x'.repeat(48),env(),{...opened.identity,environment:'sandbox'}));
- const good={environment:'preproduction',deployment_id:'core-test-deployment'};validateRedeemed(good,env(),opened.identity);
- for(const bad of [{},{...good,environment:'sandbox'},{...good,deployment_id:'foreign-core'}])assert.throws(()=>validateRedeemed(bad,env(),opened.identity),/IDENTITY_MISMATCH/);
+ const good={provider:'soft-tech',game:'skygate-5000',environment:'preproduction',deployment_id:'core-test-deployment'};validateRedeemed(good,env(),opened.identity);
+ for(const bad of [{},{...good,environment:'sandbox'},{...good,deployment_id:'foreign-core'},{...good,provider:'foreign'},{...good,game:'wrong-game'}])assert.throws(()=>validateRedeemed(bad,env(),opened.identity),/IDENTITY_MISMATCH/);
 }));
 test('v2 transport signs exact body, environment and Core audience',async()=>{
  let sent;

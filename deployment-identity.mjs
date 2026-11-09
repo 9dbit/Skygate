@@ -42,6 +42,6 @@ export function openBoundDatabase(path,env,game){
  }catch(e){db.close();throw e;}
 }
 export function validateRedeemed(s,env,identity){
- if((identity.environment!=='sandbox'||env.AGENCY_CORE_DEPLOYMENT_ID)&&(s.environment!==identity.environment||(s.core_deployment_id||s.deployment_id)!==identity.core_deployment_id))throw Error('CORE_DEPLOYMENT_IDENTITY_MISMATCH');
+ if((identity.environment!=='sandbox'||env.AGENCY_CORE_DEPLOYMENT_ID)&&(s.game!==identity.game_id||s.provider!=='soft-tech'||s.environment!==identity.environment||(s.core_deployment_id||s.deployment_id)!==identity.core_deployment_id))throw Error('CORE_DEPLOYMENT_IDENTITY_MISMATCH');
 }
 export function nativeCookie(token,env,identity){return createHmac('sha256',env.AGENCY_WALLET_SECRET).update(['native.cookie.v2',identity.environment,identity.deployment_id,identity.core_deployment_id,identity.game_id,token].join('\n')).digest('hex');}
