@@ -47,7 +47,7 @@ export async function backupHealth({statusFile=BACKUP_STATUS_FILE,
   const age=clock()-verifiedAt;
   if(!Number.isFinite(age)||age<0||age>MAX_AGE_MS)return unverified();
   const result={ok:true,backup_verified:true,verified_at:marker.verified_at,source_commit:marker.source_commit};
-  if(marker.retention?.enabled===true)result.retention=Object.fromEntries(['policy','enabled','mode','verified','verified_at','eligible_count','deleted_count','error_code'].map(key=>[key,marker.retention[key]??null]));
+  if(marker.retention?.enabled===true)result.retention=Object.fromEntries(['policy','enabled','mode','effective_mode','verified','verified_at','eligible_count','deleted_count','conditional_delete_verified','conditional_delete','error_code'].map(key=>[key,marker.retention[key]??null]));
   return result;
  }catch{return unverified();}
 }

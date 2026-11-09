@@ -1,9 +1,30 @@
 // Bounded, fail-closed retention. Railway has no lifecycle/Object Lock support.
-import {createHash} from 'node:crypto';
+import {createHash,randomBytes} from 'node:crypto';
 export const RETENTION_POLICY='native-7d-4w-12m-v1';
 const DAY=86400;
 const sha=x=>createHash('sha256').update(x).digest('hex');
 const identityEqual=(a,b)=>!!a&&!!b&&Object.keys(a).length===Object.keys(b).length&&Object.keys(a).every(k=>a[k]===b[k]);
+const strongETag=value=>typeof value==='string'&&/^"[^"\s]{1,200}"$/.test(value);
+export async function probeConditionalDeletion({game,identity,put,download,head,remove,now=Math.floor(Date.now()/1000)}){
+ const report={verified:false,verified_at:new Date(now*1000).toISOString(),wrong_etag_rejected:false,correct_etag_deleted:false,absence_verified:false};
+ try{
+  if(!/^[a-z0-9-]{1,32}$/.test(game)||!identity||!['sandbox','preproduction','production'].includes(identity.environment)||!/^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(identity.deployment_id||''))throw Error('RETENTION_PROBE_SCOPE_INVALID');
+  const token=randomBytes(16).toString('hex'),object=`native/${game}/.retention-probe/${identity.environment}/${identity.deployment_id}/${token}.probe`;
+  report.probe_object=object;
+  const first=Buffer.from(JSON.stringify({deployment_identity:identity,probe:token,generation:1})),second=Buffer.from(JSON.stringify({deployment_identity:identity,probe:token,generation:2}));
+  const a=await put(object,first),b=await put(object,second);
+  if(!strongETag(a?.etag)||!strongETag(b?.etag)||a.etag===b.etag)throw Error('RETENTION_PROBE_ETAG_UNAVAILABLE');
+  try{await remove(object,a.etag);}catch(error){if(error.httpStatus!==412)throw Error('RETENTION_PROBE_FAILED');report.wrong_etag_rejected=true;}
+  if(!report.wrong_etag_rejected)throw Error('RETENTION_PROBE_CONDITION_IGNORED');
+  const read=await download(object);
+  if(read.etag!==b.etag||!Buffer.isBuffer(read.bytes)||!read.bytes.equals(second))throw Error('RETENTION_PROBE_CONTENT_CHANGED');
+  await remove(object,b.etag);report.correct_etag_deleted=true;
+  try{await head(object);}catch(error){if(error.httpStatus!==404)throw Error('RETENTION_PROBE_ABSENCE_UNVERIFIED');report.absence_verified=true;}
+  if(!report.absence_verified)throw Error('RETENTION_PROBE_ABSENCE_UNVERIFIED');
+  report.verified=true;
+ }catch(error){report.error_code=/^RETENTION_[A-Z_]+$/.test(error?.message||'')?error.message:'RETENTION_PROBE_FAILED';}
+ return report;
+}
 function weekStart(seconds){const d=new Date(seconds*1000);d.setUTCHours(0,0,0,0);d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7));return d.getTime()/1000;}
 function month(seconds){const d=new Date(seconds*1000);return d.getUTCFullYear()*12+d.getUTCMonth();}
 export function retentionPlan(keys,{game,now=Math.floor(Date.now()/1000),restoringObject=null,maxDeletes=5}={}){
@@ -25,8 +46,8 @@ export function retentionPlan(keys,{game,now=Math.floor(Date.now()/1000),restori
  const verifyKeys=new Set([...records.slice(0,2).map(x=>x.key),...oldRepresentatives,...candidates.map(x=>x.key)]);
  return {records,keep:[...keep],ignored,candidates,verifyKeys:[...verifyKeys]};
 }
-export async function enforceRetention({game,identity,currentObject,currentCiphertextSha256,list,download,remove,verify,now=Math.floor(Date.now()/1000),restoringObject=null,mode='dry-run',maxObjects=4096,maxDeletes=5,logger=()=>{}}){
- const report={policy:RETENTION_POLICY,enabled:true,mode,verified:false,inventory_count:0,managed_count:0,retained_count:0,protected_unknown_count:0,eligible_count:0,deleted_count:0,verified_at:new Date(now*1000).toISOString()};
+export async function enforceRetention({game,identity,currentObject,currentCiphertextSha256,list,download,remove,verify,now=Math.floor(Date.now()/1000),restoringObject=null,mode='dry-run',maxObjects=4096,maxDeletes=5,logger=()=>{},checkConditionalDelete=null,probeRequested=false}){
+ const report={policy:RETENTION_POLICY,enabled:true,mode,effective_mode:'dry-run',verified:false,conditional_delete_verified:false,inventory_count:0,managed_count:0,retained_count:0,protected_unknown_count:0,eligible_count:0,deleted_count:0,verified_at:new Date(now*1000).toISOString()};
  try{
   if(!['dry-run','apply'].includes(mode)||!identity||identity.environment==='production'&&!identity.deployment_id||!currentObject||!/^[a-f0-9]{64}$/.test(currentCiphertextSha256))throw Error('RETENTION_CONFIG_INVALID');
   const keys=[],tokens=new Set();let token=null;
@@ -46,9 +67,15 @@ export async function enforceRetention({game,identity,currentObject,currentCiphe
    proofs.set(key,{digest,etag:response.etag});
   }
   report.planned_objects=plan.candidates.map(x=>x.key);logger({event:'engine.backup.retention_plan',...report});
+  if(probeRequested||(mode==='apply'&&plan.candidates.length)){
+   if(typeof checkConditionalDelete!=='function')throw Error('RETENTION_CONDITIONAL_DELETE_UNVERIFIED');
+   const capability=await checkConditionalDelete();report.conditional_delete=capability;
+   if(capability?.verified!==true)throw Error(capability?.error_code||'RETENTION_CONDITIONAL_DELETE_UNVERIFIED');
+   report.conditional_delete_verified=true;report.effective_mode=mode;
+  }
   if(mode==='apply'){
    for(const item of plan.candidates){
-    const proof=proofs.get(item.key);if(typeof proof.etag!=='string'||!proof.etag||/[\r\n]/.test(proof.etag))throw Error('RETENTION_CONDITIONAL_DELETE_UNAVAILABLE');
+    const proof=proofs.get(item.key);if(!strongETag(proof.etag))throw Error('RETENTION_CONDITIONAL_DELETE_UNAVAILABLE');
     // Conditional deletion cannot delete an object changed after verification.
     await remove(item.key,proof.etag);report.deleted_count++;
    }

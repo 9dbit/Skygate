@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash,randomBytes} from 'node:crypto';
-import {retentionPlan,enforceRetention,RETENTION_POLICY} from '../scripts/native-retention.mjs';
+import {retentionPlan,enforceRetention,probeConditionalDeletion,RETENTION_POLICY} from '../scripts/native-retention.mjs';
 import {encrypt,decrypt,parseObjectList} from '../scripts/native-backup.mjs';
 const NOW=Date.parse('2026-11-10T12:00:00Z')/1000,DAY=86400,key=randomBytes(32),identity={environment:'preproduction',deployment_id:'native-fixture',core_deployment_id:'core-fixture',game_id:'skygate-5000',identity_version:1};
 const hash=x=>createHash('sha256').update(x).digest('hex');
@@ -10,7 +10,7 @@ function fixture(){
  const add=(age,who=identity)=>{const {manifest,payload}=encrypt(Buffer.from('fixture sqlite bytes'),'skygate',key,NOW-age,{key_id:'test',deployment_identity:who});const object=`native/skygate/${manifest.created_at}-${manifest.sha256.slice(0,16)}-${String(++n).padStart(16,'0')}.aesgcm`;objects.set(object,{bytes:payload,etag:'"'+hash(payload)+'"'});return object;};
  const current=add(0),second=add(3600),old=[];for(let i=0;i<14;i++)old.push(add((400+i)*DAY));
  const legacy='native/skygate/1000000000-abcdefabcdefabcd.aesgcm';objects.set(legacy,{bytes:Buffer.from('legacy never delete')});
- const options={game:'skygate',identity,currentObject:current,currentCiphertextSha256:hash(objects.get(current).bytes),now:NOW,mode:'apply',list:async()=>({keys:[...objects.keys()],nextToken:null}),download:async k=>objects.get(k),remove:async(k,etag)=>{assert.equal(objects.get(k).etag,etag);objects.delete(k);deleted.push(k);},verify:async bytes=>decrypt(bytes,key).manifest,logger:e=>events.push(e)};
+ const options={game:'skygate',identity,currentObject:current,currentCiphertextSha256:hash(objects.get(current).bytes),now:NOW,mode:'apply',list:async()=>({keys:[...objects.keys()],nextToken:null}),download:async k=>objects.get(k),remove:async(k,etag)=>{assert.equal(objects.get(k).etag,etag);objects.delete(k);deleted.push(k);},verify:async bytes=>decrypt(bytes,key).manifest,logger:e=>events.push(e),checkConditionalDelete:async()=>({verified:true})};
  return {objects,deleted,events,options,current,second,old,legacy,add};
 }
 test('calendar policy retains all young snapshots, latest two, weekly/monthly representatives and current restore',()=>{
@@ -59,11 +59,41 @@ test('live backup path signs LIST and conditional DELETE, authenticates SQLite a
  t.mock.method(globalThis,'fetch',async(url,options)=>{
   const u=new URL(url),name=u.pathname.slice(1);assert.ok(options.headers.authorization.startsWith('AWS4-HMAC-SHA256 '));
   if(u.searchParams.get('list-type')==='2'){assert.equal(u.searchParams.get('prefix'),'native/skygate/');return new Response('<ListBucketResult>'+[...objects.keys()].map(k=>'<Contents><Key>'+k+'</Key></Contents>').join('')+'<IsTruncated>false</IsTruncated></ListBucketResult>',{status:200});}
-  if(options.method==='PUT'){objects.set(name,Buffer.from(options.body));return new Response('',{status:200});}
+  if(options.method==='PUT'){objects.set(name,Buffer.from(options.body));return new Response('',{status:200,headers:{etag:'"'+hash(options.body)+'"'}});}
+  if(!objects.has(name))return new Response(null,{status:404});
   const bytes=objects.get(name),etag='"'+hash(bytes)+'"';
-  if(options.method==='DELETE'){assert.equal(options.headers['if-match'],etag);assert.ok(options.headers.authorization.includes('host;if-match;x-amz-content-sha256;x-amz-date'));objects.delete(name);deletes.push(name);return new Response(null,{status:204});}
+  if(options.method==='DELETE'){assert.ok(options.headers.authorization.includes('host;if-match;x-amz-content-sha256;x-amz-date'));if(options.headers['if-match']!==etag)return new Response(null,{status:412});objects.delete(name);deletes.push(name);return new Response(null,{status:204});}
   return new Response(bytes,{status:200,headers:{etag}});
  });
- try{const result=await run();assert.equal(result.retention.verified,true);assert.equal(result.retention.mode,'apply');assert.equal(result.retention.deleted_count,2);assert.equal(deletes.length,2);assert.ok(objects.has(legacy));assert.ok(objects.has(result.object));assert.equal(objects.size,3);}
+ try{const result=await run();assert.equal(result.retention.verified,true);assert.equal(result.retention.mode,'apply');assert.equal(result.retention.deleted_count,2);assert.equal(deletes.length,3);assert.equal(result.retention.conditional_delete_verified,true);assert.equal(result.retention.conditional_delete.absence_verified,true);assert.ok(objects.has(legacy));assert.ok(objects.has(result.object));assert.equal(objects.size,3);}
  finally{await rm(dir,{recursive:true,force:true});for(const [k,v]of Object.entries(before)){if(v===undefined)delete process.env[k];else process.env[k]=v;}}
+});
+
+test('live capability probe rejects ignored conditions, false status, changed bytes and incomplete cleanup',async()=>{
+ for(const behavior of ['supported','ignored','wrong-status','content-changed','delete-noop','head-denied','weak-etag']){
+  const objects=new Map(),deleted=[];
+  const storageError=status=>Object.assign(Error('fixture storage error'),{httpStatus:status});
+  const report=await probeConditionalDeletion({game:'skygate',identity,now:NOW,
+   put:async(name,bytes)=>{assert.ok(name.startsWith('native/skygate/.retention-probe/preproduction/native-fixture/'));const etag='"'+hash(bytes)+'"';objects.set(name,{bytes,etag});return {etag:(behavior==='weak-etag'?'W/':'')+etag};},
+   download:async name=>({...objects.get(name),...(behavior==='content-changed'?{bytes:Buffer.from('changed')}:{})}),
+   head:async name=>{if(behavior==='head-denied')throw storageError(403);if(!objects.has(name))throw storageError(404);return objects.get(name);},
+   remove:async(name,etag)=>{if(etag!==objects.get(name).etag&&behavior!=='ignored')throw storageError(behavior==='wrong-status'?400:412);if(behavior!=='delete-noop'){objects.delete(name);deleted.push(name);}}
+  });
+  assert.equal(report.verified,behavior==='supported',behavior);
+  if(behavior==='supported'){assert.ok(report.wrong_etag_rejected&&report.correct_etag_deleted&&report.absence_verified);assert.equal(objects.size,0);}else assert.match(report.error_code,/^RETENTION_PROBE_/);
+  assert.ok(new Set(deleted).size<=1);
+ }
+});
+
+test('missing or failed capability forces dry-run without deleting any backup',async()=>{
+ for(const checkConditionalDelete of [null,async()=>({verified:false,error_code:'RETENTION_PROBE_CONDITION_IGNORED'})]){
+  const f=fixture(),report=await enforceRetention({...f.options,checkConditionalDelete});
+  assert.equal(report.verified,false);assert.equal(report.conditional_delete_verified,false);assert.equal(report.mode,'apply');assert.equal(report.effective_mode,'dry-run');assert.equal(f.deleted.length,0);
+ }
+});
+
+test('explicit capability probe works in a new zero-candidate bucket during dry-run',async()=>{
+ const f=fixture();let probes=0;
+ const report=await enforceRetention({...f.options,mode:'dry-run',probeRequested:true,list:async()=>({keys:[f.current,f.second],nextToken:null}),checkConditionalDelete:async()=>{probes++;return {verified:true,absence_verified:true};}});
+ assert.equal(report.verified,true);assert.equal(report.conditional_delete_verified,true);assert.equal(report.eligible_count,0);assert.equal(probes,1);assert.equal(f.deleted.length,0);assert.equal(report.effective_mode,'dry-run');
 });

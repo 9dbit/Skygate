@@ -6,7 +6,7 @@ import {existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,isAbsolute,dirname} from 'node:path';
 import {canonicalPath,requestedIdentity} from '../deployment-identity.mjs';
-import {enforceRetention} from './native-retention.mjs';
+import {enforceRetention,probeConditionalDeletion} from './native-retention.mjs';
 
 const sha256=x=>createHash('sha256').update(x).digest('hex');
 const hmac=(key,data)=>createHmac('sha256',key).update(data).digest();
@@ -64,7 +64,7 @@ async function s3Request(method,objectKey='',body,options={}){
  const signature=hmac(signingKey(secret,date,region),'AWS4-HMAC-SHA256\n'+amzDate+'\n'+scope+'\n'+sha256(canonical)).toString('hex');
  const authorization='AWS4-HMAC-SHA256 Credential='+access+'/'+scope+', SignedHeaders='+signedHeaders+', Signature='+signature;
  const response=await fetch(url,{method,headers:{...headers,authorization},body:method==='PUT'?body:undefined,signal:AbortSignal.timeout(30000)});
- if(!response.ok)throw Error('S3 '+method+' returned HTTP '+response.status);
+ if(!response.ok){const error=Error('S3 '+method+' returned HTTP '+response.status);error.httpStatus=response.status;throw error;}
  const bytes=Buffer.from(await response.arrayBuffer());return options.metadata?{bytes,etag:response.headers.get('etag')}:bytes;
 }
 async function run(){
@@ -102,6 +102,10 @@ export async function runRetention(current,env=process.env){
  return enforceRetention({game:'skygate',identity,currentObject:current.object,currentCiphertextSha256:current.ciphertext_sha256,
   mode:env.ENGINE_BACKUP_RETENTION_MODE||'dry-run',restoringObject:env.ENGINE_RESTORE_OBJECT_KEY||env.ENGINE_RESTORE_OBJECT||null,
   maxDeletes:Number(env.ENGINE_BACKUP_RETENTION_MAX_DELETES||5),
+  probeRequested:env.ENGINE_BACKUP_RETENTION_PROBE==='true',
+  checkConditionalDelete:()=>probeConditionalDeletion({game:'skygate',identity,
+   put:(key,payload)=>s3Request('PUT',key,payload,{metadata:true}),download:key=>s3Request('GET',key,undefined,{metadata:true}),
+   head:key=>s3Request('HEAD',key),remove:(key,etag)=>s3Request('DELETE',key,undefined,{ifMatch:etag})}),
   list:async token=>parseObjectList(await s3Request('GET','',undefined,{query:{'list-type':'2',prefix:'native/skygate/',...(token?{'continuation-token':token}:{})}})),
   download:key=>s3Request('GET',key,undefined,{metadata:true}),remove:(key,etag)=>s3Request('DELETE',key,undefined,{ifMatch:etag}),
   verify:async payload=>{const restored=decrypt(payload);const dir=await mkdtemp(join(tmpdir(),'retention-verify-'));try{const path=join(dir,'snapshot.sqlite');await writeFile(path,restored.plaintext);const db=new DatabaseSync(path,{readOnly:true});try{if(db.prepare('PRAGMA integrity_check').get().integrity_check!=='ok')throw Error('RETENTION_INTEGRITY_FAILED');}finally{db.close();}if(!sameIdentity(snapshotIdentity(path),identity))throw Error('RETENTION_FOREIGN_OR_MALFORMED_MANIFEST');return restored.manifest;}finally{await rm(dir,{recursive:true,force:true});}},
