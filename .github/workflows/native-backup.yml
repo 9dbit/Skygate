@@ -1,0 +1,15 @@
+name: Native backup verification
+on:
+  push:
+    branches: [feat/softtech-provider-v1-20261109]
+    paths: [scripts/native-backup.mjs, tests/native-backup.test.mjs, .github/workflows/native-backup.yml]
+  workflow_dispatch:
+jobs:
+  backup-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --test tests/native-backup.test.mjs
