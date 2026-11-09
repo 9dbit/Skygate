@@ -1,0 +1,36 @@
+name: Provider game navigation compatibility
+on:
+  push:
+    branches: [feat/softtech-provider-v1-20261109]
+    paths: ['.github/workflows/provider-browser-compat.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Preserve original game renderer and correct only navigation namespace
+        run: |
+          python3 - <<'PY'
+          import pathlib,json,hashlib
+          p=pathlib.Path('play/game.js');s=p.read_text()
+          assert s.count('window.PlaygroundNavigation.canStart()')==1
+          p.write_text(s.replace('window.PlaygroundNavigation.canStart()','window.SoftTechNavigation.canStart()'))
+          lock=json.loads(pathlib.Path('SOFTTECH_PROVIDER_SOURCE_LOCK.json').read_text())
+          for name,digest in lock['sha256'].items():assert hashlib.sha256(pathlib.Path(name).read_bytes()).hexdigest()==digest,name
+          PY
+          node --check play/game.js
+          node --test tests/agency-native.test.mjs
+      - name: Commit validated compatibility correction
+        run: |
+          git add play/game.js
+          git config user.name 'Soft Tech release validation'
+          git config user.email '154832153+9dbit@users.noreply.github.com'
+          git commit -m 'fix(provider): reference neutral session navigation in unchanged Skygate renderer'
+          git push origin HEAD:feat/softtech-provider-v1-20261109
