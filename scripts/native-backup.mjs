@@ -41,11 +41,13 @@ function signingKey(secret,date,region){let k=hmac('AWS4'+secret,date);k=hmac(k,
 async function s3Request(method,objectKey,body){
  const endpoint=new URL(process.env.ENGINE_BACKUP_S3_ENDPOINT);
  const bucket=process.env.ENGINE_BACKUP_S3_BUCKET;
- const region=process.env.ENGINE_BACKUP_S3_REGION||'iad';
+ const region=process.env.ENGINE_BACKUP_S3_REGION||'auto';
  const access=process.env.ENGINE_BACKUP_S3_ACCESS_KEY_ID,secret=process.env.ENGINE_BACKUP_S3_SECRET_ACCESS_KEY;
  if(!bucket||!access||!secret)throw Error('S3 credentials not configured');
  const url=new URL(endpoint.toString());
- url.pathname=endpoint.pathname.replace(/\/$/,'')+'/'+encodeURIComponent(bucket)+'/'+objectKey.split('/').map(encodeURIComponent).join('/');
+ if((process.env.ENGINE_BACKUP_S3_URL_STYLE||'virtual-host')==='virtual-host')url.hostname=bucket+'.'+url.hostname;
+ else url.pathname=endpoint.pathname.replace(/\/$/,'')+'/'+encodeURIComponent(bucket);
+ url.pathname=url.pathname.replace(/\/$/,'')+'/'+objectKey.split('/').map(encodeURIComponent).join('/');
  const now=new Date(),amzDate=now.toISOString().replace(/[:-]|\.\d{3}/g,''),date=amzDate.slice(0,8);
  const payloadHash=sha256(body||Buffer.alloc(0));
  const signedHeaders='host;x-amz-content-sha256;x-amz-date';
