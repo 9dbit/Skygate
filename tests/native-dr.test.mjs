@@ -17,7 +17,7 @@ test('complete disposable native volume loss restores sessions, fixed outcomes a
  const wallet={redeem:async()=>({provider:'soft-tech',game:'skygate-5000',tenant_id:'tenant',player_id:'player',session_id:'session',coin_scale:2,environment:'preproduction',deployment_id:'core-dr-deployment'}),status:async()=>({balance:String(balance),reserved:'0'}),reserve:async p=>{if(!rounds.has(p.round_ref)){rounds.set(p.round_ref,{...p,id:p.round_ref});balance-=BigInt(p.stake);}if(lost){lost=false;throw Error('simulated lost reserve response');}return rounds.get(p.round_ref);},settle:async p=>{const row=rounds.get(p.round_id);if(!row.settled){row.settled=true;balance+=BigInt(p.payout);}return {ok:true};}};
  const options={env,releases:{live:async()=>null},wallet};
  t.mock.method(globalThis,'fetch',async(url,options)=>{const key=new URL(url).pathname.slice(1);if(options.method==='PUT'){objects.set(key,await collectBody(options.body));return new Response('',{status:200});}return new Response(objects.get(key),{status:200});});
- t.mock.method(console,'log',()=>{});
+ const events=[];t.mock.method(console,'log',message=>{try{events.push(JSON.parse(message));}catch{}});
  try{
   app=createNative(options);const {cookie}=await app.test.redeem('t'.repeat(48));
   const first=await app.test.spin(cookie,{request_id:randomUUID(),bet:'2',ante:false,buy_bonus:false,release_id:'bundled'});
@@ -34,6 +34,8 @@ test('complete disposable native volume loss restores sessions, fixed outcomes a
   assert.equal(decrypt(objects.get(backup.object),null,keyRing(env)).manifest.key_id,'old');assert.equal(decrypt(objects.get(next.object),null,keyRing(env)).manifest.key_id,'rotated');
   assert.throws(()=>decrypt(objects.get(backup.object),null,{rotated:Buffer.from(rotated,'hex')}),/unavailable/);
   assert.equal(await restoreFromRemote(),null);
+  const restored=events.filter(value=>value.event==='engine.restore.completed');assert.equal(restored.length,1);
+  assert.equal(restored[0].platform_deployment_id,null);assert.ok(restored[0].event_at.endsWith('Z'));assert.ok(Date.parse(restored[0].event_at)<=Date.now());
   const report={game:'skygate',scenario:'disposable-native-volume-deleted-and-replaced',transport:'in-memory S3 double; actual native domain + game RNG + SQLite + AES-GCM',settled_rounds_preserved:1,pending_rounds_recovered:1,duplicate_debits:0,duplicate_credits:0,rpo_lost_committed_rounds:0,snapshot_age_seconds:Math.max(0,Date.now()/1000-backup.manifest.created_at),rto_seconds:(performance.now()-lostAt)/1000,old_and_new_keys_restore:true,production_certified:false};
   if(process.env.NATIVE_DR_EVIDENCE_PATH)await writeFile(process.env.NATIVE_DR_EVIDENCE_PATH,JSON.stringify(report,null,2)+'\n');
  }finally{app?.close();await rm(dir,{recursive:true,force:true});for(const [key,value]of Object.entries(previous)){if(value===undefined)delete process.env[key];else process.env[key]=value;}}

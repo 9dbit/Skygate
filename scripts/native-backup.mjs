@@ -4,7 +4,8 @@ import {readFile,writeFile,mkdtemp,rm,mkdir,open,readdir} from 'node:fs/promises
 import {existsSync,createReadStream} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,isAbsolute,dirname} from 'node:path';
-import {canonicalPath,requestedIdentity} from '../deployment-identity.mjs';
+import {canonicalPath,requestedIdentity,requirePersistentMount} from '../deployment-identity.mjs';
+import {eventProvenance} from '../native-volume.mjs';
 import {enforceRetention,probeConditionalDeletion} from './native-retention.mjs';
 import {snapshotFile,encryptFile,decryptFile,restoreFileToPath,databaseIdentity,verifyDatabase,sameIdentity,responseToFile,responseBytes,STREAM_CHUNK_BYTES} from './native-backup-stream.mjs';
 
@@ -77,6 +78,7 @@ async function downloadObject(object){
  catch(error){await rm(dir,{recursive:true,force:true});throw error;}
 }
 async function run(){
+ requirePersistentMount(process.env);
  const {key,name:key_id}=activeKey();
  const dir=await mkdtemp(join(tmpdir(),'skygate-backup-'));let result;
  try{
@@ -139,6 +141,7 @@ export async function restoreToPath(payload,destination,{key=null,keys=null,expe
  }finally{await rm(dir,{recursive:true,force:true});}
 }
 export async function restoreFromRemote(env=process.env){
+ requirePersistentMount(env);
  const object=env.ENGINE_RESTORE_OBJECT_KEY||env.ENGINE_RESTORE_OBJECT;if(!object)return null;
  const destination=canonicalPath(env.SKYGATE_AGENCY_DB_PATH,env),identity=requestedIdentity(env,'skygate-5000');
  const hash=env.ENGINE_RESTORE_CIPHERTEXT_SHA256||'';
@@ -160,7 +163,7 @@ export async function restoreFromRemote(env=process.env){
  }finally{await payload.cleanup();}
  const marker=await open(markerPath,'wx',0o600);try{await marker.writeFile(JSON.stringify(expected));await marker.sync();}finally{await marker.close();}
  const directory=await open(dirname(destination),'r');try{await directory.sync();}finally{await directory.close();}
- console.log(JSON.stringify({event:'engine.restore.completed',game:'skygate',object,ciphertext_sha256:hash,snapshot_created_at:manifest.created_at,rto_restore_seconds:(performance.now()-start)/1000}));
+ console.log(JSON.stringify({event:'engine.restore.completed',game:'skygate',object,ciphertext_sha256:hash,snapshot_created_at:manifest.created_at,rto_restore_seconds:(performance.now()-start)/1000,...eventProvenance(env)}));
  return manifest;
 }
 export {encrypt,decrypt,snapshot,run};

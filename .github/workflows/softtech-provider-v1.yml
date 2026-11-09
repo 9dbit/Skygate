@@ -27,3 +27,13 @@ jobs:
           PY
       - name: Native identity, recovery, accounting and math regression tests
         run: node --test tests/*.test.mjs
+      - name: Verify real same-filesystem bind mount and fail-closed transitions
+        run: sudo unshare --mount --propagation private "$(command -v node)" tests/native-volume-mount-fixture.mjs
+      - name: Build production native image
+        run: docker build --file Dockerfile --progress plain --tag softtech-skygate-native:ci .
+      - name: Verify actual image entrypoint with and without a mounted volume
+        run: |
+          native_volume_fixture="$(mktemp -d)"
+          trap 'sudo rm -rf "$native_volume_fixture"' EXIT
+          docker run --rm -i --network none --entrypoint node softtech-skygate-native:ci --input-type=module - unmounted < tests/native-volume-image-probe.mjs
+          docker run --rm -i --network none --mount "type=bind,source=$native_volume_fixture,target=/data" --entrypoint node softtech-skygate-native:ci --input-type=module - mounted < tests/native-volume-image-probe.mjs

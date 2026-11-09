@@ -1,7 +1,9 @@
 import {DatabaseSync} from 'node:sqlite';
 import {createHmac} from 'node:crypto';
-import {existsSync,mkdirSync,realpathSync,chmodSync,statSync} from 'node:fs';
+import {existsSync,mkdirSync,realpathSync,chmodSync} from 'node:fs';
 import {basename,dirname,isAbsolute,relative,resolve,sep} from 'node:path';
+import {requirePersistentMount} from './native-volume.mjs';
+export {requirePersistentMount,platformHealth} from './native-volume.mjs';
 
 export function requestedIdentity(env,game){
  const environment=env.AGENCY_ENVIRONMENT||'sandbox';
@@ -10,9 +12,6 @@ export function requestedIdentity(env,game){
  const deployment_id=env.AGENCY_DEPLOYMENT_ID||'legacy-'+game,core_deployment_id=env.AGENCY_CORE_DEPLOYMENT_ID||'legacy-sandbox-core';
  if([deployment_id,core_deployment_id].some(x=>!/^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(x)))throw Error('Invalid deployment identity');
  return Object.freeze({environment,deployment_id,core_deployment_id,game_id:game,identity_version:1});
-}
-export function requirePersistentMount(env){
- if(['RAILWAY_PROJECT_ID','RAILWAY_SERVICE_ID','RAILWAY_DEPLOYMENT_ID'].some(name=>!!env[name])){const mount=env.RAILWAY_VOLUME_MOUNT_PATH;if(!mount||!isAbsolute(mount)||!existsSync(mount)||!statSync(mount).isDirectory())throw Error('PERSISTENT_NATIVE_VOLUME_REQUIRED');}
 }
 export function canonicalPath(path,env){
  requirePersistentMount(env);

@@ -106,7 +106,7 @@ test('worker persists proof only after actual encrypted snapshot readback and re
   ENGINE_BACKUP_S3_ACCESS_KEY_ID:'test',ENGINE_BACKUP_S3_SECRET_ACCESS_KEY:'test',ENGINE_BACKUP_S3_URL_STYLE:'virtual-host'};
  try{
   await withEnvironment(environment,async()=>{
-   worker=startBackupLoop({env:{RAILWAY_GIT_COMMIT_SHA:SOURCE},statusFile,clock:()=>NOW,...timers});
+   worker=startBackupLoop({env:{RAILWAY_GIT_COMMIT_SHA:SOURCE,RAILWAY_DEPLOYMENT_ID:'00000000-0000-4000-8000-000000000001'},statusFile,clock:()=>NOW,...timers});
    await worker.firstAttempt;
    assert.equal(puts,1);assert.equal(gets,1);
    assert.deepEqual(await backupHealth({statusFile,sourceCommit:SOURCE,enabled:true,clock:()=>NOW}),
@@ -116,6 +116,9 @@ test('worker persists proof only after actual encrypted snapshot readback and re
    const verified=timers.logs.find(x=>x.event==='engine.backup.remote_verified');
    assert.equal(verified.size_bytes,decrypt(stored,Buffer.from(environment.ENGINE_BACKUP_KEY_HEX,'hex')).manifest.size);
    assert.equal(verified.encrypted_size_bytes,stored.length);
+   assert.equal(verified.platform_deployment_id,'00000000-0000-4000-8000-000000000001');
+   assert.ok(Number.isFinite(Date.parse(verified.event_at)));
+   assert.ok(verified.event_at.endsWith('Z'));
    assert.ok(!JSON.stringify(verified).includes(dbPath));
    breakReadback=true;
    await timers.scheduled[0].callback();

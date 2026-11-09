@@ -1,6 +1,6 @@
 import {createNative} from './agency-runtime.mjs';
 import {restoreFromRemote} from './scripts/native-backup.mjs';
-import {requirePersistentMount} from './deployment-identity.mjs';
+import {requirePersistentMount,platformHealth} from './deployment-identity.mjs';
 import {backupHealth,startBackupLoop} from './scripts/native-backup-monitor.mjs';
 import {mkdirSync,chownSync} from 'node:fs';
 import { startBridge } from './gameops-heartbeat.cjs';
@@ -63,7 +63,7 @@ createServer(async(req,res)=>{
   if(native.enabled && (raw==='/studio'||raw.startsWith('/studio/'))){json(res,404,{error:'Studio unavailable on native runtime'});return;}
   const api=raw.startsWith('/studio/api/');
   if(!['GET','HEAD'].includes(req.method||'')&&!(api&&req.method==='POST')){res.writeHead(405,{...base,Allow:'GET, HEAD'});res.end();return;}
-  if(raw==='/health') {res.writeHead(200,{...base,'Content-Type':'application/json','Cache-Control':'no-store'});res.end(req.method==='HEAD'?'':JSON.stringify({ok:true,service:native.enabled?'skygate-agency':'skygate-studio',version,...native.health()}));return;}
+  if(raw==='/health') {res.writeHead(200,{...base,'Content-Type':'application/json','Cache-Control':'no-store'});res.end(req.method==='HEAD'?'':JSON.stringify({ok:true,service:native.enabled?'skygate-agency':'skygate-studio',version,...native.health(),...(native.enabled?platformHealth():{})}));return;}
   if(raw==='/health/backup') {const status=await backupHealth();res.writeHead(status.ok?200:503,{...base,'Content-Type':'application/json','Cache-Control':'no-store'});res.end(req.method==='HEAD'?'':JSON.stringify(status));return;}
   // Only the two app directories are web roots; repository files are not routes.
   if(raw!=='/'&&raw!=='/studio'&&!raw.startsWith('/studio/')&&raw!=='/play'&&!raw.startsWith('/play/')){res.writeHead(404,base);res.end('Not Found');return;}

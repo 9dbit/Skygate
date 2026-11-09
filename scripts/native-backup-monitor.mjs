@@ -2,6 +2,7 @@
 import {open,readFile,rename,rm} from 'node:fs/promises';
 import {randomUUID} from 'node:crypto';
 import {basename,dirname,join} from 'node:path';
+import {eventProvenance} from '../native-volume.mjs';
 
 export const BACKUP_STATUS_FILE='/data/skygate-backup-status.json';
 const MAX_AGE_MS=90000*1000;
@@ -81,7 +82,7 @@ export function startBackupLoop({env=process.env,statusFile=BACKUP_STATUS_FILE,
     object:result.object,sha256:result.manifest.sha256,ciphertext_sha256:result.ciphertext_sha256||null,
     size_bytes:result.manifest.size,encrypted_size_bytes:result.encrypted_size_bytes??null,key_id:result.key_id||'legacy',retention:result.retention||null};
    await writeBackupStatus(statusFile,marker);
-   logger.log(JSON.stringify({event:'engine.backup.remote_verified',game:'skygate',
+   logger.log(JSON.stringify({event:'engine.backup.remote_verified',game:'skygate',...eventProvenance(env),
     object:marker.object,sha256:marker.sha256,ciphertext_sha256:marker.ciphertext_sha256,size_bytes:marker.size_bytes,encrypted_size_bytes:marker.encrypted_size_bytes,key_id:marker.key_id,verified_at:marker.verified_at}));
    delay=intervalMs;
   }catch(error){
