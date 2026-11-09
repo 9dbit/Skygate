@@ -1,0 +1,46 @@
+name: Soft Tech provider runtime
+on:
+  push:
+    branches: [feat/softtech-provider-v1-20261109]
+    paths: ['.github/workflows/softtech-provider-v1.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Apply provider-neutral identity and lock original engines
+        run: |
+          python3 - <<'PY'
+          import pathlib,hashlib,json
+          hashes={'studio/math/engine.js':'60fa6b06f506af46f80e5628965d54becbb06ee3e3816e1f516167c04e4599c9','studio/math/studio_math.js':'b2eb99ad24b0df6b1e83af4ff676e95799f23d66430c2fbdacc704dd8b3873fe','play/config.js':'d99f47030ed0d0ff07c3de45caf0fffa0194ebfb5b3e50777ebe4c45d1647661'}
+          for name,digest in hashes.items():assert hashlib.sha256(pathlib.Path(name).read_bytes()).hexdigest()==digest,name
+          for name in ['agency-runtime.mjs','agency-wallet.cjs','play/agency-client.js','play/agency-navigation.js']:
+              p=pathlib.Path(name);s=p.read_text()
+              s=s.replace('playground_launch','softtech_launch').replace('PlaygroundNavigation','SoftTechNavigation').replace('Playground','Soft Tech').replace("wallet:'playground'","wallet:'soft-tech'")
+              if name=='agency-runtime.mjs':s=s.replace("return {wallet:'soft-tech',mode:'sandbox'","return {provider:'soft-tech',wallet:'soft-tech',mode:'sandbox'")
+              p.write_text(s)
+          pathlib.Path('SOFTTECH_PROVIDER_SOURCE_LOCK.json').write_text(json.dumps({'base_commit':'701e88fb281c08fced1b89e221cbbe21751e2ebc','sha256':hashes},indent=2)+'\n')
+          print('Original Skygate engine, release math and configuration hashes preserved.')
+          PY
+          node --check agency-runtime.mjs
+          node --check play/agency-client.js
+          node --check play/agency-navigation.js
+      - name: Server-authoritative native wallet regressions
+        run: node --test tests/agency-native.test.mjs
+      - name: Commit validated provider runtime
+        run: |
+          git add agency-runtime.mjs agency-wallet.cjs play/agency-client.js play/agency-navigation.js SOFTTECH_PROVIDER_SOURCE_LOCK.json
+          git config user.name 'Soft Tech release validation'
+          git config user.email '154832153+9dbit@users.noreply.github.com'
+          if ! git diff --cached --quiet; then
+            git commit -m 'feat(provider): independent Skygate adapter with immutable math sources'
+            git push origin HEAD:feat/softtech-provider-v1-20261109
+          fi
+          git rev-parse HEAD
