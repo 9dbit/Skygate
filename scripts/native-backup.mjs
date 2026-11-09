@@ -1,12 +1,12 @@
 // Soft Tech Skygate: encrypted online SQLite backup. Run separately, never from request handlers.
-import {backup as sqliteBackup, DatabaseSync} from 'node:sqlite';
 import {createHash,createHmac,randomBytes,createCipheriv,createDecipheriv} from 'node:crypto';
-import {readFile,writeFile,mkdtemp,rm,mkdir,open,link,readdir} from 'node:fs/promises';
-import {existsSync} from 'node:fs';
+import {readFile,writeFile,mkdtemp,rm,mkdir,open,readdir} from 'node:fs/promises';
+import {existsSync,createReadStream} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,isAbsolute,dirname} from 'node:path';
 import {canonicalPath,requestedIdentity} from '../deployment-identity.mjs';
 import {enforceRetention,probeConditionalDeletion} from './native-retention.mjs';
+import {snapshotFile,encryptFile,decryptFile,restoreFileToPath,databaseIdentity,verifyDatabase,sameIdentity,responseToFile,responseBytes,STREAM_CHUNK_BYTES} from './native-backup-stream.mjs';
 
 const sha256=x=>createHash('sha256').update(x).digest('hex');
 const hmac=(key,data)=>createHmac('sha256',key).update(data).digest();
@@ -35,11 +35,7 @@ async function snapshot(dbPath){
  const dir=await mkdtemp(join(tmpdir(),'skygate-backup-'));
  try{
   const dest=join(dir,'snapshot.sqlite');
-  const source=new DatabaseSync(dbPath,{readOnly:true});
-  try{await sqliteBackup(source,dest,{rate:128});}finally{source.close();}
-  const db=new DatabaseSync(dest,{readOnly:true});
-  try{if(db.prepare('PRAGMA integrity_check').get().integrity_check!=='ok')throw Error('Snapshot integrity failure');}
-  finally{db.close();}
+  await snapshotFile(dbPath,dest);
   return await readFile(dest);
  }finally{await rm(dir,{recursive:true,force:true});}
 }
@@ -56,34 +52,46 @@ async function s3Request(method,objectKey='',body,options={}){
  url.pathname=url.pathname.replace(/\/$/,'')+'/'+objectKey.split('/').map(encodeURIComponent).join('/');
  const canonicalQuery=Object.entries(options.query||{}).sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>encodeURIComponent(k)+'='+encodeURIComponent(v).replace(/[!'()*]/g,c=>'%'+c.charCodeAt(0).toString(16).toUpperCase())).join('&');url.search=canonicalQuery;
  const now=new Date(),amzDate=now.toISOString().replace(/[:-]|\.\d{3}/g,''),date=amzDate.slice(0,8);
- const payloadHash=sha256(body||Buffer.alloc(0));
- const headers={host:url.host,...(options.ifMatch?{'if-match':options.ifMatch}:{}),'x-amz-content-sha256':payloadHash,'x-amz-date':amzDate};
+ const fileBody=method==='PUT'&&body&&typeof body.path==='string';
+ if(fileBody&&(!isAbsolute(body.path)||!/^[a-f0-9]{64}$/.test(body.sha256)||!Number.isSafeInteger(body.size)||body.size<0))throw Error('Invalid backup upload file');
+ const payloadHash=fileBody?body.sha256:sha256(body||Buffer.alloc(0));
+ const headers={host:url.host,...(method==='PUT'?{'content-length':String(fileBody?body.size:(body?.length||0))}:{}),...(options.ifMatch?{'if-match':options.ifMatch}:{}),'x-amz-content-sha256':payloadHash,'x-amz-date':amzDate};
  const signedHeaders=Object.keys(headers).sort().join(';');
  const canonical=method+'\n'+url.pathname+'\n'+canonicalQuery+'\n'+Object.entries(headers).sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>k+':'+v+'\n').join('')+'\n'+signedHeaders+'\n'+payloadHash;
  const scope=date+'/'+region+'/s3/aws4_request';
  const signature=hmac(signingKey(secret,date,region),'AWS4-HMAC-SHA256\n'+amzDate+'\n'+scope+'\n'+sha256(canonical)).toString('hex');
  const authorization='AWS4-HMAC-SHA256 Credential='+access+'/'+scope+', SignedHeaders='+signedHeaders+', Signature='+signature;
- const response=await fetch(url,{method,headers:{...headers,authorization},body:method==='PUT'?body:undefined,signal:AbortSignal.timeout(30000)});
- if(!response.ok){const error=Error('S3 '+method+' returned HTTP '+response.status);error.httpStatus=response.status;throw error;}
- const bytes=Buffer.from(await response.arrayBuffer());return options.metadata?{bytes,etag:response.headers.get('etag')}:bytes;
+ const upload=fileBody?createReadStream(body.path,{highWaterMark:STREAM_CHUNK_BYTES}):null;let response;
+ try{
+  // Signed S3 requests cannot follow a different target. In Node fetch, rejecting
+  // redirects also avoids retaining a tee of the entire streamed request body.
+  response=await fetch(url,{method,headers:{...headers,authorization},body:method==='PUT'?(upload||body):undefined,...(upload?{duplex:'half'}:{}),redirect:'error',signal:AbortSignal.timeout(30000)});
+  if(!response.ok){const error=Error('S3 '+method+' returned HTTP '+response.status);error.httpStatus=response.status;throw error;}
+  if(options.downloadPath)return await responseToFile(response,options.downloadPath);
+  const bytes=await responseBytes(response,options.maxBytes);return options.metadata?{bytes,etag:response.headers.get('etag')}:bytes;
+ }catch(error){await response?.body?.cancel().catch(()=>{});throw error;}finally{upload?.destroy();}
+}
+async function downloadObject(object){
+ const dir=await mkdtemp(join(tmpdir(),'skygate-download-'));
+ try{return {...await s3Request('GET',object,undefined,{downloadPath:join(dir,'archive.aesgcm')}),cleanup:()=>rm(dir,{recursive:true,force:true})};}
+ catch(error){await rm(dir,{recursive:true,force:true});throw error;}
 }
 async function run(){
  const {key,name:key_id}=activeKey();
- const plaintext=await snapshot(process.env.SKYGATE_AGENCY_DB_PATH||'');
- const {manifest,payload}=encrypt(plaintext,'skygate',key,Math.floor(Date.now()/1000),{key_id,deployment_identity:snapshotIdentity(process.env.SKYGATE_AGENCY_DB_PATH)});
- const object='native/skygate/'+manifest.created_at+'-'+manifest.sha256.slice(0,16)+'-'+randomBytes(8).toString('hex')+'.aesgcm';
- await s3Request('PUT',object,payload);
- const remote=await s3Request('GET',object);
- if(!remote.equals(payload))throw Error('Remote readback mismatch');
- const restored=decrypt(remote,key);
- const dir=await mkdtemp(join(tmpdir(),'skygate-restore-'));
+ const dir=await mkdtemp(join(tmpdir(),'skygate-backup-'));let result;
  try{
-  const path=join(dir,'restore.sqlite');await writeFile(path,restored.plaintext);
-  const db=new DatabaseSync(path,{readOnly:true});
-  try{if(db.prepare('PRAGMA integrity_check').get().integrity_check!=='ok')throw Error('Restore integrity failure');}
-  finally{db.close();}
+  const plaintext=join(dir,'snapshot.sqlite');await snapshotFile(process.env.SKYGATE_AGENCY_DB_PATH||'',plaintext);
+  const identity=snapshotIdentity(plaintext),archive=await encryptFile(plaintext,join(dir,'archive.aesgcm'),{game:'skygate',key,keyId:key_id,identity}),{manifest}=archive;
+  await rm(plaintext); // Only the encrypted file is needed after this point.
+  const object='native/skygate/'+manifest.created_at+'-'+manifest.sha256.slice(0,16)+'-'+randomBytes(8).toString('hex')+'.aesgcm';
+  await s3Request('PUT',object,archive);
+  const remote=await s3Request('GET',object,undefined,{downloadPath:join(dir,'readback.aesgcm')});
+  if(remote.size!==archive.size||remote.sha256!==archive.sha256)throw Error('Remote readback mismatch');
+  await rm(archive.path);
+  const restored=await decryptFile(remote.path,join(dir,'restore.sqlite'),{key});
+  verifyDatabase(restored.path,{expectedIdentity:identity,manifestIdentity:restored.manifest.deployment_identity});
+  result={object,manifest,ciphertext_sha256:archive.sha256,encrypted_size_bytes:archive.size,key_id,remote_readback:true,isolated_restore:true};
  }finally{await rm(dir,{recursive:true,force:true});}
- const result={object,manifest,ciphertext_sha256:sha256(payload),key_id,remote_readback:true,isolated_restore:true};
  if(process.env.ENGINE_BACKUP_RETENTION_ENABLED==='true')result.retention=await runRetention(result);
  console.log(JSON.stringify(result));
  return result;
@@ -104,11 +112,11 @@ export async function runRetention(current,env=process.env){
   maxDeletes:Number(env.ENGINE_BACKUP_RETENTION_MAX_DELETES||5),
   probeRequested:env.ENGINE_BACKUP_RETENTION_PROBE==='true',
   checkConditionalDelete:()=>probeConditionalDeletion({game:'skygate',identity,
-   put:(key,payload)=>s3Request('PUT',key,payload,{metadata:true}),download:key=>s3Request('GET',key,undefined,{metadata:true}),
+   put:(key,payload)=>s3Request('PUT',key,payload,{metadata:true,maxBytes:8192}),download:key=>s3Request('GET',key,undefined,{metadata:true,maxBytes:8192}),
    head:key=>s3Request('HEAD',key),remove:(key,etag)=>s3Request('DELETE',key,undefined,{ifMatch:etag})}),
   list:async token=>parseObjectList(await s3Request('GET','',undefined,{query:{'list-type':'2',prefix:'native/skygate/',...(token?{'continuation-token':token}:{})}})),
-  download:key=>s3Request('GET',key,undefined,{metadata:true}),remove:(key,etag)=>s3Request('DELETE',key,undefined,{ifMatch:etag}),
-  verify:async payload=>{const restored=decrypt(payload);const dir=await mkdtemp(join(tmpdir(),'retention-verify-'));try{const path=join(dir,'snapshot.sqlite');await writeFile(path,restored.plaintext);const db=new DatabaseSync(path,{readOnly:true});try{if(db.prepare('PRAGMA integrity_check').get().integrity_check!=='ok')throw Error('RETENTION_INTEGRITY_FAILED');}finally{db.close();}if(!sameIdentity(snapshotIdentity(path),identity))throw Error('RETENTION_FOREIGN_OR_MALFORMED_MANIFEST');return restored.manifest;}finally{await rm(dir,{recursive:true,force:true});}},
+  download:downloadObject,remove:(key,etag)=>s3Request('DELETE',key,undefined,{ifMatch:etag}),
+  verify:async payload=>{const dir=await mkdtemp(join(tmpdir(),'retention-verify-'));try{const restored=await decryptFile(payload.path,join(dir,'snapshot.sqlite'),{keys:keyRing(env)});verifyDatabase(restored.path,{expectedIdentity:identity,manifestIdentity:restored.manifest.deployment_identity});return restored.manifest;}finally{await rm(dir,{recursive:true,force:true});}},
   logger:event=>console.log(JSON.stringify(event))});
 }
 
@@ -121,22 +129,13 @@ export function keyRing(env=process.env){
 }
 export function activeKey(env=process.env){const ring=keyRing(env),name=env.ENGINE_BACKUP_ACTIVE_KEY_ID||'legacy';if(!ring[name])throw Error('Active backup key ID missing from key ring');return {name,key:ring[name]};}
 export function snapshotIdentity(path){
- const db=new DatabaseSync(path,{readOnly:true});try{if(!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='native_deployment_identity'").get())return null;return JSON.parse(db.prepare('SELECT identity_json FROM native_deployment_identity WHERE singleton=1').get().identity_json);}finally{db.close();}
+ return databaseIdentity(path);
 }
-const sameIdentity=(a,b)=>a&&b&&Object.keys(a).length===Object.keys(b).length&&Object.keys(a).every(k=>a[k]===b[k]);
 export async function restoreToPath(payload,destination,{key=null,keys=null,expectedIdentity=null}={}){
- if(!isAbsolute(destination))throw Error('Absolute restore destination required');
- if(['','-wal','-shm'].some(suffix=>existsSync(destination+suffix)))throw Error('Restore destination must be empty');
- const {manifest,plaintext}=decrypt(payload,key,keys);
- if(expectedIdentity&&!sameIdentity(manifest.deployment_identity,expectedIdentity))throw Error('BACKUP_DEPLOYMENT_IDENTITY_MISMATCH');
- await mkdir(dirname(destination),{recursive:true});const dir=await mkdtemp(join(dirname(destination),'.native-restore-'));
+ const dir=await mkdtemp(join(tmpdir(),'skygate-buffer-restore-'));
  try{
-  const verified=join(dir,'verified.sqlite');await writeFile(verified,plaintext,{mode:0o600});
-  const db=new DatabaseSync(verified,{readOnly:true});try{if(db.prepare('PRAGMA integrity_check').get().integrity_check!=='ok')throw Error('Restored database integrity failure');}finally{db.close();}
-  if(expectedIdentity&&!sameIdentity(snapshotIdentity(verified),expectedIdentity))throw Error('RESTORED_DEPLOYMENT_IDENTITY_MISMATCH');
-  const file=await open(verified,'r');try{await file.sync();}finally{await file.close();}
-  await link(verified,destination);const directory=await open(dirname(destination),'r');try{await directory.sync();}finally{await directory.close();}
-  return manifest;
+  const archive=join(dir,'archive.aesgcm');await writeFile(archive,payload,{flag:'wx',mode:0o600});
+  return await restoreFileToPath(archive,destination,{key,keys:keys||(!key?keyRing():null),expectedIdentity});
  }finally{await rm(dir,{recursive:true,force:true});}
 }
 export async function restoreFromRemote(env=process.env){
@@ -154,9 +153,11 @@ export async function restoreFromRemote(env=process.env){
  }
  await mkdir(dirname(destination),{recursive:true});
  if((await readdir(dirname(destination))).some(name=>name!=='lost+found'))throw Error('Restore requires an empty replacement volume');
- const start=performance.now(),payload=await s3Request('GET',object);
- if(sha256(payload)!==hash)throw Error('Remote restore ciphertext hash mismatch');
- const manifest=await restoreToPath(payload,destination,{keys:keyRing(env),expectedIdentity:identity});
+ const start=performance.now(),payload=await downloadObject(object);let manifest;
+ try{
+  if(payload.sha256!==hash)throw Error('Remote restore ciphertext hash mismatch');
+  manifest=await restoreFileToPath(payload.path,destination,{keys:keyRing(env),expectedIdentity:identity});
+ }finally{await payload.cleanup();}
  const marker=await open(markerPath,'wx',0o600);try{await marker.writeFile(JSON.stringify(expected));await marker.sync();}finally{await marker.close();}
  const directory=await open(dirname(destination),'r');try{await directory.sync();}finally{await directory.close();}
  console.log(JSON.stringify({event:'engine.restore.completed',game:'skygate',object,ciphertext_sha256:hash,snapshot_created_at:manifest.created_at,rto_restore_seconds:(performance.now()-start)/1000}));

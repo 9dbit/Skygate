@@ -7,6 +7,7 @@ import {randomBytes,randomUUID} from 'node:crypto';
 import {DatabaseSync} from 'node:sqlite';
 import {createNative} from '../agency-runtime.mjs';
 import {run,restoreFromRemote,decrypt,keyRing} from '../scripts/native-backup.mjs';
+import {collectBody} from './helpers/backup-stream-fixtures.mjs';
 
 test('complete disposable native volume loss restores sessions, fixed outcomes and exactly-once settlement across key rotation',async t=>{
  const dir=await mkdtemp(join(tmpdir(),'skygate-volume-loss-')),volume=join(dir,'volume');await mkdir(volume);const path=join(volume,'native.sqlite');
@@ -15,7 +16,7 @@ test('complete disposable native volume loss restores sessions, fixed outcomes a
  const previous=Object.fromEntries(Object.keys(env).map(k=>[k,process.env[k]]));Object.assign(process.env,env);
  const wallet={redeem:async()=>({provider:'soft-tech',game:'skygate-5000',tenant_id:'tenant',player_id:'player',session_id:'session',coin_scale:2,environment:'preproduction',deployment_id:'core-dr-deployment'}),status:async()=>({balance:String(balance),reserved:'0'}),reserve:async p=>{if(!rounds.has(p.round_ref)){rounds.set(p.round_ref,{...p,id:p.round_ref});balance-=BigInt(p.stake);}if(lost){lost=false;throw Error('simulated lost reserve response');}return rounds.get(p.round_ref);},settle:async p=>{const row=rounds.get(p.round_id);if(!row.settled){row.settled=true;balance+=BigInt(p.payout);}return {ok:true};}};
  const options={env,releases:{live:async()=>null},wallet};
- t.mock.method(globalThis,'fetch',async(url,options)=>{const key=new URL(url).pathname.slice(1);if(options.method==='PUT'){objects.set(key,Buffer.from(options.body));return new Response('',{status:200});}return new Response(objects.get(key),{status:200});});
+ t.mock.method(globalThis,'fetch',async(url,options)=>{const key=new URL(url).pathname.slice(1);if(options.method==='PUT'){objects.set(key,await collectBody(options.body));return new Response('',{status:200});}return new Response(objects.get(key),{status:200});});
  t.mock.method(console,'log',()=>{});
  try{
   app=createNative(options);const {cookie}=await app.test.redeem('t'.repeat(48));

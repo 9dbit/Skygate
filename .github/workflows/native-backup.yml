@@ -2,14 +2,18 @@ name: Native backup verification
 on:
   push:
     branches: [feat/softtech-provider-v1-20261109]
-    paths: [scripts/native-backup.mjs, scripts/native-backup-monitor.mjs, server.mjs, tests/native-backup.test.mjs, .github/workflows/native-backup.yml]
+    paths: ['scripts/native-backup*.mjs', scripts/native-retention.mjs, server.mjs, 'tests/native-backup*.test.mjs', 'tests/helpers/backup-*.mjs', .github/workflows/native-backup.yml]
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   backup-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - run: node --test tests/native-backup.test.mjs
+      - run: node --test tests/native-backup.test.mjs tests/native-backup-stream.test.mjs

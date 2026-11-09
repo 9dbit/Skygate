@@ -1,5 +1,7 @@
 // Bounded, fail-closed retention. Railway has no lifecycle/Object Lock support.
 import {createHash,randomBytes} from 'node:crypto';
+import {isAbsolute} from 'node:path';
+import {hashFile} from './native-backup-stream.mjs';
 export const RETENTION_POLICY='native-7d-4w-12m-v1';
 const DAY=86400;
 const sha=x=>createHash('sha256').update(x).digest('hex');
@@ -59,12 +61,17 @@ export async function enforceRetention({game,identity,currentObject,currentCiphe
   const records=new Map(plan.records.map(x=>[x.key,x])),proofs=new Map();
   for(const key of required){
    const record=records.get(key);if(!record)throw Error('RETENTION_OBJECT_SCOPE_INVALID');
-   const response=await download(key);if(!response||!Buffer.isBuffer(response.bytes))throw Error('RETENTION_DOWNLOAD_INVALID');
-   const digest=sha(response.bytes);if(key===currentObject&&digest!==currentCiphertextSha256)throw Error('RETENTION_CURRENT_CIPHERTEXT_CHANGED');
-   const manifest=await verify(response.bytes);
-   if(!manifest||manifest.game!==game||manifest.created_at!==record.created_at||!String(manifest.sha256).startsWith(record.hash_prefix)||!identityEqual(manifest.deployment_identity,identity))throw Error('RETENTION_FOREIGN_OR_MALFORMED_MANIFEST');
-   if(key===currentObject&&(now-manifest.created_at<0||now-manifest.created_at>25*3600))throw Error('RETENTION_CURRENT_BACKUP_STALE');
-   proofs.set(key,{digest,etag:response.etag});
+   const response=await download(key);
+   try{
+    const bytes=Buffer.isBuffer(response?.bytes),file=typeof response?.path==='string'&&isAbsolute(response.path)&&typeof response.cleanup==='function';
+    if(!bytes&&!file)throw Error('RETENTION_DOWNLOAD_INVALID');
+    const descriptor=bytes?null:await hashFile(response.path),digest=bytes?sha(response.bytes):descriptor.sha256;
+    if(key===currentObject&&digest!==currentCiphertextSha256)throw Error('RETENTION_CURRENT_CIPHERTEXT_CHANGED');
+    const manifest=await verify(bytes?response.bytes:{path:response.path,...descriptor});
+    if(!manifest||manifest.game!==game||manifest.created_at!==record.created_at||!String(manifest.sha256).startsWith(record.hash_prefix)||!identityEqual(manifest.deployment_identity,identity))throw Error('RETENTION_FOREIGN_OR_MALFORMED_MANIFEST');
+    if(key===currentObject&&(now-manifest.created_at<0||now-manifest.created_at>25*3600))throw Error('RETENTION_CURRENT_BACKUP_STALE');
+    proofs.set(key,{digest,etag:response.etag});
+   }finally{if(typeof response?.cleanup==='function')await response.cleanup();}
   }
   report.planned_objects=plan.candidates.map(x=>x.key);logger({event:'engine.backup.retention_plan',...report});
   if(probeRequested||(mode==='apply'&&plan.candidates.length)){

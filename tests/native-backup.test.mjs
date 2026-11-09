@@ -7,6 +7,7 @@ import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {encrypt,decrypt,snapshot} from '../scripts/native-backup.mjs';
 import {backupHealth,writeBackupStatus,startBackupLoop} from '../scripts/native-backup-monitor.mjs';
+import {collectBody} from './helpers/backup-stream-fixtures.mjs';
 
 const SOURCE='a'.repeat(40),HASH='b'.repeat(64),NOW=Date.parse('2026-11-10T00:00:00.000Z');
 const marker=()=>({backup_verified:true,source_commit:SOURCE,verified_at:new Date(NOW-1000).toISOString(),
@@ -95,7 +96,8 @@ test('worker persists proof only after actual encrypted snapshot readback and re
  const timers=scheduler();let stored,breakReadback=false,puts=0,gets=0,worker;
  t.mock.method(globalThis,'fetch',async(_url,options)=>{
   assert.ok(options.signal instanceof AbortSignal);
-  if(options.method==='PUT'){puts++;stored=Buffer.from(options.body);return new Response('',{status:200});}
+  assert.equal(options.redirect,'error');
+  if(options.method==='PUT'){puts++;stored=await collectBody(options.body);return new Response('',{status:200});}
   gets++;return new Response(breakReadback?Buffer.from('corrupt remote readback'):stored,{status:200});
  });
  t.mock.method(console,'log',()=>{});
@@ -111,6 +113,10 @@ test('worker persists proof only after actual encrypted snapshot readback and re
     {ok:true,backup_verified:true,verified_at:new Date(NOW).toISOString(),source_commit:SOURCE});
    assert.equal(timers.scheduled[0].delay,86400000);
    assert.equal(timers.logs.filter(x=>x.event==='engine.backup.remote_verified').length,1);
+   const verified=timers.logs.find(x=>x.event==='engine.backup.remote_verified');
+   assert.equal(verified.size_bytes,decrypt(stored,Buffer.from(environment.ENGINE_BACKUP_KEY_HEX,'hex')).manifest.size);
+   assert.equal(verified.encrypted_size_bytes,stored.length);
+   assert.ok(!JSON.stringify(verified).includes(dbPath));
    breakReadback=true;
    await timers.scheduled[0].callback();
    assert.equal(puts,2);assert.equal(gets,2);

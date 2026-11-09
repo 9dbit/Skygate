@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createHash,randomBytes} from 'node:crypto';
 import {retentionPlan,enforceRetention,probeConditionalDeletion,RETENTION_POLICY} from '../scripts/native-retention.mjs';
 import {encrypt,decrypt,parseObjectList} from '../scripts/native-backup.mjs';
+import {collectBody} from './helpers/backup-stream-fixtures.mjs';
 const NOW=Date.parse('2026-11-10T12:00:00Z')/1000,DAY=86400,key=randomBytes(32),identity={environment:'preproduction',deployment_id:'native-fixture',core_deployment_id:'core-fixture',game_id:'skygate-5000',identity_version:1};
 const hash=x=>createHash('sha256').update(x).digest('hex');
 function fixture(){
@@ -59,7 +60,7 @@ test('live backup path signs LIST and conditional DELETE, authenticates SQLite a
  t.mock.method(globalThis,'fetch',async(url,options)=>{
   const u=new URL(url),name=u.pathname.slice(1);assert.ok(options.headers.authorization.startsWith('AWS4-HMAC-SHA256 '));
   if(u.searchParams.get('list-type')==='2'){assert.equal(u.searchParams.get('prefix'),'native/skygate/');return new Response('<ListBucketResult>'+[...objects.keys()].map(k=>'<Contents><Key>'+k+'</Key></Contents>').join('')+'<IsTruncated>false</IsTruncated></ListBucketResult>',{status:200});}
-  if(options.method==='PUT'){objects.set(name,Buffer.from(options.body));return new Response('',{status:200,headers:{etag:'"'+hash(options.body)+'"'}});}
+  if(options.method==='PUT'){const bytes=await collectBody(options.body);objects.set(name,bytes);assert.equal(options.headers['x-amz-content-sha256'],hash(bytes));assert.equal(Number(options.headers['content-length']),bytes.length);return new Response('',{status:200,headers:{etag:'"'+hash(bytes)+'"'}});}
   if(!objects.has(name))return new Response(null,{status:404});
   const bytes=objects.get(name),etag='"'+hash(bytes)+'"';
   if(options.method==='DELETE'){assert.ok(options.headers.authorization.includes('host;if-match;x-amz-content-sha256;x-amz-date'));if(options.headers['if-match']!==etag)return new Response(null,{status:412});objects.delete(name);deletes.push(name);return new Response(null,{status:204});}
