@@ -59,8 +59,10 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
  CREATE UNIQUE INDEX IF NOT EXISTS one_pending ON rounds(actor) WHERE state IN ('intent','reserved');`);
  const query=(sql,...args)=>db.prepare(sql).get(...args),all=(sql,...args)=>db.prepare(sql).all(...args),run=(sql,...args)=>db.prepare(sql).run(...args);
  const studio=createStudioSync({env,client,releases,baseline});
- let queue=Promise.resolve();
- const serial=fn=>{const task=queue.then(fn);queue=task.catch(()=>{});return task;};
+ const queues=new Map();
+ const serial=(key,fn)=>{const task=(queues.get(key)||Promise.resolve()).then(fn),tail=task.catch(()=>{});queues.set(key,tail);void tail.then(()=>{if(queues.get(key)===tail)queues.delete(key);});return task;};
+ const launch=token=>serial('launch:'+sha(String(token??'')),()=>redeem(token));
+ const forSession=(raw,fn)=>{const {s,actor}=session(raw);return serial('player:'+actor,()=>fn(s,actor));};
  async function call(action,p){try{return await client[action](p);}catch(e){if(e instanceof walletTransport.AgencyWalletError)throw e;throw new NativeError(503,'Koneksi wallet terputus. Ulangi request yang sama; hasil tersimpan.');}}
  async function currentConfig(){
   const release=await releases.live();
@@ -142,8 +144,9 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
   r=await advance(r.id);const state=await snapshot(s,actor);
   return {...JSON.parse(r.result_json),id:r.id,payout:credits(r.payout,s.coin_scale),cost:credits(r.stake,s.coin_scale),state};
  }
- async function recover(){if(identity.environment==='production')return;for(const row of all("SELECT id FROM rounds WHERE state IN ('intent','reserved') LIMIT 20")){try{await advance(row.id);}catch{}}}
- const timer=setInterval(()=>{void serial(recover);},30000);timer.unref();
+ let recovering=false;
+ async function recover(){if(identity.environment==='production'||recovering)return;recovering=true;try{await Promise.allSettled(all("SELECT id,actor FROM rounds WHERE state IN ('intent','reserved') LIMIT 20").map(row=>serial('player:'+row.actor,()=>advance(row.id))));}finally{recovering=false;}}
+ const timer=setInterval(()=>{void recover();},30000);timer.unref();
  async function handle(req,res,path){
   if(!path.startsWith('/api/agency/'))return false;
   const send=(status,value,headers={})=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers});res.end(JSON.stringify(value));};
@@ -158,15 +161,15 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
     let size=0,parts=[];for await(const part of req){size+=part.length;if(size>4096)fail(413,'Payload too large');parts.push(part);}try{data=JSON.parse(Buffer.concat(parts));}catch{fail(400,'Invalid JSON');}
    }
    if(req.method==='POST'&&path==='/api/agency/launch'){
-    const result=await serial(()=>redeem(data?.token));const secure=req.headers['x-forwarded-proto']==='https'||req.socket.encrypted;
+    const result=await launch(data?.token);const secure=req.headers['x-forwarded-proto']==='https'||req.socket.encrypted;
     send(200,{ok:true,mode:identity.environment,...context(result.session)},{'Set-Cookie':`${COOKIE}=${result.cookie}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400${secure?'; Secure':''}`});return true;
    }
    const raw=(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith(COOKIE+'='))?.slice(COOKIE.length+1);
-   const result=await serial(async()=>{const {s,actor}=session(raw);if(req.method==='GET'&&path==='/api/agency/context')return context(s);if(req.method==='GET'&&path==='/api/agency/state')return snapshot(s,actor);if(req.method==='POST'&&path==='/api/agency/spin')return spin(s,actor,data);fail(404,'Endpoint tidak tersedia');});send(200,result);
+   const result=await forSession(raw,async(s,actor)=>{if(req.method==='GET'&&path==='/api/agency/context')return context(s);if(req.method==='GET'&&path==='/api/agency/state')return snapshot(s,actor);if(req.method==='POST'&&path==='/api/agency/spin')return spin(s,actor,data);fail(404,'Endpoint tidak tersedia');});send(200,result);
   }catch(e){send(e instanceof NativeError?e.status:500,{error:e instanceof NativeError?e.message:'Native wallet error; retry the same request'});}
   return true;
  }
- return {enabled:true,handle,health:()=>{query('SELECT 1');return {process_boot_id:PROCESS_BOOT_ID,uptime_seconds:Math.floor((performance.now()-PROCESS_STARTED)/1000),provider:'soft-tech',wallet:'soft-tech',mode:identity.environment,environment:identity.environment,deployment_identity:{...identity,identity_bound:true,physical_isolation_verified:false,play_enabled:identity.environment!=='production'},database:'connected',source_commit:env.RAILWAY_GIT_COMMIT_SHA||'',studio:studio.status()};},close:()=>{clearInterval(timer);studio.close();db.close();},
+ return {enabled:true,handle,health:()=>{query('SELECT 1');return {pending_operation_queues:queues.size,process_boot_id:PROCESS_BOOT_ID,uptime_seconds:Math.floor((performance.now()-PROCESS_STARTED)/1000),provider:'soft-tech',wallet:'soft-tech',mode:identity.environment,environment:identity.environment,deployment_identity:{...identity,identity_bound:true,physical_isolation_verified:false,play_enabled:identity.environment!=='production'},database:'connected',source_commit:env.RAILWAY_GIT_COMMIT_SHA||'',studio:studio.status()};},close:()=>{clearInterval(timer);studio.close();db.close();},
   // Local test harness can exercise the same serialized domain operations.
-  test:{redeem:token=>serial(()=>redeem(token)),state:raw=>serial(()=>{const {s,actor}=session(raw);return snapshot(s,actor);}),spin:(raw,p)=>serial(()=>{const {s,actor}=session(raw);return spin(s,actor,p);}),recover:()=>serial(recover)}};
+  test:{redeem:launch,state:raw=>forSession(raw,(s,actor)=>snapshot(s,actor)),spin:(raw,p)=>forSession(raw,(s,actor)=>spin(s,actor,p)),recover}};
 }
