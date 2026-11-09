@@ -1,0 +1,8 @@
+{
+  "base_commit": "701e88fb281c08fced1b89e221cbbe21751e2ebc",
+  "sha256": {
+    "studio/math/engine.js": "60fa6b06f506af46f80e5628965d54becbb06ee3e3816e1f516167c04e4599c9",
+    "studio/math/studio_math.js": "b2eb99ad24b0df6b1e83af4ff676e95799f23d66430c2fbdacc704dd8b3873fe",
+    "play/config.js": "d99f47030ed0d0ff07c3de45caf0fffa0194ebfb5b3e50777ebe4c45d1647661"
+  }
+}

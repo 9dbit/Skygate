@@ -98,8 +98,8 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
   let b;try{b=await call('status',{tenant_id:s.tenant_id,session_id:s.session_id});}catch(e){if(e instanceof walletTransport.AgencyWalletError)fail(503,'Saldo pusat belum tersedia');throw e;}
   const cfg=await currentConfig();
   const history=all("SELECT id,result_json,payout,stake FROM rounds WHERE actor=? AND state='settled' ORDER BY finished_at DESC LIMIT 30",actor).map(r=>({...JSON.parse(r.result_json),id:r.id,payout:credits(r.payout,s.coin_scale),cost:credits(r.stake,s.coin_scale)}));
-  return {...context({...s,...b}),wallet:'playground',simulation:true,coin_scale:s.coin_scale,balance:credits(b.balance,s.coin_scale),reserved:credits(b.reserved,s.coin_scale),release_id:cfg.id,config_hash:cfg.hash,history,
-   policy:{rounding:'half_up',note:`Sandbox Playground: payout dibulatkan half-up ke ${s.coin_scale} desimal setelah seluruh bonus. Saldo pusat tidak dapat direset dari game.`}};
+  return {...context({...s,...b}),wallet:'soft-tech',simulation:true,coin_scale:s.coin_scale,balance:credits(b.balance,s.coin_scale),reserved:credits(b.reserved,s.coin_scale),release_id:cfg.id,config_hash:cfg.hash,history,
+   policy:{rounding:'half_up',note:`Sandbox Soft Tech: payout dibulatkan half-up ke ${s.coin_scale} desimal setelah seluruh bonus. Saldo pusat tidak dapat direset dari game.`}};
  }
  async function spin(s,actor,p){
   if(!p||typeof p!=='object'||Array.isArray(p)||Object.keys(p).some(k=>!['request_id','bet','ante','buy_bonus','release_id'].includes(k)))fail(422,'Payload spin tidak valid');
@@ -159,7 +159,7 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
   }catch(e){send(e instanceof NativeError?e.status:500,{error:e instanceof NativeError?e.message:'Native wallet error; retry the same request'});}
   return true;
  }
- return {enabled:true,handle,health:()=>{query('SELECT 1');return {wallet:'playground',mode:'sandbox',database:'connected',source_commit:env.RAILWAY_GIT_COMMIT_SHA||'',studio:studio.status()};},close:()=>{clearInterval(timer);studio.close();db.close();},
+ return {enabled:true,handle,health:()=>{query('SELECT 1');return {provider:'soft-tech',wallet:'soft-tech',mode:'sandbox',database:'connected',source_commit:env.RAILWAY_GIT_COMMIT_SHA||'',studio:studio.status()};},close:()=>{clearInterval(timer);studio.close();db.close();},
   // Local test harness can exercise the same serialized domain operations.
   test:{redeem:token=>serial(()=>redeem(token)),state:raw=>serial(()=>{const {s,actor}=session(raw);return snapshot(s,actor);}),spin:(raw,p)=>serial(()=>{const {s,actor}=session(raw);return spin(s,actor,p);}),recover:()=>serial(recover)}};
 }
