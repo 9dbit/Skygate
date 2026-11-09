@@ -164,7 +164,7 @@ function startSkygate() {
   }
   async function runRound(replay=false,buyBonus=false) {
     if (state.busy) return;
-    if(agency&&!replay&&!window.PlaygroundNavigation.canStart())return;
+    if(agency&&!replay&&!window.SoftTechNavigation.canStart())return;
     let cost=buyBonus?Settings.money(state.bet*100):totalBet();
     if(buyBonus && state.ante){status('Matikan Bonus Booster untuk membeli Free Spins.');return;}
     if (!replay && state.credits<cost) {status(agency?'Saldo Playground tidak cukup. Kembali ke website agen.':'Kredit tidak cukup. Reset kredit melalui menu.');return;}
