@@ -1,7 +1,7 @@
 name: Soft Tech native provider qualification
 on:
   push:
-    branches: [feat/softtech-provider-v1-20261109]
+    branches: [feat/softtech-provider-v1-20261109, fix/provider-genesis-ui-20261110]
   workflow_dispatch:
 permissions:
   contents: read
@@ -25,7 +25,9 @@ jobs:
               assert hashlib.sha256(pathlib.Path(name).read_bytes()).hexdigest()==expected,name
           print('PASS: checked-in math/art source lock; no archive extraction or source rewrite')
           PY
-      - name: Native identity, recovery, accounting and math regression tests
+      - name: Prepare bundled public game assets
+        run: node scripts/prepare-play.mjs
+      - name: Native identity, recovery, accounting, provider UI and math regression tests
         run: node --test tests/*.test.mjs
       - name: Verify real same-filesystem bind mount and fail-closed transitions
         run: sudo unshare --mount --propagation private "$(command -v node)" tests/native-volume-mount-fixture.mjs
