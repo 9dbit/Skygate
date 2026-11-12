@@ -29,6 +29,7 @@ async function fixture() {
     'package.json': JSON.stringify({name:'skygate-studio',version:'0.14.3',scripts:{test:'echo test'}}),
     'README.md': '# SKYGATE',
     'server.mjs': 'server-original',
+    'gameops-heartbeat.cjs': 'heartbeat-original',
     'Dockerfile': 'FROM node:22',
     'scripts/prepare-play.mjs': 'prepare-original',
     'media_assets.tar.gz': 'fake archive',
@@ -67,6 +68,7 @@ test('independent game clone keeps math exact, avoids secrets and refuses overwr
     const result=await createGame({sourceRoot:f.source,profile,outputPath:f.output,lock:f.lock});
     assert.equal(result.title,'LEGEND BALL X1000');
     assert.equal(await readFile(join(f.output,'play/engine.js'),'utf8'),'engine-original');
+    assert.equal(await readFile(join(f.output,'gameops-heartbeat.cjs'),'utf8'),'heartbeat-original');
     assert.equal(await readFile(join(f.output,'play/config.js'),'utf8'),f.files['play/config.js']);
     assert.equal(JSON.parse(await readFile(join(f.output,'studio/project.json'),'utf8')).projectName,'LEGEND BALL X1000');
     assert.equal(JSON.parse(await readFile(join(f.output,'package.json'),'utf8')).name,'legend-ball-x1000');
