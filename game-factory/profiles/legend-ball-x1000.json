@@ -1,0 +1,96 @@
+{
+  "schema": "soft-tech-game-factory-profile/v1",
+  "slug": "legend-ball-x1000",
+  "title": "LEGEND BALL X1000",
+  "brandStatus": "working-title-trademark-unverified",
+  "engine": "skygate-v0.14.3-source-locked",
+  "inheritEngineUnchanged": true,
+  "orientation": "mobile-portrait-first",
+  "grid": {
+    "columns": 6,
+    "rows": 5
+  },
+  "credits": "fictional-only",
+  "originalIP": {
+    "world": "An original cosmic martial-fantasy realm of living crystalline weather systems, high-altitude citadels, and rune-powered combat rituals",
+    "hero": "Aster Varn: original armored crystal-channeler with asymmetrical angular crest and modular mineral plating; avoid recognizable licensed anime silhouettes, uniforms or hairstyles",
+    "dragon": "Veylorn: original geometric, translucent segmented crystal leviathan; not a traditional wish-granting dragon",
+    "visualPalette": [
+      "obsidian",
+      "copper",
+      "electric-cyan",
+      "storm-violet",
+      "warm-amber"
+    ],
+    "style": "Cinematic mobile game with original fantasy anime energy effects, editorial high-contrast labels and independently replaceable sprites"
+  },
+  "scatter": {
+    "mathKind": "scatter",
+    "artStatus": "concept-only-not-implemented",
+    "maxOnePerColumnEnforced": false,
+    "treatments": [
+      {
+        "name": "PYRA",
+        "color": "#F57835",
+        "rune": "split-flame-seal"
+      },
+      {
+        "name": "NERIS",
+        "color": "#33BDE7",
+        "rune": "paired-water-arcs"
+      },
+      {
+        "name": "VOLTRA",
+        "color": "#A26AF5",
+        "rune": "forked-energy-chevron"
+      },
+      {
+        "name": "TERRAK",
+        "color": "#45B98A",
+        "rune": "irregular-mineral-lattice"
+      },
+      {
+        "name": "SOLUNE",
+        "color": "#E7B74B",
+        "rune": "offset-orbit-arc"
+      },
+      {
+        "name": "AETHER",
+        "color": "#A3D5EC",
+        "rune": "cross-axis-prism"
+      }
+    ]
+  },
+  "scope": {
+    "keep": [
+      "live-skygate-engine",
+      "6x5-pay-anywhere",
+      "tumble",
+      "scatter",
+      "15-free-spins",
+      "5-spin-retrigger",
+      "buy-spin",
+      "bonus-booster",
+      "virtual-credit-settlement"
+    ],
+    "new": [
+      "logo",
+      "hero-art",
+      "crystal-creature",
+      "background",
+      "regular-symbols",
+      "scatter-orb-art",
+      "multiplier-art",
+      "frame-and-controls",
+      "intro",
+      "effects",
+      "bgm-and-sfx",
+      "icons",
+      "social-share-art"
+    ]
+  },
+  "production": {
+    "ready": false,
+    "allowed": false
+  }
+}
