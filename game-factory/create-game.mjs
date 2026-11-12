@@ -14,7 +14,7 @@ function argsToObject(items) {
   return out;
 }
 
-const topLevel = ['play', 'studio', 'scripts', 'server.mjs', 'release-store.mjs', 'Dockerfile', 'package.json', 'README.md', 'media_assets.tar.gz', 'audio_mp3.tar.gz', 'apple-touch-icon.png'];
+const topLevel = ['play', 'studio', 'scripts', 'server.mjs', 'gameops-heartbeat.cjs', 'release-store.mjs', 'Dockerfile', 'package.json', 'README.md', 'media_assets.tar.gz', 'audio_mp3.tar.gz', 'apple-touch-icon.png'];
 const skippedNames = new Set(['.git', '.github', '.env', '.local-data', '.tmp', 'node_modules', '.DS_Store', '.cache', 'coverage', 'game-factory']);
 
 export async function createGame({ sourceRoot, profile, outputPath, lock }) {
