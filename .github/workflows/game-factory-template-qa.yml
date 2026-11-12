@@ -1,0 +1,27 @@
+name: Game Factory template QA
+
+on:
+  pull_request:
+    paths:
+      - 'game-factory/**'
+      - 'play/config.js'
+      - 'play/engine.js'
+      - 'studio/math/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  factory-template:
+    name: Locked source and clone isolation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify pinned Skygate source and Legend Ball starter
+        run: node game-factory/validate.mjs
+      - name: Test source-lock, no-overwrite and clone safety
+        run: node --test game-factory/tests/*.test.mjs

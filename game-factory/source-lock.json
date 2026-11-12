@@ -1,0 +1,33 @@
+{
+  "schema": "soft-tech-skygate-source-lock/v1",
+  "repository": "9dbit/Skygate",
+  "commit": "6a8aee9e3a0bebaa9552433ffe0051efe39d4a52",
+  "mode": "virtual-credits-research-only",
+  "gitBlobSha1": {
+    "play/config.js": "1f965999fd26aa00379fb61ef65faecc5d3cf874",
+    "play/engine.js": "3f4aaaee65a1e0e010ec995300546a910e3ec32e",
+    "studio/math/engine.js": "3f4aaaee65a1e0e010ec995300546a910e3ec32e",
+    "studio/math/base-config.js": "522f3e1858b79f4331b263ca04abe18a74d2debb",
+    "studio/math/studio_math.js": "1b8ef71c368836ee2b293b8f7692ed8ce6115470",
+    "play/reels.js": "d6ff8248680e2ad3f27bd7115a735749511d1226",
+    "play/game.js": "bf98ed742b43468694e62ea8fbb1ef875ce765b2",
+    "play/release.js": "e2c8f17cdd4428bb36fd6f2ac924ef5d107a006c",
+    "release-store.mjs": "15f1dc9380e6027a66ec67f93deda4301d9fb73c",
+    "studio/project.json": "f8098d9e3f3ca7c95546a2218b229f66fc40be3f"
+  },
+  "expectedPlayableRules": {
+    "grid_columns": 6,
+    "grid_rows": 5,
+    "min_match": 8,
+    "bonus_trigger_scatters": 4,
+    "bonus_start_spins": 15,
+    "bonus_retrigger_scatters": 3,
+    "bonus_retrigger_add_spins": 5,
+    "round_max_win_x": 5000,
+    "scatter_paytable": {
+      "4": 3,
+      "5": 5,
+      "6": 100
+    }
+  }
+}
