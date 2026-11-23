@@ -139,7 +139,7 @@ test('unconfigured local development still loads Studio', async t => {
 });
 
 test('explicit public Studio testing is development-only and retains request protections', async t => {
-  const port = await start(t, { NODE_ENV: 'development', SKYGATE_STUDIO_PUBLIC_TESTING: 'true' });
+  const port = await start(t, { NODE_ENV: 'development', SKYGATE_STUDIO_PUBLIC_TESTING: 'true', SKYGATE_STUDIO_REQUIRE_AUTH: '' });
   for (const path of ['/studio/', '/studio/project.json', '/studio/preview/', '/studio/editor-preview/', '/studio/api/releases']) {
     assert.equal((await get(port, path)).status, 200, path);
   }
