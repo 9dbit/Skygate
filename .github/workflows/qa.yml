@@ -2,9 +2,9 @@ name: Skygate QA
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/agency-native-wallet-20261108]
   pull_request:
-    branches: [main]
+    branches: [main, feat/agency-native-wallet-20261108]
 
 concurrency:
   group: skygate-qa-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
       - run: npm test
       - run: git diff --check
 
@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
