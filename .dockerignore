@@ -1,0 +1,10 @@
+.git
+.github
+node_modules
+.local-data
+qa-*
+*.log
+.DS_Store
+studio/tests
+tests
+**/*.md

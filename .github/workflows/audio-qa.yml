@@ -2,9 +2,9 @@ name: Splash audio QA
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/agency-native-wallet-20261108]
   pull_request:
-    branches: [main]
+    branches: [main, feat/agency-native-wallet-20261108]
 
 permissions:
   contents: read
@@ -22,12 +22,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - run: node scripts/prepare-play.mjs
-      - run: python -m pip install --disable-pip-version-check playwright==1.55.0
+      - run: python -m pip install --disable-pip-version-check playwright==1.65.2
       - run: python -m playwright install --with-deps chromium webkit
       - run: python studio/tests/splash_audio_qa.py
       - uses: actions/upload-artifact@v4
