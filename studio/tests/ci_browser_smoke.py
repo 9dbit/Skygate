@@ -12,6 +12,18 @@ import time
 import urllib.request
 from playwright.sync_api import sync_playwright
 
+def wait_eval(page, predicate, timeout=30000):
+    """Poll through Playwright protocol without page-side eval(), so strict CSP stays intact."""
+    deadline=time.monotonic()+timeout/1000
+    last=None
+    while time.monotonic()<deadline:
+        try:
+            if page.evaluate(predicate): return
+        except Exception as error:
+            last=error
+        page.wait_for_timeout(50)
+    raise AssertionError(f"Timed out waiting for browser predicate: {last or predicate}")
+
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "qa-ci"
 OUT.mkdir(exist_ok=True)
@@ -103,7 +115,7 @@ try:
                 }, ensure_ascii=False), flush=True)
                 page.screenshot(path=str(OUT / f"boot-failure-{width}.png"))
                 raise AssertionError(f"Unexpected Skygate boot state: {initial_boot}")
-            page.wait_for_function("document.documentElement.dataset.boot === 'ready'", timeout=30000)
+            wait_eval(page, "() => document.documentElement.dataset.boot === 'ready'", timeout=30000)
             assert page.locator("#bootPlay").is_enabled()
             # PWA mobile portrait: splash image must paint all the way to the
             # physical viewport edges, with an accessible emissive SVG Play.
@@ -119,7 +131,7 @@ try:
             if width == 390:
                 page.screenshot(path=str(OUT / "splash-390.png"))
             page.locator("#bootPlay").click()
-            page.wait_for_function("document.documentElement.dataset.boot === 'entered'", timeout=12000)
+            wait_eval(page, "() => document.documentElement.dataset.boot === 'entered'", timeout=12000)
             assert page.locator("#spin").is_visible()
             assert "Bonus Booster" in page.locator("#anteFeature").inner_text()
             # The old centered 9:16 card left letterbox bars on tall phones.
@@ -149,10 +161,7 @@ try:
                 assert abs(banner["width"]/stage["width"] - .52) < .012
                 page.screenshot(path=str(OUT / "play-390.png"))
                 page.locator("#spin").click()
-                page.wait_for_function(
-                    "window.SlotGameTest?.getState().rounds === 1 && !window.SlotGameTest?.getState().busy",
-                    timeout=35000
-                )
+                wait_eval(page, "() => window.SlotGameTest?.getState().rounds === 1 && !window.SlotGameTest?.getState().busy", timeout=35000)
                 state = page.evaluate("window.SlotGameTest.getState()")
                 assert state["rounds"] == 1 and state["credits"] >= 0, state
                 # Use the shared real Game/Studio renderer with the imported
@@ -236,12 +245,12 @@ try:
         })();""")
         phone = pwa.new_page()
         phone.goto(base + "/play/",wait_until="domcontentloaded",timeout=30000)
-        phone.wait_for_function("document.documentElement.dataset.boot === 'ready'",timeout=30000)
+        wait_eval(phone, "() => document.documentElement.dataset.boot === 'ready'",timeout=30000)
         assert phone.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--sg-pwa-full-height').trim()") == "932px"
         assert abs(phone.locator("#bootSplash").bounding_box()["height"]-932) < 2
         assert abs(phone.locator(".splash-background").bounding_box()["height"]-932) < 2
         phone.locator("#bootPlay").click()
-        phone.wait_for_function("document.documentElement.dataset.boot === 'entered'",timeout=12000)
+        wait_eval(phone, "() => document.documentElement.dataset.boot === 'entered'",timeout=12000)
         assert abs(phone.locator(".game").bounding_box()["height"]-932) < 2
         preset = json.loads((ROOT / "studio/themes/olympus-gold/project.json").read_text())
         phone.evaluate("(p) => window.SkygateApplyLayout(p, path => 'assets/' + path)", preset)
@@ -260,7 +269,7 @@ try:
         )
         motion_page = motion.new_page()
         motion_page.goto(base + "/play/", wait_until="domcontentloaded", timeout=30000)
-        motion_page.wait_for_function("document.documentElement.dataset.boot === 'ready'", timeout=30000)
+        wait_eval(motion_page, "() => document.documentElement.dataset.boot === 'ready'", timeout=30000)
         motion_page.locator("#bootPlay").click()
         rotor = motion_page.locator("#spin .spin-rotor")
         frame = motion_page.locator("#spin .spin-frame")
@@ -276,10 +285,7 @@ try:
         page.on("pageerror", lambda error: errors.append(str(error)))
         response = page.goto(base + "/studio/", wait_until="domcontentloaded", timeout=30000)
         assert response and response.status == 200
-        page.wait_for_function(
-            "document.getElementById('gameCanvas')?.contentDocument?.documentElement?.dataset.boot === 'entered'",
-            timeout=30000
-        )
+        wait_eval(page, "() => document.getElementById('gameCanvas')?.contentDocument?.documentElement?.dataset.boot === 'entered'", timeout=30000)
         assert page.locator("#gameCanvas").count() == 1
         page.screenshot(path=str(OUT / "studio-390.png"))
         page.locator('[data-mobile-tab="test"]').click()
@@ -294,10 +300,7 @@ try:
             field.dispatchEvent(new Event('change', {bubbles:true}));
         }""")
         assert page.evaluate("window.SKYGATE_STUDIO.getState().spinMotion.normalMs") == 1600
-        page.wait_for_function(
-            "document.getElementById('gameCanvas')?.contentWindow?.SkygateActiveRelease?.project?.spinMotion?.normalMs === 1600",
-            timeout=30000
-        )
+        wait_eval(page, "() => document.getElementById('gameCanvas')?.contentWindow?.SkygateActiveRelease?.project?.spinMotion?.normalMs === 1600", timeout=30000)
         assert not errors, errors
         studio.close()
         browser.close()
