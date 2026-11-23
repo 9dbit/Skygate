@@ -46,7 +46,18 @@ test('production emits restrictive browser and transport security headers',async
   assert.doesNotMatch(csp,/script-src[^;]*unsafe-inline/);
   assert.match(play.headers['strict-transport-security'],/max-age=31536000/);
   assert.equal(play.headers['x-content-type-options'],'nosniff');
-  assert.equal(play.headers['x-frame-options'],'SAMEORIGIN');
+  // Published gameplay alone permits the XDPLAY launch wrapper to embed it.
+  // X-Frame-Options must not contradict the exact CSP frame ancestor list.
+  assert.equal(play.headers['x-frame-options'],undefined);
+  assert.match(csp,/frame-ancestors 'self' https:\/\/xd-play\.com https:\/\/www\.xd-play\.com/);
+  assert.doesNotMatch(csp,/\*/);
+  const alternateGame=await call(port,'/play/index.html');
+  assert.equal(alternateGame.status,200);
+  assert.equal(alternateGame.headers['x-frame-options'],undefined);
+  assert.equal(alternateGame.headers['content-security-policy'],csp);
+  const staticAsset=await call(port,'/play/game.css');
+  assert.equal(staticAsset.headers['x-frame-options'],'SAMEORIGIN');
+  assert.match(staticAsset.headers['content-security-policy'],/frame-ancestors 'self';/);
   assert.equal(play.headers['cross-origin-opener-policy'],'same-origin');
   assert.equal(play.headers['cross-origin-resource-policy'],'same-origin');
   assert.match(play.headers['permissions-policy'],/camera=\(\)/);
@@ -60,6 +71,13 @@ test('production emits restrictive browser and transport security headers',async
   assert.equal(privatePage.status,401);
   assert.equal(privatePage.headers['cache-control'],'no-store');
   assert.match(privatePage.headers['x-robots-tag'],/noindex/);
+  assert.equal(privatePage.headers['x-frame-options'],'SAMEORIGIN');
+  assert.match(privatePage.headers['content-security-policy'],/frame-ancestors 'self';/);
+  assert.doesNotMatch(privatePage.headers['content-security-policy'],/xd-play\.com/);
+  const studioHTML=await call(port,'/studio/',{authorization:auth});
+  assert.equal(studioHTML.status,200);
+  assert.equal(studioHTML.headers['x-frame-options'],'SAMEORIGIN');
+  assert.match(studioHTML.headers['content-security-policy'],/frame-ancestors 'self';/);
 });
 
 test('Studio invalid credentials are throttled without locking out valid owner credentials',async t=>{
