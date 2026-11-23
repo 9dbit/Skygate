@@ -22,7 +22,7 @@ async function start(t,extra={}){
   return await new Promise((resolve,reject)=>{
     let out='',err='';const timer=setTimeout(()=>reject(Error('security server startup timeout: '+err)),7000);
     child.stderr.on('data',b=>err+=b);
-    child.stdout.on('data',b=>{out+=b;const m=out.match(/listening on (\\d+)/);if(m){clearTimeout(timer);resolve({child,port:Number(m[1])});}});
+    child.stdout.on('data',b=>{out+=b;const m=out.match(/listening on (\d+)/);if(m){clearTimeout(timer);resolve({child,port:Number(m[1])});}});
     child.once('error',e=>{clearTimeout(timer);reject(e);});
     child.once('exit',code=>{clearTimeout(timer);reject(Error('security server exited '+code+': '+err));});
   });
@@ -49,7 +49,7 @@ test('production emits restrictive browser and transport security headers',async
   assert.equal(play.headers['x-frame-options'],'SAMEORIGIN');
   assert.equal(play.headers['cross-origin-opener-policy'],'same-origin');
   assert.equal(play.headers['cross-origin-resource-policy'],'same-origin');
-  assert.match(play.headers['permissions-policy'],/camera=\\(\\)/);
+  assert.match(play.headers['permissions-policy'],/camera=\(\)/);
 
   const health=await call(port,'/health');
   assert.equal(health.status,200);
