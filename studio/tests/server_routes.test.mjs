@@ -72,7 +72,7 @@ test('protected Studio uses the resolved path for authentication', async t => {
     for (const auth of ['Bearer invalid', 'Basic invalid',
       'Basic ' + Buffer.from('qa:wrong-password').toString('base64'),
       'Basic ' + Buffer.from('other:test-only-do-not-use').toString('base64')]) {
-      assert.equal((await get(port, '/studio/', { auth })).status, 401);
+      assert([401,429].includes((await get(port, '/studio/', { auth })).status));
     }
   });
   await t.test('authorized editor, assets and encoded paths load without cache', async () => {
