@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: '3.11'
       - run: node scripts/prepare-play.mjs
-      - run: python -m pip install --disable-pip-version-check playwright==1.55.0
+      - run: python -m pip install --disable-pip-version-check playwright==1.65.2
       - run: python -m playwright install --with-deps chromium webkit
       - run: python studio/tests/device_preview_qa.py
       - uses: actions/upload-artifact@v4
