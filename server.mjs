@@ -14,6 +14,9 @@ const {version}=JSON.parse(await readFile(resolve(root,'package.json'),'utf8'));
 const port=Number(process.env.PORT || 3000);
 const types={'.webmanifest':'application/manifest+json; charset=utf-8','.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.jpg':'image/jpeg','.jpeg':'image/jpeg','.ogg':'audio/ogg','.mp3':'audio/mpeg','.m4a':'audio/mp4','.wav':'audio/wav','.md':'text/markdown; charset=utf-8'};
 const csp="default-src 'none'; base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; font-src 'self' data:; manifest-src 'self'; frame-src 'self'; worker-src 'none'";
+// Allow only the published virtual-credit game page to be framed by the
+// explicitly trusted XDPLAY domains. Studio/API responses stay self-only.
+const xdplayGameCsp=csp.replace("frame-ancestors 'self'","frame-ancestors 'self' https://xd-play.com https://www.xd-play.com");
 const base=Object.freeze({
   'X-Content-Type-Options':'nosniff',
   'Referrer-Policy':'no-referrer',
@@ -152,7 +155,21 @@ const server=createServer(async(req,res)=>{
   if(target!==root&&!target.startsWith(root+sep)){res.writeHead(403,base);res.end('Forbidden');return;}
   let info;try{info=await stat(target);if(info.isDirectory()){target=resolve(target,'index.html');info=await stat(target);}if(!info.isFile())throw Error('not file')}catch{res.writeHead(404,base);res.end('Not Found');return;}
   const type=types[extname(target).toLowerCase()];if(!type){res.writeHead(404,base);res.end('Not Found');return;}
-  res.writeHead(200,{...base,...(privateRoute?{'X-Robots-Tag':'noindex, nofollow, noarchive'}:{}),'Content-Type':type,'Content-Length':info.size,'Cache-Control':privateRoute?'private, no-store':type.startsWith('text/html')?'no-cache':'public, max-age=3600'});
+  // Embedding is restricted to the public Game document, never Studio previews,
+  // release management, health endpoints, or arbitrary static HTML paths.
+  const isXDPlayGameDocument=type.startsWith('text/html')&&
+    (raw==='/play/'||raw==='/play/index.html');
+  const headers={...base,...(privateRoute?{'X-Robots-Tag':'noindex, nofollow, noarchive'}:{}),
+    'Content-Type':type,'Content-Length':info.size,
+    'Cache-Control':privateRoute?'private, no-store':type.startsWith('text/html')?'no-cache':'public, max-age=3600'};
+  if(isXDPlayGameDocument){
+    delete headers['X-Frame-Options'];
+    // The default SAMEORIGIN value was installed above as a live response
+    // header; explicitly remove it to avoid conflicting legacy frame checks.
+    res.removeHeader('X-Frame-Options');
+    headers['Content-Security-Policy']=xdplayGameCsp;
+  }
+  res.writeHead(200,headers);
   if(req.method==='HEAD'){res.end();return;}createReadStream(target).on('error',()=>res.destroy()).pipe(res);
  }catch(e){if(!(e instanceof ReleaseError))console.error(e.message);if(!res.headersSent)json(res,e.status||500,{error:e instanceof ReleaseError?e.message:'Server error'});else res.destroy();}
 });
