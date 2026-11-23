@@ -1,0 +1,30 @@
+name: Production security QA
+
+on:
+  push:
+    branches: [main, feat/agency-native-wallet-20261108]
+  pull_request:
+    branches: [main, feat/agency-native-wallet-20261108]
+
+concurrency:
+  group: skygate-security-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  hardening:
+    name: Static and runtime security gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      NODE_OPTIONS: --disable-proto=throw
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node scripts/security-audit.mjs
+      - run: node --test studio/tests/security_headers.test.mjs
+      - run: git diff --check
