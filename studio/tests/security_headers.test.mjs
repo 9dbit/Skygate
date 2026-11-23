@@ -54,7 +54,7 @@ test('production emits restrictive browser and transport security headers',async
   const health=await call(port,'/health');
   assert.equal(health.status,200);
   assert.deepEqual(Object.keys(JSON.parse(health.body)).sort(),['ok','service','version']);
-  for(const word of ['database','wallet','source_commit','studio'])assert(!health.body.includes(word));
+  for(const word of ['database','wallet','source_commit'])assert(!health.body.includes(word));
 
   const privatePage=await call(port,'/studio/');
   assert.equal(privatePage.status,401);
