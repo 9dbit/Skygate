@@ -18,6 +18,17 @@ import urllib.request
 import wave
 from playwright.sync_api import sync_playwright
 
+def wait_eval(page, predicate, timeout=30000):
+    deadline=time.monotonic()+timeout/1000
+    last=None
+    while time.monotonic()<deadline:
+        try:
+            if page.evaluate(predicate): return
+        except Exception as error:
+            last=error
+        page.wait_for_timeout(50)
+    raise AssertionError(f"Timed out waiting for browser predicate: {last or predicate}")
+
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'qa-audio'
 OUT.mkdir(exist_ok=True)
@@ -88,7 +99,7 @@ def publish_test_music():
 
 
 def assert_audible(page):
-    page.wait_for_function("""() => {
+    wait_eval(page, """() => {
       const m=window.__audioMixer;
       if(!m?.ctx || m.ctx.state!=='running')return false;
       if(!window.__audioAnalyser){
@@ -115,12 +126,12 @@ def check_game(browser, engine, custom_path=None):
         ('/audio/' in req.url or '/play/media/' in req.url) else None)
     try:
         page.goto(BASE+'/play/', wait_until='domcontentloaded')
-        page.wait_for_function("document.documentElement.dataset.boot==='ready'", timeout=30000)
+        wait_eval(page, "() => document.documentElement.dataset.boot==='ready'", timeout=30000)
         assert page.evaluate('window.__audioMixer.ctx===null')
         assert page.locator('#sound').get_attribute('aria-pressed') == 'false'
         assert page.evaluate('window.__audioUnlocks.length') == 0
         page.locator('#bootPlay').tap()
-        page.wait_for_function("""() => document.documentElement.dataset.boot==='entered' &&
+        wait_eval(page, """() => document.documentElement.dataset.boot==='entered' &&
           window.__audioMixer?.isPlaying('bgm_celestial_loop') &&
           window.__audioMixer.ctx.state==='running'""", timeout=20000)
         assert page.evaluate('window.__audioUnlocks[0].inSplash')
@@ -145,11 +156,11 @@ def check_game(browser, engine, custom_path=None):
             assert abs(values['duration']-2)<.01, values
         # The same original mixer owns both splash start and subsequent controls.
         page.locator('#sound').tap()
-        page.wait_for_function("!window.SlotGameTest.getState().sound && window.__audioMixer.active.size===0")
+        wait_eval(page, "() => !window.SlotGameTest.getState().sound && window.__audioMixer.active.size===0")
         assert page.locator('#sound').get_attribute('aria-pressed') == 'false'
         assert not page.locator('#soundSetting').is_checked()
         page.locator('#sound').tap()
-        page.wait_for_function("window.__audioMixer.isPlaying('bgm_celestial_loop')")
+        wait_eval(page, "() => window.__audioMixer.isPlaying('bgm_celestial_loop')")
         assert page.evaluate('window.__audioMixer.active.size') == 1
         assert_audible(page)
         page.screenshot(path=str(OUT/(f'{engine}-'+('custom' if custom_path else 'default')+'.png')))
@@ -192,7 +203,7 @@ with tempfile.TemporaryDirectory(prefix='skygate-audio-') as release_dir:
                     context.add_init_script(INSTRUMENT)
                     page = context.new_page()
                     page.goto(BASE+'/studio/preview/?live=1', wait_until='domcontentloaded')
-                    page.wait_for_function("document.documentElement.dataset.boot==='entered'", timeout=30000)
+                    wait_eval(page, "() => document.documentElement.dataset.boot==='entered'", timeout=30000)
                     assert page.evaluate('window.__audioMixer.ctx===null && window.__audioUnlocks.length===0')
                     context.close()
             finally:
