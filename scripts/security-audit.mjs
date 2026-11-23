@@ -15,8 +15,8 @@ for(const token of [
 ]) assert(server.includes(token),`missing hardening: ${token}`);
 
 const play=read('play/index.html');
-assert.equal((play.match(/<script(?![^>]*\\bsrc=)[^>]*>/gi)||[]).length,0,'inline scripts defeat strict CSP');
-assert.equal((play.match(/\\son[a-z]+\\s*=/gi)||[]).length,0,'inline event handlers defeat strict CSP');
+assert.equal((play.match(/<script(?![^>]*\bsrc=)[^>]*>/gi)||[]).length,0,'inline scripts defeat strict CSP');
+assert.equal((play.match(/\son[a-z]+\s*=/gi)||[]).length,0,'inline event handlers defeat strict CSP');
 assert(play.includes('pwa-viewport.js?v=security1'));
 
 const pkg=JSON.parse(read('package.json'));
@@ -38,19 +38,19 @@ function collect(p){
       if(n==='tests'||n==='tools'||n.endsWith('.md'))continue;
       collect(relative(root,resolve(full,n)));
     }
-  }else if(/\\.(?:js|mjs|cjs|html)$/.test(p))files.push(p);
+  }else if(/\.(?:js|mjs|cjs|html)$/.test(p))files.push(p);
 }
 for(const p of runtimeRoots)collect(p);
 const secretPatterns=[
   /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/,
-  /\\bghp_[A-Za-z0-9]{30,}\\b/,
-  /\\bAKIA[0-9A-Z]{16}\\b/,
-  /\\bsk_live_[A-Za-z0-9]{16,}\\b/
+  /\bghp_[A-Za-z0-9]{30,}\b/,
+  /\bAKIA[0-9A-Z]{16}\b/,
+  /\bsk_live_[A-Za-z0-9]{16,}\b/
 ];
 for(const p of files){
   const body=read(p);
-  assert(!/\\beval\\s*\\(/.test(body),`eval forbidden: ${p}`);
-  assert(!/new\\s+Function\\s*\\(/.test(body),`new Function forbidden: ${p}`);
+  assert(!/\beval\s*\(/.test(body),`eval forbidden: ${p}`);
+  assert(!/new\s+Function\s*\(/.test(body),`new Function forbidden: ${p}`);
   for(const pattern of secretPatterns)assert(!pattern.test(body),`credential-like material in ${p}`);
 }
 console.log(`SECURITY STATIC PASS: ${files.length} runtime files; strict script CSP; no package dependencies; no obvious embedded credentials.`);
