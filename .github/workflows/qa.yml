@@ -40,7 +40,7 @@ jobs:
         with:
           python-version: '3.11'
       - run: node scripts/prepare-play.mjs
-      - run: python -m pip install --disable-pip-version-check playwright==1.55.0
+      - run: python -m pip install --disable-pip-version-check playwright==1.65.2
       - run: python -m playwright install --with-deps chromium
       - run: python studio/tests/ci_browser_smoke.py
       - uses: actions/upload-artifact@v4
