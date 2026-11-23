@@ -67,15 +67,25 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
   if(typeof token!=='string'||!/^[A-Za-z0-9_-]{30,120}$/.test(token))fail(422,'Token tidak valid');
   let s;try{s=await client.redeem(token,'skygate-redeem-'+sha(token));}catch(e){if(e instanceof walletTransport.AgencyWalletError)fail(e.status<500?e.status:503,'Launch ditolak. Buka kembali dari website agen.');throw new NativeError(503,'Koneksi launch terputus; ulangi token yang sama');}
   if(s.game!=='skygate-5000'||!Number.isInteger(s.coin_scale)||s.coin_scale<0||s.coin_scale>12)fail(409,'Scope game atau presisi tidak sesuai');
+  for(const key of ['tenant_id','player_id','session_id']){
+    if(typeof s[key]!=='string'||s[key].length<1||s[key].length>160||/[\u0000-\u001f\u007f]/.test(s[key]))fail(409,'Identitas sesi wallet tidak valid');
+  }
+  if(s.expires_at!=null){
+    const expiry=Date.parse(s.expires_at);
+    if(!Number.isFinite(expiry)||expiry<=clock())fail(401,'Sesi game sudah berakhir');
+  }
+  const sessionJSON=JSON.stringify(s);
+  if(Buffer.byteLength(sessionJSON)>64*1024)fail(502,'Respons sesi wallet terlalu besar');
   const cookie=createHmac('sha256',env.AGENCY_WALLET_SECRET).update('cookie:'+token).digest('hex');
-  run('INSERT INTO launches VALUES(?,?,?) ON CONFLICT(cookie_hash) DO UPDATE SET session_json=excluded.session_json',sha(cookie),JSON.stringify(s),clock());
+  run('INSERT INTO launches VALUES(?,?,?) ON CONFLICT(cookie_hash) DO UPDATE SET session_json=excluded.session_json',sha(cookie),sessionJSON,clock());
   return {cookie,session:s};
  }
  function session(raw){
   if(!/^[a-f0-9]{64}$/.test(raw||''))fail(401,'Buka Skygate dari website agen');
   const row=query('SELECT * FROM launches WHERE cookie_hash=? AND created_at>?',sha(raw),clock()-86400000);
   if(!row)fail(401,'Sesi tidak tersedia. Buka kembali dari website agen');
-  const s=JSON.parse(row.session_json);return {s,actor:s.tenant_id+':'+s.player_id};
+  const s=JSON.parse(row.session_json);
+  return {s,actor:sha('actor:'+JSON.stringify([s.tenant_id,s.player_id]))};
  }
  async function advance(id){
   let r=query('SELECT * FROM rounds WHERE id=?',id);if(r.state==='failed')fail(r.error_status,'Reservasi ditolak; gunakan request baru setelah memeriksa saldo/sesi');
@@ -101,13 +111,30 @@ export function createNative({env=process.env,releases,wallet=null,clock=()=>Dat
   return {...context({...s,...b}),wallet:'playground',simulation:true,coin_scale:s.coin_scale,balance:credits(b.balance,s.coin_scale),reserved:credits(b.reserved,s.coin_scale),release_id:cfg.id,config_hash:cfg.hash,history,
    policy:{rounding:'half_up',note:`Sandbox Playground: payout dibulatkan half-up ke ${s.coin_scale} desimal setelah seluruh bonus. Saldo pusat tidak dapat direset dari game.`}};
  }
+ const spinWindows=new Map();
+ function admitNewSpin(actor){
+  const now=clock(),windowMs=10_000,limit=30;
+  let bucket=spinWindows.get(actor);
+  if(!bucket||now-bucket.start>=windowMs)bucket={start:now,count:0};
+  bucket.count++;spinWindows.set(actor,bucket);
+  if(spinWindows.size>10_000){
+    for(const [key,value] of spinWindows){if(now-value.start>=windowMs)spinWindows.delete(key);}
+    while(spinWindows.size>10_000)spinWindows.delete(spinWindows.keys().next().value);
+  }
+  if(bucket.count>limit)fail(429,'Terlalu banyak ronde baru; tunggu sebentar');
+ }
  async function spin(s,actor,p){
+  if(s.expires_at!=null){
+    const expiry=Date.parse(s.expires_at);
+    if(!Number.isFinite(expiry)||expiry<=clock())fail(401,'Sesi game berakhir. Buka kembali dari website agen');
+  }
   if(!p||typeof p!=='object'||Array.isArray(p)||Object.keys(p).some(k=>!['request_id','bet','ante','buy_bonus','release_id'].includes(k)))fail(422,'Payload spin tidak valid');
   if(!/^[a-f0-9-]{36}$/.test(p.request_id||'')||typeof p.ante!=='boolean'||typeof p.buy_bonus!=='boolean'||typeof p.release_id!=='string'||typeof p.bet!=='string')fail(422,'Request ID, taruhan, opsi dan release wajib');
   const payloadHash=sha(JSON.stringify({bet:p.bet,ante:p.ante,buy_bonus:p.buy_bonus,release_id:p.release_id}));
   let r=query('SELECT * FROM rounds WHERE actor=? AND request_id=?',actor,p.request_id);
   if(r&&r.payload_hash!==payloadHash)fail(409,'Payload idempotency berbeda');
   if(!r){
+   admitNewSpin(actor);
    if(query("SELECT id FROM rounds WHERE actor=? AND state IN ('intent','reserved')",actor))fail(409,'Ronde masih diproses. Pulihkan state sebelum membuat ronde baru');
    const {release,cfg,id,hash}=await currentConfig();if(p.release_id!==id)fail(409,'Versi game berubah. Muat ulang sebelum bermain');
    if(p.ante&&p.buy_bonus)fail(422,'Buy bonus tidak dapat digabung dengan booster');
