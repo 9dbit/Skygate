@@ -37,3 +37,43 @@ test('real native engine accepts crypto RNG without seed-controlled outcomes',as
  const app=createNative({env:{AGENCY_WALLET_MODE:'sandbox',AGENCY_WALLET_SECRET:'q'.repeat(40),SKYGATE_AGENCY_DB_PATH:join(dir,'native.sqlite')},releases:{live:async()=>null},wallet:{redeem:async()=>({game:'skygate-5000',tenant_id:'t',player_id:'p',session_id:'s',coin_scale:0}),status:async()=>({balance:'1000',reserved:'0'}),reserve:async()=>({id:'r'}),settle:async p=>{payout=p.payout;}}});
  try{const {cookie}=await app.test.redeem('x'.repeat(40));const r=await app.test.spin(cookie,{request_id:randomUUID(),bet:'2',ante:false,buy_bonus:false,release_id:'bundled'});assert.ok(r.round.base.initial.length);assert.equal(r.round.rngStateEnd,null);assert.equal(r.payout,payout);}finally{app.close();rmSync(dir,{recursive:true,force:true});}
 });
+
+
+test('wallet session identity is bounded, expired launches fail, and actor tuples cannot collide',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'sky-session-sec-'));
+ const sessions=new Map([
+  ['a'.repeat(40),{game:'skygate-5000',tenant_id:'a:b',player_id:'c',session_id:'s1',coin_scale:0}],
+  ['b'.repeat(40),{game:'skygate-5000',tenant_id:'a',player_id:'b:c',session_id:'s2',coin_scale:0}],
+  ['c'.repeat(40),{game:'skygate-5000',tenant_id:'t',player_id:'p',session_id:'expired',coin_scale:0,expires_at:'2020-01-01T00:00:00.000Z'}],
+ ]);
+ const wallet={redeem:async token=>sessions.get(token),status:async()=>({balance:'1000',reserved:'0'}),
+  reserve:async p=>({id:p.round_ref}),settle:async()=>({ok:true})};
+ const app=createNative({env:{AGENCY_WALLET_MODE:'sandbox',AGENCY_WALLET_SECRET:'q'.repeat(40),SKYGATE_AGENCY_DB_PATH:join(dir,'native.sqlite')},
+  wallet,releases:{live:async()=>null},outcomeFactory:async()=>({winX:0,bonus:{triggered:false}}),clock:()=>Date.parse('2026-11-24T00:00:00.000Z')});
+ try{
+  const a=await app.test.redeem('a'.repeat(40)),b=await app.test.redeem('b'.repeat(40));
+  const same=randomUUID();
+  const p={request_id:same,bet:'2',ante:false,buy_bonus:false,release_id:'bundled'};
+  const ra=await app.test.spin(a.cookie,p),rb=await app.test.spin(b.cookie,p);
+  assert.notEqual(ra.id,rb.id,'ambiguous tenant/player concatenation must not merge actors');
+  await assert.rejects(app.test.redeem('c'.repeat(40)),/berakhir/);
+ }finally{app.close();rmSync(dir,{recursive:true,force:true});}
+});
+
+test('native runtime rate-limits only new round creation and keeps idempotent replay available',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'sky-rate-sec-')),now=Date.parse('2026-11-24T00:00:00.000Z');
+ const wallet={redeem:async()=>({game:'skygate-5000',tenant_id:'t',player_id:'p',session_id:'s',coin_scale:0}),
+  status:async()=>({balance:'100000',reserved:'0'}),reserve:async p=>({id:p.round_ref}),settle:async()=>({ok:true})};
+ const app=createNative({env:{AGENCY_WALLET_MODE:'sandbox',AGENCY_WALLET_SECRET:'q'.repeat(40),SKYGATE_AGENCY_DB_PATH:join(dir,'native.sqlite')},
+  wallet,releases:{live:async()=>null},outcomeFactory:async()=>({winX:0,bonus:{triggered:false}}),clock:()=>now});
+ try{
+  const {cookie}=await app.test.redeem('x'.repeat(40));let first;
+  for(let i=0;i<30;i++){
+    const p={request_id:randomUUID(),bet:'2',ante:false,buy_bonus:false,release_id:'bundled'};
+    const r=await app.test.spin(cookie,p);if(i===0)first={p,r};
+  }
+  await assert.rejects(app.test.spin(cookie,{request_id:randomUUID(),bet:'2',ante:false,buy_bonus:false,release_id:'bundled'}),/Terlalu banyak ronde/);
+  const replay=await app.test.spin(cookie,first.p);
+  assert.equal(replay.id,first.r.id,'idempotent retry remains recoverable after rate limit');
+ }finally{app.close();rmSync(dir,{recursive:true,force:true});}
+});
