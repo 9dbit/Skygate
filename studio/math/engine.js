@@ -87,9 +87,9 @@
     const appliedMultiplierX = eligibleOrb ? (free ? nextBankX : orbX) : 1;
     return { payoutX: Number((symbolWinX * appliedMultiplierX).toFixed(10)), nextBankX, appliedMultiplierX };
   }
-  function createEngine(config, initialSeed = 20261027) {
+  function createEngine(config, initialSeed = 20261027, randomSource = null) {
     const cfg = validateConfig(config);
-    const rng = createRng(initialSeed);
+    const rng = randomSource || createRng(initialSeed);
     const symbols = Object.entries(cfg.symbol_weights);
     const multipliers = cfg.multiplier_values.map((v, i) => [v, cfg.multiplier_weights[i]]);
     let tileId = 0, paidIndex = 0;

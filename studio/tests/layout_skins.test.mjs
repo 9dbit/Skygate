@@ -377,12 +377,13 @@ test('v0.14.1 anchors WIN 1000x and BET settings to the same safe-area stage',()
   const d2=dom();d2.window.SkygateApplyLayout(moved,path=>'assets/'+path);
   assert.equal(d2.nodes.get('promoBadge').style.top,
     ((frame.y+80)/1920*100-3)+'%','promo must follow custom Studio WIN position');
-  const css=read('play/game.css'),html=read('play/index.html');
+  const css=read('play/game.css'),html=read('play/index.html'),viewport=read('play/pwa-viewport.js');
   assert(css.includes('.olympus-gold .published-scene > .promo-badge'));
   assert(css.includes('.olympus-gold .published-scene > .bet-menu{pointer-events:auto}'));
   assert(css.includes('height:var(--sg-pwa-full-height,100dvh)'));
-  assert(html.includes('window.navigator.standalone===true'));
-  assert(html.includes('window.screen?.height'));
+  assert(viewport.includes('window.navigator.standalone===true'));
+  assert(viewport.includes('window.screen?.height'));
+  assert(html.includes('pwa-viewport.js?v=security1'));
 });
 
 test('Olympus AUTO / NORMAL stay 1:1 and keep saved layer centers unchanged',()=>{

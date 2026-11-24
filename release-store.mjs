@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, readFile, writeFile, rename, stat } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, rename, stat, open, readdir } from 'node:fs/promises';
+import { constants } from 'node:fs';
 import { resolve } from 'node:path';
 import math from './studio/math/engine.js';
 import studioMath from './studio/math/studio_math.js';
@@ -141,12 +142,17 @@ export function createReleaseStore(directory){
   const root=directory&&resolve(directory,'skygate-releases');
   const required=()=>{if(!root)throw new ReleaseError('Persistent storage is not configured',503);};
   async function index(){if(!root)return {active:null,previous:null,revisions:[]};try{return JSON.parse(await readFile(resolve(root,'index.json'),'utf8'));}catch(e){if(e.code==='ENOENT')return {active:null,previous:null,revisions:[]};throw e;}}
-  async function atomic(file,body){await mkdir(root,{recursive:true});const tmp=file+'.'+randomUUID()+'.tmp';await writeFile(tmp,JSON.stringify(body),{mode:0o600});await rename(tmp,file);}
+  async function syncFile(path){const fd=await open(path,'r');try{await fd.sync();}finally{await fd.close();}}
+  async function atomic(file,body){await mkdir(root,{recursive:true});const tmp=file+'.'+randomUUID()+'.tmp';await writeFile(tmp,JSON.stringify(body),{mode:0o600});await syncFile(tmp);await rename(tmp,file);await syncFile(root);}
   const serial=fn=>{const result=queue.then(fn);queue=result.catch(()=>{});return result;};
   async function revision(id){if(!/^[a-f0-9-]{36}$/.test(id||''))throw new ReleaseError('Release not found',404);const i=await index();if(!i.revisions.some(r=>r.id===id))throw new ReleaseError('Release not found',404);return JSON.parse(await readFile(resolve(root,id+'.json'),'utf8'));}
   async function summary(){const i=await index();return {...i,available:!!root};}
-  async function stage(body){return serial(async()=>{
+  async function stage(body,importId=null){return serial(async()=>{
     required();const overrides=body.overrides||{};
+    const importDigest=createHash('sha256').update(JSON.stringify(body)).digest('hex');
+    if(importId){
+      if(!/^[a-f0-9-]{36}$/.test(importId))fail('Invalid imported release ID');
+    }
     if(!overrides||typeof overrides!=='object'||Array.isArray(overrides)||Object.keys(overrides).length>100)fail('Invalid asset overrides');
     const items=[],mapping={};let size=0;
     for(const [key,item] of Object.entries(overrides)){
@@ -154,12 +160,21 @@ export function createReleaseStore(directory){
       const decoded=decodeOverride(key,item);size+=decoded.bytes.length;if(size>24*1024*1024)fail('Combined custom assets exceed 24 MB');items.push(decoded);mapping[key]={file:decoded.file,mime:decoded.mime};
     }
     const project=validateProject(body.project,Object.keys(overrides));
+    if(importId){
+      const prior=(await index()).revisions.find(r=>r.id===importId);
+      if(prior){
+        if((await revision(importId)).importDigest!==importDigest)fail('Imported release identity changed');
+        for(const item of items){const bytes=await readFile(resolve(root,'media',item.file));if(!bytes.equals(item.bytes))fail('Stored media checksum mismatch');}
+        return {id:importId,createdAt:prior.createdAt};
+      }
+    }
     const i=await index();if(i.revisions.length>=24)throw new ReleaseError('Release archive is full (24 snapshots). Export a backup before requesting archive maintenance.',409);
     const used=i.revisions.reduce((n,r)=>n+(r.size||0),0);if(used+size>350*1024*1024)throw new ReleaseError('Release archive storage limit reached',409);
-    const id=randomUUID(),createdAt=new Date().toISOString();
+    const id=importId||randomUUID(),createdAt=new Date().toISOString();
     await mkdir(resolve(root,'media'),{recursive:true});
-    for(const item of items){try{await writeFile(resolve(root,'media',item.file),item.bytes,{flag:'wx',mode:0o600});}catch(e){if(e.code!=='EEXIST')throw e;}}
-    const doc={id,createdAt,project,overrides:mapping};await atomic(resolve(root,id+'.json'),doc);
+    for(const item of items){const path=resolve(root,'media',item.file);try{await writeFile(path,item.bytes,{flag:'wx',mode:0o600});await syncFile(path);}catch(e){if(e.code!=='EEXIST')throw e;if(!(await readFile(path)).equals(item.bytes))fail('Stored media checksum mismatch');}}
+    if(items.length)await syncFile(resolve(root,'media'));
+    const doc={id,createdAt,project,overrides:mapping,...(importId?{importDigest}:{})};await atomic(resolve(root,id+'.json'),doc);
     i.revisions.unshift({id,createdAt,name:project.projectName,published:false,size});await atomic(resolve(root,'index.json'),i);
     return {id,createdAt};
   });}
@@ -173,6 +188,40 @@ export function createReleaseStore(directory){
     i.previous=i.active;i.active=id;await atomic(resolve(root,'index.json'),i);return {...i,available:true};
   });}
   async function live(){const i=await index();return i.active?revision(i.active):null;}
+  async function readiness(){
+    let i;
+    if(root){
+      try{i=JSON.parse(await readFile(resolve(root,'index.json'),'utf8'));}
+      catch(error){
+        if(error.code!=='ENOENT')throw error;
+        // A genuinely new store uses the bundled game. Losing an index from
+        // an existing archive must not silently select that fallback.
+        let names=[];try{names=await readdir(root);}catch(e){if(e.code!=='ENOENT')throw e;}
+        if(names.some(name=>name!=='media'))throw new ReleaseError('Release index is unavailable',503);
+        if(names.includes('media')&&(await readdir(resolve(root,'media'))).length)throw new ReleaseError('Release index is unavailable',503);
+        i={active:null,previous:null,revisions:[]};
+      }
+    }else i={active:null,previous:null,revisions:[]};
+    if(!i||typeof i!=='object'||Array.isArray(i)||!Array.isArray(i.revisions)||i.revisions.length>24||
+       !(i.active===null||typeof i.active==='string'&&/^[a-f0-9-]{36}$/.test(i.active))||
+       i.revisions.some(r=>!r||typeof r.id!=='string'||!/^[a-f0-9-]{36}$/.test(r.id))||
+       new Set(i.revisions.map(r=>r.id)).size!==i.revisions.length)throw new ReleaseError('Invalid release index',503);
+    if(i.active===null)return;
+    if(!i.revisions.some(r=>r.id===i.active&&r.published===true))throw new ReleaseError('Active release is not published',503);
+    const doc=await revision(i.active);
+    if(doc.id!==i.active||!doc.overrides||typeof doc.overrides!=='object'||Array.isArray(doc.overrides)||Object.keys(doc.overrides).length>100)throw new ReleaseError('Invalid active release',503);
+    validateProject(doc.project,Object.keys(doc.overrides));
+    for(const item of Object.values(doc.overrides)){
+      if(!item||!(/^[a-f0-9]{64}\.(png|webp|mp3|ogg|wav)$/).test(item.file))throw new ReleaseError('Invalid release media',503);
+      const fd=await open(resolve(root,'media',item.file),constants.O_RDONLY|constants.O_NOFOLLOW);
+      try{
+        const info=await fd.stat();
+        if(!info.isFile()||info.nlink!==1||info.size<1)throw new ReleaseError('Release media is unavailable',503);
+        const result=await fd.read(Buffer.alloc(1),0,1,0);
+        if(result.bytesRead!==1)throw new ReleaseError('Release media is unreadable',503);
+      }finally{await fd.close();}
+    }
+  }
   async function media(file,privateRoute){
     if(!/^[a-f0-9]{64}\.(png|webp|mp3|ogg|wav)$/.test(file))throw new ReleaseError('Media not found',404);
     const i=await index();let item;
@@ -180,5 +229,5 @@ export function createReleaseStore(directory){
     if(!item)throw new ReleaseError('Media not found',404);
     const path=resolve(root,'media',file),info=await stat(path);return {path,size:info.size,mime:item.mime};
   }
-  return {summary,stage,activate,revision,live,media};
+  return {summary,stage,activate,revision,live,media,readiness};
 }

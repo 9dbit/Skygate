@@ -4,6 +4,7 @@
   let inventory=null,selected=null,previewReady=false,busy=false,previewKind='none',previewTimeout=null,previewSerial=0;
   const message=text=>E('releaseStatus').textContent=text;
   function controls(){
+    const exportButton=E('exportPlayground');if(exportButton)exportButton.disabled=busy;
     E('prepareRelease').disabled=busy||!inventory?.available;
     E('publishRelease').disabled=busy||previewKind!=='snapshot'||!previewReady||!selected||selected===inventory?.active;
     E('rollbackRelease').disabled=busy||!inventory?.available||(!inventory.active&&!inventory.previous);
@@ -63,6 +64,16 @@
     finally{busy=false;controls();}
   }
   const base64=blob=>new Promise((yes,no)=>{const reader=new FileReader();reader.onload=()=>yes(reader.result.split(',')[1]);reader.onerror=()=>no(Error('Upload tidak dapat dibaca'));reader.readAsDataURL(blob);});
+  E('exportPlayground')?.addEventListener('click',()=>void run(async()=>{
+    const bundle=await window.SKYGATE_STUDIO.getPublishBundle(),overrides={};let size=0;
+    for(const [key,original] of bundle.overrides){
+      const blob=key.startsWith('asset:')?await window.SkygateImageOptimizer.encode(original,{key}):original;
+      size+=blob.size;if(size>24*1024*1024)throw Error('Total aset maksimal 24 MB');
+      overrides[key]={mime:blob.type,data:await base64(blob)};
+    }
+    const payload={format:'playground.studio.v1',game:'skygate-5000',name:bundle.project.projectName||'Skygate Studio',payload:{project:bundle.project,overrides}};
+    const url=URL.createObjectURL(new Blob([JSON.stringify(payload)],{type:'application/json'})),link=document.createElement('a');link.href=url;link.download='skygate-playground.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),5000);message('Paket diunduh. Unggah melalui Playground → Rilis Studio.');
+  }));
   E('releaseBtn').onclick=()=>{
     E('releaseDialog').showModal();
     draftPreview();

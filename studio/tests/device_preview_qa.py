@@ -13,6 +13,17 @@ import time
 import urllib.request
 from playwright.sync_api import sync_playwright
 
+def wait_eval(page, predicate, timeout=30000):
+    deadline=time.monotonic()+timeout/1000
+    last=None
+    while time.monotonic()<deadline:
+        try:
+            if page.evaluate(predicate): return
+        except Exception as error:
+            last=error
+        page.wait_for_timeout(50)
+    raise AssertionError(f"Timed out waiting for browser predicate: {last or predicate}")
+
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'qa-device'
 OUT.mkdir(exist_ok=True)
@@ -66,8 +77,8 @@ try:
             errors=[]
             page.on('pageerror',lambda error: errors.append(str(error)))
             page.goto(base+'/studio/',wait_until='domcontentloaded')
-            page.wait_for_function('window.SKYGATE_CANVAS?.session() != null',timeout=45000)
-            page.wait_for_function('window.SkygateDevicePreview?.profile.width === 393')
+            wait_eval(page, "() => window.SKYGATE_CANVAS?.session() != null",timeout=45000)
+            wait_eval(page, "() => window.SkygateDevicePreview?.profile.width === 393")
             page.wait_for_timeout(200)
             results.append(dict(browser=name,mode='live',**verify(page,'gameCanvas')))
             assert 'iPhone 15 Pro' in page.locator('.workspace-header h1').inner_text()
@@ -75,8 +86,8 @@ try:
             page.screenshot(path=str(OUT/f'{name}-desktop-live.png'),full_page=True)
             # Switch only the disposable local browser draft. No Publish action.
             page.locator('#editModeBtn').click()
-            page.wait_for_function("document.getElementById('gameCanvas').getAttribute('src').includes('editor-preview')")
-            page.wait_for_function("document.getElementById('gameCanvas').contentDocument?.documentElement.dataset.boot === 'entered'",timeout=45000)
+            wait_eval(page, "() => document.getElementById('gameCanvas').getAttribute('src').includes('editor-preview')")
+            wait_eval(page, "() => document.getElementById('gameCanvas').contentDocument?.documentElement.dataset.boot === 'entered'",timeout=45000)
             page.wait_for_timeout(300)
             original=page.evaluate('JSON.stringify(window.SKYGATE_STUDIO.getState())')
             url=page.locator('#gameCanvas').get_attribute('src')
@@ -110,7 +121,7 @@ try:
             page.screenshot(path=str(OUT/f'{name}-mobile-draft.png'),full_page=True)
             page.locator('#releaseBtn').click()
             page.locator('#releaseFrame').wait_for(state='visible',timeout=45000)
-            page.wait_for_function("document.getElementById('releaseFrame').contentDocument?.documentElement.dataset.boot === 'entered'",timeout=45000)
+            wait_eval(page, "() => document.getElementById('releaseFrame').contentDocument?.documentElement.dataset.boot === 'entered'",timeout=45000)
             page.wait_for_timeout(200)
             results.append(dict(browser=name,mode='publish-review',**verify(page,'releaseFrame')))
             page.screenshot(path=str(OUT/f'{name}-publish-review.png'),full_page=True)

@@ -72,7 +72,7 @@ test('protected Studio uses the resolved path for authentication', async t => {
     for (const auth of ['Bearer invalid', 'Basic invalid',
       'Basic ' + Buffer.from('qa:wrong-password').toString('base64'),
       'Basic ' + Buffer.from('other:test-only-do-not-use').toString('base64')]) {
-      assert.equal((await get(port, '/studio/', { auth })).status, 401);
+      assert([401,429].includes((await get(port, '/studio/', { auth })).status));
     }
   });
   await t.test('authorized editor, assets and encoded paths load without cache', async () => {
@@ -138,8 +138,8 @@ test('unconfigured local development still loads Studio', async t => {
   assert.equal((await get(port, '/studio/')).status, 200);
 });
 
-test('explicit public Studio testing opens editor and drafts while retaining request protections', async t => {
-  const port = await start(t, { SKYGATE_STUDIO_PUBLIC_TESTING: 'true' });
+test('explicit public Studio testing is development-only and retains request protections', async t => {
+  const port = await start(t, { NODE_ENV: 'development', SKYGATE_STUDIO_PUBLIC_TESTING: 'true', SKYGATE_STUDIO_REQUIRE_AUTH: '' });
   for (const path of ['/studio/', '/studio/project.json', '/studio/preview/', '/studio/editor-preview/', '/studio/api/releases']) {
     assert.equal((await get(port, path)).status, 200, path);
   }

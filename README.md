@@ -119,7 +119,8 @@ The v0.4–v0.8 sections below describe historical changes. Older statements tha
 
 - `/` or `/studio/` - studio editor (optional password protection) (mobile 9:16 preview, edit layers, asset swap, audio, math, win, jackpot settings)
 - `/play/` - illustrated portrait game (virtual credits)
-- `/health` - Railway liveness endpoint
+- `/health` - Railway and GameOps public-game readiness (503 when release storage or required assets cannot be read)
+- `/livez` - process-only liveness; not the deployment readiness gate
 
 ### Run
 
