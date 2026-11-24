@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, readFile, writeFile, rename, stat, open } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, rename, stat, open, readdir } from 'node:fs/promises';
+import { constants } from 'node:fs';
 import { resolve } from 'node:path';
 import math from './studio/math/engine.js';
 import studioMath from './studio/math/studio_math.js';
@@ -187,6 +188,40 @@ export function createReleaseStore(directory){
     i.previous=i.active;i.active=id;await atomic(resolve(root,'index.json'),i);return {...i,available:true};
   });}
   async function live(){const i=await index();return i.active?revision(i.active):null;}
+  async function readiness(){
+    let i;
+    if(root){
+      try{i=JSON.parse(await readFile(resolve(root,'index.json'),'utf8'));}
+      catch(error){
+        if(error.code!=='ENOENT')throw error;
+        // A genuinely new store uses the bundled game. Losing an index from
+        // an existing archive must not silently select that fallback.
+        let names=[];try{names=await readdir(root);}catch(e){if(e.code!=='ENOENT')throw e;}
+        if(names.some(name=>name!=='media'))throw new ReleaseError('Release index is unavailable',503);
+        if(names.includes('media')&&(await readdir(resolve(root,'media'))).length)throw new ReleaseError('Release index is unavailable',503);
+        i={active:null,previous:null,revisions:[]};
+      }
+    }else i={active:null,previous:null,revisions:[]};
+    if(!i||typeof i!=='object'||Array.isArray(i)||!Array.isArray(i.revisions)||i.revisions.length>24||
+       !(i.active===null||typeof i.active==='string'&&/^[a-f0-9-]{36}$/.test(i.active))||
+       i.revisions.some(r=>!r||typeof r.id!=='string'||!/^[a-f0-9-]{36}$/.test(r.id))||
+       new Set(i.revisions.map(r=>r.id)).size!==i.revisions.length)throw new ReleaseError('Invalid release index',503);
+    if(i.active===null)return;
+    if(!i.revisions.some(r=>r.id===i.active&&r.published===true))throw new ReleaseError('Active release is not published',503);
+    const doc=await revision(i.active);
+    if(doc.id!==i.active||!doc.overrides||typeof doc.overrides!=='object'||Array.isArray(doc.overrides)||Object.keys(doc.overrides).length>100)throw new ReleaseError('Invalid active release',503);
+    validateProject(doc.project,Object.keys(doc.overrides));
+    for(const item of Object.values(doc.overrides)){
+      if(!item||!(/^[a-f0-9]{64}\.(png|webp|mp3|ogg|wav)$/).test(item.file))throw new ReleaseError('Invalid release media',503);
+      const fd=await open(resolve(root,'media',item.file),constants.O_RDONLY|constants.O_NOFOLLOW);
+      try{
+        const info=await fd.stat();
+        if(!info.isFile()||info.nlink!==1||info.size<1)throw new ReleaseError('Release media is unavailable',503);
+        const result=await fd.read(Buffer.alloc(1),0,1,0);
+        if(result.bytesRead!==1)throw new ReleaseError('Release media is unreadable',503);
+      }finally{await fd.close();}
+    }
+  }
   async function media(file,privateRoute){
     if(!/^[a-f0-9]{64}\.(png|webp|mp3|ogg|wav)$/.test(file))throw new ReleaseError('Media not found',404);
     const i=await index();let item;
@@ -194,5 +229,5 @@ export function createReleaseStore(directory){
     if(!item)throw new ReleaseError('Media not found',404);
     const path=resolve(root,'media',file),info=await stat(path);return {path,size:info.size,mime:item.mime};
   }
-  return {summary,stage,activate,revision,live,media};
+  return {summary,stage,activate,revision,live,media,readiness};
 }
