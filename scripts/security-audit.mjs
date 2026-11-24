@@ -29,7 +29,7 @@ assert(docker.includes('COPY --chown=1000:1000'));
 assert(docker.includes('NODE_OPTIONS=--disable-proto=throw'));
 assert(read('.dockerignore').includes('studio/tests'));
 
-const runtimeRoots=['server.mjs','agency-runtime.mjs','agency-wallet.cjs','agency-studio.mjs','gameops-heartbeat.cjs','release-store.mjs','play','studio'];
+const runtimeRoots=['server.mjs','agency-runtime.mjs','agency-wallet.cjs','agency-studio.mjs','gameops-heartbeat.cjs','release-store.mjs','release-storage.mjs','release-readiness.mjs','play','studio'];
 const files=[];
 function collect(p){
   const full=resolve(root,p),st=statSync(full);

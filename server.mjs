@@ -1,5 +1,7 @@
 import {createNative} from './agency-runtime.mjs';
 import {mkdirSync,chownSync} from 'node:fs';
+import {prepareReleaseOwnership} from './release-storage.mjs';
+import {createReadinessProbe} from './release-readiness.mjs';
 import { startBridge } from './gameops-heartbeat.cjs';
 import { createServer } from 'node:http';
 import { timingSafeEqual, randomBytes, createHash } from 'node:crypto';
@@ -38,12 +40,23 @@ if(process.env.NODE_ENV==='production'&&publicStudioTesting)throw Error('Public 
 // Root is used only long enough to prepare Railway's mounted volume. All
 // request handling, release writes and wallet state then run as uid/gid 1000.
 if(process.getuid?.()===0){
-  if(process.env.RAILWAY_VOLUME_MOUNT_PATH==='/data'){mkdirSync('/data',{recursive:true});chownSync('/data',1000,1000);}
+  if(process.env.RAILWAY_VOLUME_MOUNT_PATH==='/data'){
+    mkdirSync('/data',{recursive:true});
+    if(!process.env.SKYGATE_RELEASE_DIR||resolve(process.env.SKYGATE_RELEASE_DIR)==='/data'){
+      const migration=prepareReleaseOwnership('/data');
+      if(migration.changed)console.info('[release-storage] ownership_prepared '+JSON.stringify(migration));
+    }
+    chownSync('/data',1000,1000);
+  }
+  process.setgroups([]);
   process.setgid(1000);process.setuid(1000);
+  if(process.getuid()!==1000||process.getgid()!==1000||process.getgroups().some(group=>group!==1000))throw Error('Skygate privilege drop failed');
 }
 if(process.getuid?.()===0)throw Error('Refusing to serve Skygate as root');
 const releases=createReleaseStore(process.env.SKYGATE_RELEASE_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || (process.env.NODE_ENV==='production'?null:resolve(root,'.local-data')));
 const native=createNative({releases});
+const readiness=createReadinessProbe({releases,playDirectory:resolve(root,'play')});
+let readinessFailure;
 const csrf=randomBytes(32).toString('hex');
 const json=(res,status,value)=>{res.writeHead(status,{...base,'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(value));};
 async function readBody(req){
@@ -102,10 +115,20 @@ const server=createServer(async(req,res)=>{
   if(native.enabled && (raw==='/studio'||raw.startsWith('/studio/'))){json(res,404,{error:'Studio unavailable on native runtime'});return;}
   const api=raw.startsWith('/studio/api/');
   if(!['GET','HEAD'].includes(req.method||'')&&!(api&&req.method==='POST')){res.writeHead(405,{...base,Allow:'GET, HEAD'});res.end();return;}
-  if(raw==='/health') {
-    native.health(); // readiness check without exposing database, wallet or source metadata
-    res.writeHead(200,{...base,'Content-Type':'application/json','Cache-Control':'no-store'});
-    res.end(req.method==='HEAD'?'':JSON.stringify({ok:true,service:native.enabled?'skygate-agency':'skygate-studio',version}));return;
+  if(raw==='/health'||raw==='/livez') {
+    let ok=true;
+    if(raw==='/health')try{
+      native.health();
+      await readiness();
+      if(readinessFailure)console.info('[readiness] public_game_ready');
+      readinessFailure=null;
+    }catch(error){
+      ok=false;const code=error.code||'INVALID_RELEASE';
+      if(readinessFailure!==code)console.error('[readiness] public_game_unavailable '+code);
+      readinessFailure=code;
+    }
+    res.writeHead(ok?200:503,{...base,'Content-Type':'application/json','Cache-Control':'no-store'});
+    res.end(req.method==='HEAD'?'':JSON.stringify({ok,service:native.enabled?'skygate-agency':'skygate-studio',version}));return;
   }
   // Only the two app directories are web roots; repository files are not routes.
   if(raw!=='/'&&raw!=='/studio'&&!raw.startsWith('/studio/')&&raw!=='/play'&&!raw.startsWith('/play/')){res.writeHead(404,base);res.end('Not Found');return;}
